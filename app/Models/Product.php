@@ -92,13 +92,16 @@ class Product extends Model
         return (int) round((($this->price - $this->sale_price) / $this->price) * 100);
     }
 
-    public function primaryImage(): string
+    public function primaryImage(): ?string
     {
         $images = $this->images ?? [];
-        if (!empty($images)) {
-            return asset('storage/' . $images[0]);
+        if (empty($images)) return null;
+        $first = $images[0];
+        // Support full URLs (Unsplash, CDN, etc.)
+        if (str_starts_with($first, 'http://') || str_starts_with($first, 'https://')) {
+            return $first;
         }
-        return asset('images/placeholder-product.jpg');
+        return asset('storage/' . $first);
     }
 
     public function averageRating(): float
