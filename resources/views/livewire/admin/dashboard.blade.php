@@ -1,0 +1,366 @@
+{{-- resources/views/livewire/admin/dashboard.blade.php --}}
+<div class="space-y-6">
+
+    {{-- ══════════════════════════════════════════════════════
+         PAGE HEADER
+    ══════════════════════════════════════════════════════ --}}
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="font-[Poppins] font-bold text-xl text-[#0F172A]">Dashboard Overview</h2>
+            <p class="text-sm text-[#64748B] mt-0.5">{{ now()->format('l, d F Y') }}</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button class="btn-secondary btn-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Export Report
+            </button>
+            <button class="btn-primary btn-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add Product
+            </button>
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════════════════
+         KPI CARDS
+    ══════════════════════════════════════════════════════ --}}
+    @php
+    $kpis = [
+        [
+            'label'   => 'Total Revenue',
+            'value'   => 'ETB 284,500',
+            'change'  => '+12.5%',
+            'up'      => true,
+            'period'  => 'vs last month',
+            'icon'    => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+            'bg'      => 'bg-[#FFFBEB]',
+            'icon_color' => 'text-[#F59E0B]',
+            'icon_bg' => 'bg-[#FEF3C7]',
+        ],
+        [
+            'label'   => 'Total Orders',
+            'value'   => '1,248',
+            'change'  => '+8.2%',
+            'up'      => true,
+            'period'  => 'vs last month',
+            'icon'    => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+            'bg'      => 'bg-[#EFF6FF]',
+            'icon_color' => 'text-blue-600',
+            'icon_bg' => 'bg-blue-100',
+        ],
+        [
+            'label'   => 'Active Customers',
+            'value'   => '4,831',
+            'change'  => '+5.7%',
+            'up'      => true,
+            'period'  => 'vs last month',
+            'icon'    => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+            'bg'      => 'bg-[#F0FDF4]',
+            'icon_color' => 'text-green-600',
+            'icon_bg' => 'bg-green-100',
+        ],
+        [
+            'label'   => 'Products Listed',
+            'value'   => '526',
+            'change'  => '-2.1%',
+            'up'      => false,
+            'period'  => 'vs last month',
+            'icon'    => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+            'bg'      => 'bg-[#F5F3FF]',
+            'icon_color' => 'text-purple-600',
+            'icon_bg' => 'bg-purple-100',
+        ],
+    ];
+    @endphp
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        @foreach($kpis as $kpi)
+        <div class="stat-card">
+            <div class="w-12 h-12 rounded-xl {{ $kpi['icon_bg'] }} flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6 {{ $kpi['icon_color'] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $kpi['icon'] }}"/>
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <p class="text-xs text-[#64748B] font-medium uppercase tracking-wider mb-1">{{ $kpi['label'] }}</p>
+                <p class="font-[Poppins] font-bold text-xl text-[#0F172A] mb-1">{{ $kpi['value'] }}</p>
+                <div class="flex items-center gap-1.5">
+                    <span class="flex items-center gap-0.5 text-xs font-bold {{ $kpi['up'] ? 'text-green-600' : 'text-red-500' }}">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="{{ $kpi['up'] ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7' }}"/>
+                        </svg>
+                        {{ $kpi['change'] }}
+                    </span>
+                    <span class="text-xs text-[#94A3B8]">{{ $kpi['period'] }}</span>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+
+    {{-- ══════════════════════════════════════════════════════
+         CHARTS ROW
+    ══════════════════════════════════════════════════════ --}}
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+        {{-- Revenue Chart (Placeholder) --}}
+        <div class="card xl:col-span-2 p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-[#0F172A]">Revenue Overview</h3>
+                    <p class="text-xs text-[#64748B] mt-0.5">Monthly revenue for 2024</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="px-3 py-1.5 text-xs font-semibold bg-[#0F172A] text-white rounded-lg">Monthly</button>
+                    <button class="px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:bg-[#F1F5F9] rounded-lg transition-colors">Weekly</button>
+                    <button class="px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:bg-[#F1F5F9] rounded-lg transition-colors">Daily</button>
+                </div>
+            </div>
+
+            {{-- Chart Visualization (CSS bars) --}}
+            <div class="flex items-end gap-2 h-40 mb-3">
+                @php
+                $bars = [
+                    ['h' => 45, 'label' => 'Jan', 'val' => '18.2K'],
+                    ['h' => 62, 'label' => 'Feb', 'val' => '24.8K'],
+                    ['h' => 55, 'label' => 'Mar', 'val' => '21.5K'],
+                    ['h' => 78, 'label' => 'Apr', 'val' => '31.2K'],
+                    ['h' => 68, 'label' => 'May', 'val' => '27.1K'],
+                    ['h' => 88, 'label' => 'Jun', 'val' => '35.6K'],
+                    ['h' => 72, 'label' => 'Jul', 'val' => '28.8K'],
+                    ['h' => 95, 'label' => 'Aug', 'val' => '38.2K'],
+                    ['h' => 83, 'label' => 'Sep', 'val' => '33.4K'],
+                    ['h' => 76, 'label' => 'Oct', 'val' => '30.5K'],
+                    ['h' => 90, 'label' => 'Nov', 'val' => '36.1K'],
+                    ['h' => 100, 'label' => 'Dec', 'val' => '40.2K'],
+                ];
+                @endphp
+                @foreach($bars as $i => $bar)
+                <div class="flex-1 flex flex-col items-center gap-1 group relative" x-data>
+                    <div class="w-full relative">
+                        {{-- Tooltip --}}
+                        <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#0F172A] text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                            ETB {{ $bar['val'] }}
+                        </div>
+                        {{-- Bar --}}
+                        <div class="w-full rounded-t-md {{ $i === 11 ? 'bg-[#F59E0B]' : 'bg-[#CBD5E1] group-hover:bg-[#0F172A]' }} transition-all duration-300"
+                             style="height: {{ $bar['h'] * 1.4 }}px;">
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            <div class="flex items-center gap-2">
+                @foreach($bars as $bar)
+                <span class="flex-1 text-center text-[10px] text-[#94A3B8]">{{ $bar['label'] }}</span>
+                @endforeach
+            </div>
+
+            {{-- Legend --}}
+            <div class="flex items-center gap-5 mt-5 pt-5 border-t border-[#F1F5F9]">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-sm bg-[#F59E0B]"></span>
+                    <span class="text-xs text-[#64748B]">Current Month</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-sm bg-[#CBD5E1]"></span>
+                    <span class="text-xs text-[#64748B]">Previous Months</span>
+                </div>
+                <div class="ml-auto text-right">
+                    <p class="text-xs text-[#64748B]">Year Total</p>
+                    <p class="font-[Poppins] font-bold text-sm text-[#0F172A]">ETB 365,600</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Order Status Donut --}}
+        <div class="card p-6">
+            <h3 class="font-[Poppins] font-bold text-[#0F172A] mb-1">Order Status</h3>
+            <p class="text-xs text-[#64748B] mb-6">This month's breakdown</p>
+
+            {{-- Donut Chart (SVG) --}}
+            <div class="flex justify-center mb-6">
+                <div class="relative w-36 h-36">
+                    <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#F1F5F9" stroke-width="3"/>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#F59E0B" stroke-width="3"
+                                stroke-dasharray="42 58" stroke-dashoffset="0"/>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#3B82F6" stroke-width="3"
+                                stroke-dasharray="28 72" stroke-dashoffset="-42"/>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
+                                stroke-dasharray="20 80" stroke-dashoffset="-70"/>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#EF4444" stroke-width="3"
+                                stroke-dasharray="10 90" stroke-dashoffset="-90"/>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="font-[Poppins] font-bold text-xl text-[#0F172A]">1,248</span>
+                        <span class="text-xs text-[#64748B]">Total</span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Legend --}}
+            <div class="space-y-3">
+                @php
+                $statuses = [
+                    ['label' => 'Pending',    'count' => 248, 'pct' => '20%', 'color' => 'bg-[#F59E0B]'],
+                    ['label' => 'Processing', 'count' => 312, 'pct' => '25%', 'color' => 'bg-blue-500'],
+                    ['label' => 'Delivered',  'count' => 562, 'pct' => '45%', 'color' => 'bg-green-500'],
+                    ['label' => 'Cancelled',  'count' => 126, 'pct' => '10%', 'color' => 'bg-red-500'],
+                ];
+                @endphp
+                @foreach($statuses as $s)
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full {{ $s['color'] }}"></span>
+                        <span class="text-xs text-[#475569] font-medium">{{ $s['label'] }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-[#0F172A]">{{ $s['count'] }}</span>
+                        <span class="text-xs text-[#94A3B8]">{{ $s['pct'] }}</span>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════════════════
+         QUICK ACTIONS
+    ══════════════════════════════════════════════════════ --}}
+    <div class="card p-5">
+        <h3 class="font-[Poppins] font-bold text-[#0F172A] mb-4 text-sm">Quick Actions</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            @php
+            $actions = [
+                ['label' => 'Add Product',   'icon' => 'M12 4v16m8-8H4',         'color' => 'bg-[#FFFBEB] text-[#D97706] hover:bg-[#FEF3C7]'],
+                ['label' => 'New Order',     'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'color' => 'bg-[#EFF6FF] text-blue-600 hover:bg-blue-100'],
+                ['label' => 'Add Customer',  'icon' => 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z', 'color' => 'bg-[#F0FDF4] text-green-600 hover:bg-green-100'],
+                ['label' => 'View Reports',  'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', 'color' => 'bg-[#F5F3FF] text-purple-600 hover:bg-purple-100'],
+            ];
+            @endphp
+            @foreach($actions as $action)
+            <button class="flex items-center gap-3 p-3.5 rounded-xl {{ $action['color'] }} transition-all duration-200 text-left font-semibold text-sm">
+                <div class="w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $action['icon'] }}"/>
+                    </svg>
+                </div>
+                {{ $action['label'] }}
+            </button>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════════════════
+         BOTTOM ROW: Recent Orders + Low Stock
+    ══════════════════════════════════════════════════════ --}}
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+        {{-- Recent Orders Table --}}
+        <div class="card xl:col-span-2">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#F1F5F9]">
+                <h3 class="font-[Poppins] font-bold text-[#0F172A]">Recent Orders</h3>
+                <a href="{{ route('admin.orders') }}" class="text-xs font-semibold text-[#F59E0B] hover:text-[#D97706] flex items-center gap-1">
+                    View All
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Products</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php
+                        $orders = [
+                            ['id' => '#ORD-1024', 'customer' => 'Selam T.',    'items' => 3, 'amount' => '4,200', 'status' => 'Delivered',  'status_class' => 'badge-success', 'date' => '2 min ago'],
+                            ['id' => '#ORD-1023', 'customer' => 'Yonas B.',    'items' => 1, 'amount' => '1,850', 'status' => 'Processing', 'status_class' => 'badge-info',    'date' => '18 min ago'],
+                            ['id' => '#ORD-1022', 'customer' => 'Hana G.',     'items' => 2, 'amount' => '2,750', 'status' => 'Pending',    'status_class' => 'badge-warning', 'date' => '45 min ago'],
+                            ['id' => '#ORD-1021', 'customer' => 'Dawit A.',    'items' => 5, 'amount' => '8,400', 'status' => 'Delivered',  'status_class' => 'badge-success', 'date' => '1 hr ago'],
+                            ['id' => '#ORD-1020', 'customer' => 'Mekdes F.',   'items' => 2, 'amount' => '3,100', 'status' => 'Cancelled',  'status_class' => 'badge-danger',  'date' => '2 hr ago'],
+                            ['id' => '#ORD-1019', 'customer' => 'Bereket M.',  'items' => 1, 'amount' => '890',   'status' => 'Processing', 'status_class' => 'badge-info',    'date' => '3 hr ago'],
+                        ];
+                        @endphp
+                        @foreach($orders as $order)
+                        <tr>
+                            <td>
+                                <span class="font-mono text-xs font-bold text-[#0F172A]">{{ $order['id'] }}</span>
+                            </td>
+                            <td>
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-full bg-[#0F172A] flex items-center justify-center">
+                                        <span class="text-[#F59E0B] text-[10px] font-bold">{{ substr($order['customer'], 0, 1) }}</span>
+                                    </div>
+                                    <span class="text-sm font-medium text-[#0F172A]">{{ $order['customer'] }}</span>
+                                </div>
+                            </td>
+                            <td><span class="text-sm text-[#475569]">{{ $order['items'] }} item{{ $order['items'] > 1 ? 's' : '' }}</span></td>
+                            <td><span class="font-semibold text-sm text-[#0F172A]">ETB {{ $order['amount'] }}</span></td>
+                            <td><span class="badge {{ $order['status_class'] }}">{{ $order['status'] }}</span></td>
+                            <td><span class="text-xs text-[#94A3B8]">{{ $order['date'] }}</span></td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- Low Stock Alert --}}
+        <div class="card">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-[#F1F5F9]">
+                <h3 class="font-[Poppins] font-bold text-[#0F172A] text-sm">Low Stock Alerts</h3>
+                <span class="badge badge-danger">5 Items</span>
+            </div>
+            <div class="divide-y divide-[#F1F5F9]">
+                @php
+                $lowStock = [
+                    ['name' => 'Wireless Headphones', 'sku' => 'SKU-001', 'stock' => 3,  'max' => 50],
+                    ['name' => 'Smart Watch Pro',      'sku' => 'SKU-015', 'stock' => 6,  'max' => 100],
+                    ['name' => 'Leather Weekend Bag',  'sku' => 'SKU-023', 'stock' => 2,  'max' => 30],
+                    ['name' => 'Bluetooth Speaker',    'sku' => 'SKU-041', 'stock' => 8,  'max' => 80],
+                    ['name' => 'Running Shoes Pro',    'sku' => 'SKU-057', 'stock' => 4,  'max' => 60],
+                ];
+                @endphp
+                @foreach($lowStock as $item)
+                <div class="px-5 py-3.5">
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-[#0F172A] truncate">{{ $item['name'] }}</p>
+                            <p class="text-xs text-[#94A3B8]">{{ $item['sku'] }}</p>
+                        </div>
+                        <span class="badge badge-danger shrink-0">{{ $item['stock'] }} left</span>
+                    </div>
+                    {{-- Progress Bar --}}
+                    <div class="w-full h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden">
+                        <div class="h-full rounded-full {{ $item['stock'] <= 3 ? 'bg-red-500' : 'bg-orange-400' }}"
+                             style="width: {{ ($item['stock'] / $item['max']) * 100 }}%"></div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            <div class="p-4 border-t border-[#F1F5F9]">
+                <button class="btn-primary w-full justify-center btn-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Restock Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
