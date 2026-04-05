@@ -24,7 +24,7 @@ Route::prefix('auth')->name('auth.')->group(function () {
 | Webpage (Public Storefront) Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('/')->name('webpage.')->group(function () {
+Route::prefix('/')->name('webpage.')->middleware('website.live')->group(function () {
     Route::get('/',               App\Livewire\Webpage\Index::class)->name('home');
     Route::get('/shop',           App\Livewire\Webpage\Shop::class)->name('shop');
     Route::get('/product/{slug}', App\Livewire\Webpage\ProductDetails::class)->name('product-details');
@@ -51,6 +51,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/payments',             App\Livewire\Admin\Payment::class)->name('payments');
     Route::get('/payment-integration', App\Livewire\Admin\PaymentIntegration::class)->name('payment-integration');
     Route::get('/reports',              App\Livewire\Admin\Report::class)->name('reports');
+    Route::get('/manual-order',         App\Livewire\Admin\ManualOrder::class)->name('manual-order');
+    Route::get('/suppliers',            App\Livewire\Admin\Supplier::class)->name('suppliers');
+    Route::get('/purchasing',           App\Livewire\Admin\Purchasing::class)->name('purchasing');
+    Route::get('/website-settings',     App\Livewire\Admin\WebsiteSettings::class)->name('website-settings');
 });
 
 /*

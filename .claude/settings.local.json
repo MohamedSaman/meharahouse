@@ -7,7 +7,11 @@
       "Bash(php -l app/Livewire/Admin/Product.php)",
       "Bash(php -l app/Livewire/Admin/Order.php)",
       "Bash(php -l app/Livewire/Admin/Category.php)",
-      "Bash(php -l app/Livewire/Admin/Customer.php)"
+      "Bash(php -l app/Livewire/Admin/Customer.php)",
+      "Bash(python3:*)",
+      "Bash(php:*)",
+      "Bash(grep -n '$product->' /c/Users/MY/Documents/ssh/meharahouse/resources/views/livewire/webpage/index.blade.php)",
+      "Bash(grep:*)"
     ]
   }
 }

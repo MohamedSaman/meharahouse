@@ -16,8 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Register custom named middleware aliases
         $middleware->alias([
-            'admin' => \App\Http\Middleware\AdminMiddleware::class,
-            'staff' => \App\Http\Middleware\StaffMiddleware::class,
+            'admin'        => \App\Http\Middleware\AdminMiddleware::class,
+            'staff'        => \App\Http\Middleware\StaffMiddleware::class,
+            'website.live' => \App\Http\Middleware\CheckWebsiteLive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

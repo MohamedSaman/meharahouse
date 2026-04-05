@@ -18,7 +18,15 @@ type: project
 - Livewire components: `app/Livewire/Webpage/`
 - Views: `resources/views/livewire/webpage/`
 - Layout: `resources/views/layouts/webpage.blade.php`
-- Color theme: Navy (#0F172A) + Gold (#F59E0B) on white
+- Color theme: Deep Navy (#0F172A) + Warm Gold (#D4A017 / #B8860B) on white/cream — redesigned April 2025
+- Brand identity: "Mehra House" — sells ONLY abaya dresses and innerwear for women
+- Tagline: "Elegance in Every Thread"
+- Currency: ETB (Ethiopian Birr) — replace any old "Rs." references
+- Announcement bar: gold (#D4A017) background, white text — not dark navy
+- Navbar accent color: #D4A017 (not #F59E0B amber)
+- Logo: "MH" monogram in gold on dark navy box (no image file — text-based)
+- Footer: 4-column (Brand + Social, Quick Links, Collections, Contact) — newsletter strip above columns
+- Homepage sections: Hero (gradient navy-to-purple, no images) > Trust Strip > Categories > Featured Products > Why Choose Us > Testimonials > Newsletter CTA
 
 ### Admin Panel
 - Routes prefix: `admin/` with name prefix `admin.`
@@ -43,7 +51,7 @@ type: project
 ## Route Naming Convention
 - Auth: `auth.login`, `auth.register`, `auth.logout`
 - Webpage: `webpage.home`, `webpage.shop`, `webpage.product-details`, `webpage.cart`, `webpage.checkout`, `webpage.orders`, `webpage.about`, `webpage.contact`
-- Admin: `admin.dashboard`, `admin.orders`, `admin.products`, `admin.categories`, `admin.customers`, `admin.payments`, `admin.reports`
+- Admin: `admin.dashboard`, `admin.orders`, `admin.products`, `admin.categories`, `admin.customers`, `admin.payments`, `admin.reports`, `admin.manual-order`, `admin.suppliers`, `admin.purchasing`
 - Staff: `staff.dashboard`, `staff.orders`, `staff.customers`
 
 ## Database Schema (All Migrations Run)
@@ -58,6 +66,9 @@ type: project
 - **coupons**: id, code, type (percent/fixed), value, min_order, usage_limit, used_count, expires_at, is_active
 - **settings**: id, key, value
 - **banners**: id, title, subtitle, image, link, button_text, is_active, sort_order
+- **suppliers**: id, name, contact_person, email, phone, whatsapp, address, city, country, website, notes, is_active
+- **purchase_orders**: id, supplier_id (FK), po_number (unique), status (draft/ordered/partial/received/cancelled), subtotal, shipping_cost, total, currency (Rs.), notes, expected_date, ordered_at, received_at
+- **purchase_order_items**: id, purchase_order_id (FK cascade), product_id (FK nullable), product_name, sku, quantity_ordered, quantity_received, unit_cost, subtotal
 
 ## Seeded Demo Data
 - Admin: admin@meharahouse.com / password
@@ -67,10 +78,15 @@ type: project
 
 ## Business Logic
 - Tax: 15% of subtotal
-- Free shipping: orders >= ETB 500 (otherwise ETB 50 flat fee)
+- Free shipping: orders >= Rs. 500 (otherwise Rs. 50 flat fee)
 - Cart: logged-in users use DB (carts table), guests use session
 - Order number format: `MH-` + uppercase uniqid()
 - Product slug: Str::slug(name), guaranteed unique
+- Manual orders: stock NOT deducted on creation — deducted only on bulk confirmation in Purchasing page
+- Supplier purchasing: stock is ADDED to products only when goods are received via `receiveGoods()` in Purchasing Livewire component — quantity_received increments per item, product.stock increments accordingly; PO status moves draft→ordered→partial|received
+- PO number format: `PO-` + 6 random uppercase chars + `-YYYYMMDD` (e.g. PO-ABCDEF-20260405)
+- Supplier deletion blocked if any purchase orders exist — deactivate instead
+- Order model: items relation is `items()` (HasMany OrderItem) — NOT `orderItems()`
 
 ## Design System
 - **CSS file**: `resources/css/app.css` — Tailwind v4 with custom components
@@ -78,7 +94,8 @@ type: project
 - **Color palette**: Navy #0F172A, Gold #F59E0B, White #FFFFFF, Light Gray #F8FAFC
 
 ## Currency & Location
-- Currency: ETB (Ethiopian Birr) — format: "ETB X,XXX"
+- Currency: Rs. — format: "Rs. X,XXX" (updated April 2026 from ETB)
+- SettingSeeder: currency = 'Rs.', currency_symbol = 'Rs.'
 - Location: Bole Road, Addis Ababa, Ethiopia
 - Tagline: "Quality You Can Trust"
 - Support: support@meharahouse.com / +251 911 000 000

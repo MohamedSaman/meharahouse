@@ -146,6 +146,59 @@
                 </svg>
                 <span x-show="!sidebarCollapsed" class="text-sm">Reports</span>
             </a>
+
+            {{-- Website --}}
+            <p x-show="!sidebarCollapsed" class="sidebar-section-label">Website</p>
+
+            <a href="{{ route('admin.website-settings') }}"
+               class="sidebar-nav-item {{ request()->routeIs('admin.website-settings*') ? 'active' : '' }}"
+               :title="sidebarCollapsed ? 'Website Settings' : ''">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                </svg>
+                <span x-show="!sidebarCollapsed" class="text-sm">Website Settings</span>
+                @php $isLive = \App\Models\Setting::get('website_live', '1'); @endphp
+                <span x-show="!sidebarCollapsed"
+                      class="ml-auto w-2 h-2 rounded-full {{ ($isLive === '1' || $isLive === true) ? 'bg-emerald-400' : 'bg-red-400' }}"></span>
+            </a>
+
+            {{-- Purchasing --}}
+            <p x-show="!sidebarCollapsed" class="sidebar-section-label">Purchasing</p>
+
+            <a href="{{ route('admin.suppliers') }}"
+               class="sidebar-nav-item {{ request()->routeIs('admin.suppliers*') ? 'active' : '' }}"
+               :title="sidebarCollapsed ? 'Suppliers' : ''">
+                {{-- Factory / building icon --}}
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                <span x-show="!sidebarCollapsed" class="text-sm">Suppliers</span>
+            </a>
+
+            <a href="{{ route('admin.purchasing') }}"
+               class="sidebar-nav-item {{ request()->routeIs('admin.purchasing*') ? 'active' : '' }}"
+               :title="sidebarCollapsed ? 'Purchase Orders' : ''">
+                {{-- Clipboard / document icon --}}
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+                <span x-show="!sidebarCollapsed" class="text-sm">Purchase Orders</span>
+                @php $draftPoCount = \App\Models\PurchaseOrder::where('status','draft')->count(); @endphp
+                @if($draftPoCount > 0)
+                <span x-show="!sidebarCollapsed" class="ml-auto badge badge-gold text-[10px] py-0.5 px-2">{{ $draftPoCount }}</span>
+                @endif
+            </a>
+
+            <a href="{{ route('admin.manual-order') }}"
+               class="sidebar-nav-item {{ request()->routeIs('admin.manual-order*') ? 'active' : '' }}"
+               :title="sidebarCollapsed ? 'Manual Order' : ''">
+                {{-- Plus / pencil icon --}}
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                <span x-show="!sidebarCollapsed" class="text-sm">Manual Order</span>
+            </a>
         </nav>
 
         {{-- Sidebar Footer --}}
