@@ -8,9 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 
-#[Title('Dashboard')]
-#[Layout('layouts.auth')]
 #[Title('Sign In — Meharahouse')]
+#[Layout('layouts.auth')]
 class Login extends Component
 {
     public string $email = '';

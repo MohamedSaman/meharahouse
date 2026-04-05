@@ -11,9 +11,8 @@ use Livewire\Attributes\Layout;
 
 
 
-#[Title('Dashboard')]
-#[Layout('layouts.auth')]
 #[Title('Create Account — Meharahouse')]
+#[Layout('layouts.auth')]
 class Register extends Component
 {
     public string $name = '';
