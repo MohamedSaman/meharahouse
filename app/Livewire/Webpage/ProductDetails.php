@@ -106,20 +106,21 @@ class ProductDetails extends Component
 
     public function submitReview(): void
     {
-        if (!auth()->check()) {
-            $this->redirect(route('auth.login'));
-            return;
-        }
-
         $this->validate([
             'reviewRating'  => 'required|integer|min:1|max:5',
             'reviewComment' => 'nullable|string|max:1000',
         ]);
 
-        Review::updateOrCreate(
-            ['user_id' => auth()->id(), 'product_id' => $this->product->id],
-            ['rating' => $this->reviewRating, 'comment' => $this->reviewComment, 'is_approved' => false]
-        );
+        $name = auth()->check() ? auth()->user()->name : 'Anonymous';
+
+        Review::create([
+            'customer_name' => $name,
+            'customer_email'=> auth()->user()?->email,
+            'product_id'    => $this->product->id,
+            'rating'        => $this->reviewRating,
+            'description'   => $this->reviewComment ?: '',
+            'status'        => 'pending',
+        ]);
 
         $this->reset('reviewComment', 'reviewRating', 'showReviewForm');
         session()->flash('success', 'Review submitted for approval.');

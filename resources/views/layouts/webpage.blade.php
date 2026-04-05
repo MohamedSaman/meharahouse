@@ -8,6 +8,10 @@
     <title>@yield('title', 'Mehra House') — Elegance in Every Thread</title>
     <meta name="description" content="@yield('meta_description', 'Mehra House — Ethiopia\'s premier destination for premium abaya dresses and modest innerwear for women.')">
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('images/meharahouse-logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/meharahouse-logo.png') }}">
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

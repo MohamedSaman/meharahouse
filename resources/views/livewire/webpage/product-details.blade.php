@@ -190,10 +190,10 @@
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-full bg-[#0F172A] flex items-center justify-center">
-                                    <span class="text-[#F59E0B] text-xs font-bold">{{ strtoupper(substr($review->user->name ?? 'U', 0, 1)) }}</span>
+                                    <span class="text-[#F59E0B] text-xs font-bold">{{ strtoupper(substr($review->customer_name ?? 'A', 0, 1)) }}</span>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-semibold text-[#0F172A]">{{ $review->user->name ?? 'Anonymous' }}</p>
+                                    <p class="text-sm font-semibold text-[#0F172A]">{{ $review->customer_name ?? 'Anonymous' }}</p>
                                     <p class="text-xs text-[#94A3B8]">{{ $review->created_at->format('d M Y') }}</p>
                                 </div>
                             </div>
@@ -205,8 +205,8 @@
                                 @endfor
                             </div>
                         </div>
-                        @if($review->comment)
-                        <p class="text-sm text-[#475569] leading-relaxed">{{ $review->comment }}</p>
+                        @if($review->description)
+                        <p class="text-sm text-[#475569] leading-relaxed">{{ $review->description }}</p>
                         @endif
                     </div>
                     @endforeach

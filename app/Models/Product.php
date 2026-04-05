@@ -46,7 +46,7 @@ class Product extends Model
 
     public function reviews(): HasMany
     {
-        return $this->hasMany(Review::class)->where('is_approved', true);
+        return $this->hasMany(Review::class)->where('status', 'approved');
     }
 
     public function cartItems(): HasMany

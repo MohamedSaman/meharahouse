@@ -114,30 +114,15 @@
             </div>
         </div>
 
-    {{-- ══════════════════════ WRITE REVIEW MODAL ══════════════════════ --}}
-    {{-- Backdrop --}}
-    <div x-show="$wire.showForm"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-         style="display:none;"
-         @click.self="$wire.set('showForm', false)"
-         @keydown.escape.window="$wire.set('showForm', false)">
+        {{-- ══════════════════════ WRITE REVIEW MODAL ══════════════════════ --}}
+        @if($showForm)
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            wire:click="$set('showForm', false)">
 
-        {{-- Modal panel --}}
-        <div x-show="$wire.showForm"
-             x-transition:enter="transition ease-out duration-250"
-             x-transition:enter-start="opacity-0 scale-95 translate-y-4"
-             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-150"
-             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
-             x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-             class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
-             style="display:none;">
+           {{-- Modal panel --}}
+           <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+               wire:click.stop>
 
             {{-- Modal header --}}
             <div class="flex items-center justify-between px-6 py-4 border-b border-[#F0EDE8] bg-gradient-to-r from-[#FFFDF5] to-white shrink-0">
@@ -283,6 +268,7 @@
 
         </div>
     </div>
+    @endif
 
         {{-- ══════════════════════ FILTER + SORT ══════════════════════ --}}
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl border border-[#F0EDE8] px-5 py-4 shadow-sm">
