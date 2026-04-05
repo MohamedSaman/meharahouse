@@ -210,6 +210,41 @@
                 </svg>
                 <span x-show="!sidebarCollapsed" class="text-sm">Manual Order</span>
             </a>
+
+            {{-- Payment Management --}}
+            <p x-show="!sidebarCollapsed" class="sidebar-section-label">Payment Management</p>
+
+            <a href="{{ route('admin.supplier-payments') }}"
+               class="sidebar-nav-item {{ request()->routeIs('admin.supplier-payments*') ? 'active' : '' }}"
+               :title="sidebarCollapsed ? 'Supplier Payments' : ''">
+                {{-- Arrow up / outgoing money icon --}}
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12M3 21h18"/>
+                </svg>
+                <span x-show="!sidebarCollapsed" class="text-sm">Supplier Payments</span>
+                @php
+                    $supplierDue = \App\Models\SupplierInvoice::whereIn('status', ['pending','partial'])->count();
+                @endphp
+                @if($supplierDue > 0)
+                    <span x-show="!sidebarCollapsed" class="ml-auto badge badge-gold text-[10px] py-0.5 px-2">{{ $supplierDue }}</span>
+                @endif
+            </a>
+
+            <a href="{{ route('admin.customer-payments') }}"
+               class="sidebar-nav-item {{ request()->routeIs('admin.customer-payments*') ? 'active' : '' }}"
+               :title="sidebarCollapsed ? 'Customer Payments' : ''">
+                {{-- Arrow down / incoming money icon --}}
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6M3 3h18"/>
+                </svg>
+                <span x-show="!sidebarCollapsed" class="text-sm">Customer Payments</span>
+                @php
+                    $customerDue = \App\Models\CustomerAccount::whereIn('status', ['pending','partial'])->count();
+                @endphp
+                @if($customerDue > 0)
+                    <span x-show="!sidebarCollapsed" class="ml-auto badge badge-gold text-[10px] py-0.5 px-2">{{ $customerDue }}</span>
+                @endif
+            </a>
         </nav>
 
         {{-- Sidebar Footer --}}

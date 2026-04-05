@@ -51,7 +51,7 @@ type: project
 ## Route Naming Convention
 - Auth: `auth.login`, `auth.register`, `auth.logout`
 - Webpage: `webpage.home`, `webpage.shop`, `webpage.product-details`, `webpage.cart`, `webpage.checkout`, `webpage.orders`, `webpage.about`, `webpage.contact`, `webpage.reviews`
-- Admin: `admin.dashboard`, `admin.orders`, `admin.products`, `admin.categories`, `admin.customers`, `admin.payments`, `admin.reports`, `admin.manual-order`, `admin.suppliers`, `admin.purchasing`
+- Admin: `admin.dashboard`, `admin.orders`, `admin.products`, `admin.categories`, `admin.customers`, `admin.payments`, `admin.payment-integration`, `admin.reports`, `admin.manual-order`, `admin.suppliers`, `admin.purchasing`, `admin.website-settings`, `admin.supplier-payments`, `admin.customer-payments`
 - Staff: `staff.dashboard`, `staff.orders`, `staff.customers`
 
 ## Database Schema (All Migrations Run)
@@ -75,6 +75,29 @@ type: project
 - Staff: staff@meharahouse.com / password
 - Customers: abebe@example.com, tigist@example.com, solomon@example.com, marta@example.com, dawit@example.com (all password: password)
 - 10 categories, 30 products, 4 banners, 4 coupons (WELCOME10, SAVE50, MEHAR20, FREESHIP), 16 settings, 20 sample orders
+
+## Payment Management Module (Added April 2026)
+
+### New Database Tables
+- **supplier_invoices**: id, supplier_id (FK suppliers), invoice_number (unique), invoice_date, total_amount, paid_amount, due_amount, status (pending/partial/paid), notes
+- **supplier_payment_records**: id, supplier_invoice_id (FK), amount, payment_method (cash/bank_transfer/cheque/mobile_money), reference, paid_at, notes
+- **customer_accounts**: id, order_id (nullable FK orders nullOnDelete), customer_name, customer_phone, customer_email, total_amount, paid_amount, due_amount, status (pending/partial/paid), notes
+- **customer_payment_records**: id, customer_account_id (FK), amount, payment_type (advance/payment), payment_method (cash/bank_transfer/mobile_money/telebirr/cbebirr), reference, paid_at, notes
+
+### New Models
+- `App\Models\SupplierInvoice` — has `recalculate()` method, scopes: pending/partial/paid, statusColor()/statusLabel()
+- `App\Models\SupplierPaymentRecord` — belongs to SupplierInvoice, has methodLabel()
+- `App\Models\CustomerAccount` — has `recalculate()` method, same scopes/helpers
+- `App\Models\CustomerPaymentRecord` — belongs to CustomerAccount, has typeLabel()/methodLabel()
+
+### New Livewire Components
+- `App\Livewire\Admin\SupplierPayments` — routes to `admin.supplier-payments` (/admin/supplier-payments)
+- `App\Livewire\Admin\CustomerPayments` — routes to `admin.customer-payments` (/admin/customer-payments)
+
+### Sidebar
+- New "Payment Management" section added after "Purchasing" section in admin layout
+- Supplier Payments link shows badge count of pending+partial invoices
+- Customer Payments link shows badge count of pending+partial accounts
 
 ## Business Logic
 - Tax: 15% of subtotal

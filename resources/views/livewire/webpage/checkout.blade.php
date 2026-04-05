@@ -112,8 +112,10 @@
                     <h3 class="font-[Poppins] font-bold text-lg text-[#0F172A]">Payment Method</h3>
 
                     <div class="space-y-3">
-                        @php $methods = ['cash_on_delivery'=>['label'=>'Cash on Delivery','desc'=>'Pay when your order arrives at your door.','icon'=>'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z'], 'bank_transfer'=>['label'=>'Bank Transfer','desc'=>'Transfer to our bank account (CBE, Awash, Abyssinia).','icon'=>'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'], 'mobile_money'=>['label'=>'Mobile Money','desc'=>'Pay via Telebirr or other mobile payment services.','icon'=>'M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z']]; @endphp
-                        @foreach($methods as $key => $method)
+                        @if(empty($paymentMethods))
+                        <p class="text-sm text-slate-500 text-center py-4">No payment methods are currently available. Please contact us.</p>
+                        @endif
+                        @foreach($paymentMethods as $key => $method)
                         <label class="flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 {{ $paymentMethod === $key ? 'border-[#F59E0B] bg-[#FFFBEB]' : 'border-[#E2E8F0] hover:border-[#F59E0B]/50' }}">
                             <input wire:model="paymentMethod" type="radio" value="{{ $key }}" class="mt-1 text-[#F59E0B] focus:ring-[#F59E0B]">
                             <div class="flex items-start gap-3 flex-1">

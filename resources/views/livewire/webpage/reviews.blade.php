@@ -1,5 +1,6 @@
 {{-- resources/views/livewire/webpage/reviews.blade.php --}}
-<div x-data="{}">
+<div x-data="{ showForm: false, submitted: false }"
+     @review-submitted.window="showForm = false; submitted = true; setTimeout(() => submitted = false, 8000)">
 
     {{-- ══════════════════════ HERO ══════════════════════ --}}
     <section class="relative overflow-hidden bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] py-16 md:py-20">
@@ -28,8 +29,14 @@
     </section>
 
     {{-- ══════════════════════ SUCCESS TOAST ══════════════════════ --}}
-    @if($submitted)
-    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 8000)"
+    <div x-show="submitted"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display:none;"
          class="fixed top-24 right-4 z-50 max-w-sm w-full">
         <div class="flex items-start gap-3 p-4 bg-emerald-600 text-white rounded-2xl shadow-2xl">
             <svg class="w-6 h-6 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,12 +46,11 @@
                 <p class="font-bold text-sm">Thank you for your review!</p>
                 <p class="text-emerald-100 text-xs mt-0.5">Your review has been submitted and is pending approval. It will appear here once approved.</p>
             </div>
-            <button @click="show = false" class="ml-auto text-emerald-200 hover:text-white shrink-0">
+            <button @click="submitted = false" class="ml-auto text-emerald-200 hover:text-white shrink-0">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
     </div>
-    @endif
 
     <div class="container-page py-10 space-y-8">
 
@@ -103,7 +109,7 @@
                         <h3 class="font-[Poppins] font-bold text-lg text-[#0F172A]">Share Your Experience</h3>
                         <p class="text-sm text-slate-500 mt-1">Bought from us? Let others know what you think.</p>
                     </div>
-                    <button wire:click="openForm"
+                    <button @click="showForm = true"
                             class="btn-primary inline-flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -114,11 +120,21 @@
             </div>
         </div>
 
-        {{-- ══════════════════════ WRITE REVIEW MODAL ══════════════════════ --}}
-        @if($showForm)
-        {{-- Backdrop --}}
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-            wire:click="$set('showForm', false)">
+    </div>{{-- close container-page --}}
+
+    {{-- ══════════════════════ WRITE REVIEW MODAL ══════════════════════ --}}
+    {{-- Always in DOM, shown/hidden via Alpine x-show for instant response --}}
+    <div x-show="showForm"
+         x-on:keydown.escape.window="showForm = false"
+         style="display:none;"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click.self="showForm = false">
 
            {{-- Modal panel --}}
            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
@@ -137,7 +153,7 @@
                         <p class="text-xs text-slate-500">Your review will appear after approval</p>
                     </div>
                 </div>
-                <button wire:click="$set('showForm', false)"
+                <button @click="showForm = false"
                         class="w-9 h-9 rounded-xl bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 flex items-center justify-center transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -242,7 +258,7 @@
                     Moderated before publishing
                 </p>
                 <div class="flex items-center gap-3">
-                    <button wire:click="$set('showForm', false)" class="btn-secondary text-sm">
+                    <button @click="showForm = false" class="btn-secondary text-sm">
                         Cancel
                     </button>
                     <button wire:click="submitReview"
@@ -268,8 +284,9 @@
 
         </div>
     </div>
-    @endif
+    {{-- end modal --}}
 
+    <div class="container-page py-0 pb-10 space-y-8">
         {{-- ══════════════════════ FILTER + SORT ══════════════════════ --}}
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl border border-[#F0EDE8] px-5 py-4 shadow-sm">
             {{-- Star filter --}}
@@ -385,7 +402,7 @@
                         {{ $filterRating ? "No {$filterRating}-star reviews found. Try a different filter." : 'Be the first to share your experience with Meharahouse!' }}
                     </p>
                     @if(!$filterRating)
-                    <button wire:click="openForm" class="btn-primary">Write the First Review</button>
+                    <button @click="showForm = true" class="btn-primary">Write the First Review</button>
                     @else
                     <button wire:click="$set('filterRating', '')" class="btn-secondary">Clear Filter</button>
                     @endif
@@ -404,9 +421,10 @@
     </div>
 
     {{-- Mobile floating button --}}
-    <div x-show="!$wire.showForm && !$wire.submitted"
+    <div x-show="!showForm && !submitted"
+         style="display:none;"
          class="fixed bottom-6 right-6 z-40 lg:hidden">
-        <button wire:click="openForm"
+        <button @click="showForm = true"
                 class="flex items-center gap-2 px-5 py-3 bg-[#D4A017] text-white rounded-full shadow-2xl shadow-[#D4A017]/40 font-semibold text-sm hover:bg-[#B8860B] transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>

@@ -56,6 +56,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/suppliers',            App\Livewire\Admin\Supplier::class)->name('suppliers');
     Route::get('/purchasing',           App\Livewire\Admin\Purchasing::class)->name('purchasing');
     Route::get('/website-settings',     App\Livewire\Admin\WebsiteSettings::class)->name('website-settings');
+
+    // Payment Management
+    Route::get('/supplier-payments', App\Livewire\Admin\SupplierPayments::class)->name('supplier-payments');
+    Route::get('/customer-payments', App\Livewire\Admin\CustomerPayments::class)->name('customer-payments');
 });
 
 /*

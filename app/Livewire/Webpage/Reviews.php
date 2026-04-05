@@ -42,7 +42,7 @@ class Reviews extends Component
             'rating'            => 'required|integer|min:1|max:5',
             'title'             => 'nullable|string|max:150',
             'description'       => 'required|string|min:10|max:1000',
-            'selectedProductId' => 'nullable|integer|exists:products,id',
+            'selectedProductId' => 'nullable|integer|min:0',
         ]);
 
         Review::create([
@@ -56,9 +56,10 @@ class Reviews extends Component
         ]);
 
         $this->reset(['customerName', 'customerEmail', 'title', 'description', 'selectedProductId']);
-        $this->rating    = 5;
-        $this->showForm  = false;
-        $this->submitted = true;
+        $this->rating = 5;
+
+        // Dispatch browser event — Alpine listens to close modal and show toast
+        $this->dispatch('review-submitted');
     }
 
     public function openForm(): void

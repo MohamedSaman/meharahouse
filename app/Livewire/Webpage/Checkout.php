@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Coupon;
+use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
@@ -221,6 +222,24 @@ class Checkout extends Component
         $tax      = round($subtotal * 0.15, 2);
         $total    = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
 
-        return view('livewire.webpage.checkout', compact('subtotal', 'shipping', 'tax', 'total'));
+        // Build payment methods list from admin-enabled settings
+        $allMethods = [
+            'cash_on_delivery' => ['label' => 'Cash on Delivery',  'desc' => 'Pay when your order arrives at your door.',               'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z', 'setting' => 'payment_cod_enabled',       'default' => '1'],
+            'bank_transfer'    => ['label' => 'Bank Transfer',     'desc' => 'Transfer to our bank account (CBE, Awash, Abyssinia).', 'icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',                          'setting' => 'payment_bank_enabled',      'default' => '0'],
+            'telebirr'         => ['label' => 'Telebirr',          'desc' => 'Pay via Telebirr mobile wallet.',                       'icon' => 'M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z',                                       'setting' => 'payment_telebirr_enabled',  'default' => '0'],
+            'cbebirr'          => ['label' => 'CBE Birr',          'desc' => 'Pay via CBE Birr mobile banking.',                     'icon' => 'M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z',                                       'setting' => 'payment_cbebirr_enabled',   'default' => '0'],
+            'payhere'          => ['label' => 'PayHere',           'desc' => 'Secure online payment via PayHere gateway.',           'icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',                          'setting' => 'payment_payhere_enabled',   'default' => '0'],
+            'paypal'           => ['label' => 'PayPal',            'desc' => 'Pay securely with your PayPal account.',              'icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',                          'setting' => 'payment_paypal_enabled',    'default' => '0'],
+            'stripe'           => ['label' => 'Stripe (Card)',     'desc' => 'Pay with Visa, Mastercard, or any debit/credit card.','icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',                          'setting' => 'payment_stripe_enabled',    'default' => '0'],
+        ];
+
+        $paymentMethods = array_filter($allMethods, fn($m) => Setting::get($m['setting'], $m['default']) === '1');
+
+        // If current selection is no longer enabled, reset to first available
+        if (!empty($paymentMethods) && !array_key_exists($this->paymentMethod, $paymentMethods)) {
+            $this->paymentMethod = array_key_first($paymentMethods);
+        }
+
+        return view('livewire.webpage.checkout', compact('subtotal', 'shipping', 'tax', 'total', 'paymentMethods'));
     }
 }
