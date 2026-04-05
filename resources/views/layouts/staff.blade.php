@@ -24,11 +24,10 @@
 
         {{-- Header --}}
         <div class="flex items-center gap-3 h-16 px-4 border-b border-[#0f3d3a] shrink-0">
-            <div class="w-9 h-9 bg-[#F59E0B] rounded-lg flex items-center justify-center shrink-0">
-                <span class="text-[#0F172A] font-black text-sm font-[Poppins]">MH</span>
+            <div class="bg-white rounded-lg p-1 shrink-0">
+                <img src="{{ asset('images/meharahouse-logo.png') }}" alt="Mehra House" class="h-8 w-auto">
             </div>
             <div>
-                <span class="block font-bold text-white text-sm leading-none font-[Poppins]">Meharahouse</span>
                 <span class="block text-[#5eead4] text-[10px] font-bold tracking-widest uppercase">Staff Portal</span>
             </div>
         </div>

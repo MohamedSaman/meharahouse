@@ -289,7 +289,7 @@
             {{-- Products Grid — real data from DB --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                 @forelse($featuredProducts as $product)
-                <div class="product-card group" x-data="{ inWishlist: false }">
+                <div wire:key="featured-{{ $product->id }}" class="product-card group" x-data="{ inWishlist: false }">
                     {{-- Image --}}
                     <div class="product-img-wrap h-56 relative">
                         <img src="{{ $product->primaryImage() }}" alt="{{ $product->name }}" loading="lazy"
@@ -325,7 +325,7 @@
 
                     {{-- Info --}}
                     <div class="p-4">
-                        <p class="text-[10px] font-semibold text-[#F59E0B] uppercase tracking-wider mb-1">{{ $product->category->name }}</p>
+                        <p class="text-[10px] font-semibold text-[#F59E0B] uppercase tracking-wider mb-1">{{ $product->category?->name ?? '' }}</p>
                         <a href="{{ route('webpage.product-details', $product->slug) }}"
                            class="block font-[Poppins] font-semibold text-sm text-[#0F172A] hover:text-[#D97706] transition-colors duration-200 leading-snug mb-2">
                             {{ $product->name }}
@@ -383,7 +383,7 @@
                         <a href="{{ route('webpage.shop') }}" class="btn-primary btn-sm mt-2">Shop Sale</a>
                     </div>
                     <div class="absolute right-0 top-0 bottom-0 w-40 opacity-10">
-                        <svg class="w-full h-full" fill="currentColor" viewBox="0 0 24 24" class="text-white">
+                        <svg class="w-full h-full text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
                         </svg>
                     </div>

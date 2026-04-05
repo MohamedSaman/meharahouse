@@ -101,7 +101,7 @@
                                 @endif
                             </div>
                         </td>
-                        <td><span class="text-sm text-[#475569]">{{ $product->category->name }}</span></td>
+                        <td><span class="text-sm text-[#475569]">{{ $product->category->name ?? '—' }}</span></td>
                         <td><span class="font-mono text-xs text-[#64748B]">{{ $product->sku ?? '—' }}</span></td>
                         <td>
                             <div>

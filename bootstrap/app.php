@@ -11,6 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Tell Laravel's built-in auth middleware where the login page is
+        $middleware->redirectGuestsTo(fn () => route('auth.login'));
+
         // Register custom named middleware aliases
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,

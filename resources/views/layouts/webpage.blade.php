@@ -49,14 +49,8 @@
             <div class="flex items-center justify-between h-16 md:h-20">
 
                 {{-- Logo --}}
-                <a href="{{ route('webpage.home') }}" class="flex items-center gap-3 shrink-0">
-                    <div class="w-10 h-10 bg-[#0F172A] rounded-xl flex items-center justify-center">
-                        <span class="text-[#F59E0B] font-black text-base tracking-tight font-[Poppins]">MH</span>
-                    </div>
-                    <div class="hidden sm:block">
-                        <span class="block font-black text-[#0F172A] text-lg leading-none font-[Poppins] tracking-tight">Mehara</span>
-                        <span class="block text-[#F59E0B] text-xs font-bold tracking-widest uppercase">house</span>
-                    </div>
+                <a href="{{ route('webpage.home') }}" class="flex items-center shrink-0">
+                    <img src="{{ asset('images/meharahouse-logo.png') }}" alt="Mehra House" class="h-12 w-auto">
                 </a>
 
                 {{-- Desktop Navigation --}}
@@ -180,7 +174,7 @@
                     <a href="{{ route('webpage.about') }}" class="px-4 py-2.5 rounded-lg text-sm font-semibold text-[#475569] hover:bg-[#FFFBEB] hover:text-[#F59E0B]">About</a>
                     <a href="{{ route('webpage.contact') }}" class="px-4 py-2.5 rounded-lg text-sm font-semibold text-[#475569] hover:bg-[#FFFBEB] hover:text-[#F59E0B]">Contact</a>
                     <div class="mt-2 px-4">
-                        <a href="#" class="btn-primary w-full justify-center">Sign In</a>
+                        <a href="{{ route('auth.login') }}" class="btn-primary w-full justify-center">Sign In</a>
                     </div>
                 </nav>
             </div>
@@ -216,13 +210,9 @@
 
                 {{-- Brand --}}
                 <div>
-                    <div class="flex items-center gap-3 mb-5">
-                        <div class="w-10 h-10 bg-[#1E293B] rounded-xl flex items-center justify-center">
-                            <span class="text-[#F59E0B] font-black text-base font-[Poppins]">MH</span>
-                        </div>
-                        <div>
-                            <span class="block font-black text-white text-lg leading-none font-[Poppins]">Mehara</span>
-                            <span class="block text-[#F59E0B] text-xs font-bold tracking-widest uppercase">house</span>
+                    <div class="flex items-center mb-5">
+                        <div class="bg-white rounded-xl p-1.5 inline-block">
+                            <img src="{{ asset('images/meharahouse-logo.png') }}" alt="Mehra House" class="h-10 w-auto">
                         </div>
                     </div>
                     <p class="text-sm leading-relaxed mb-5">Your trusted destination for quality products across Ethiopia. We bring you the best at fair prices.</p>

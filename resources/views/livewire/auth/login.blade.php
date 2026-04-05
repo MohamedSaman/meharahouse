@@ -4,14 +4,8 @@
 
         {{-- Logo --}}
         <div class="text-center mb-8">
-            <a href="{{ route('webpage.home') }}" class="inline-flex items-center gap-3">
-                <div class="w-12 h-12 bg-[#0F172A] rounded-xl flex items-center justify-center">
-                    <span class="text-[#F59E0B] font-black text-lg font-[Poppins]">MH</span>
-                </div>
-                <div class="text-left">
-                    <span class="block font-black text-[#0F172A] text-xl leading-none font-[Poppins]">Meharahouse</span>
-                    <span class="block text-[#F59E0B] text-xs font-bold tracking-widest uppercase">Quality You Can Trust</span>
-                </div>
+            <a href="{{ route('webpage.home') }}" class="inline-block">
+                <img src="{{ asset('images/meharahouse-logo.png') }}" alt="Mehra House" class="h-16 w-auto mx-auto">
             </a>
         </div>
 

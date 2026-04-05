@@ -11,17 +11,19 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            ['name' => 'Electronics',   'description' => 'Latest gadgets, phones, and electronic devices.', 'sort_order' => 1],
-            ['name' => 'Clothing',      'description' => 'Men\'s, women\'s, and kids\' fashion clothing.', 'sort_order' => 2],
-            ['name' => 'Food & Drinks', 'description' => 'Fresh groceries, snacks, and beverages.', 'sort_order' => 3],
-            ['name' => 'Beauty',        'description' => 'Skincare, cosmetics, and personal care products.', 'sort_order' => 4],
-            ['name' => 'Home & Living', 'description' => 'Furniture, décor, and household essentials.', 'sort_order' => 5],
-            ['name' => 'Sports',        'description' => 'Sports equipment, activewear, and accessories.', 'sort_order' => 6],
-            ['name' => 'Books',         'description' => 'Bestselling books, textbooks, and stationery.', 'sort_order' => 7],
-            ['name' => 'Toys & Kids',   'description' => 'Educational toys, games, and children\'s products.', 'sort_order' => 8],
-            ['name' => 'Jewelry',       'description' => 'Gold, silver, and fashion jewelry collections.', 'sort_order' => 9],
-            ['name' => 'Furniture',     'description' => 'Premium furniture for home and office.', 'sort_order' => 10],
+            ['name' => 'Abaya',             'description' => 'Elegant full-length abaya dresses for all occasions.', 'sort_order' => 1],
+            ['name' => 'Jilbab',            'description' => 'Modest jilbab sets and two-piece abaya styles.', 'sort_order' => 2],
+            ['name' => 'Casual Abaya',      'description' => 'Everyday comfortable abaya for daily wear.', 'sort_order' => 3],
+            ['name' => 'Formal Abaya',      'description' => 'Luxurious embroidered and embellished abayas for special occasions.', 'sort_order' => 4],
+            ['name' => 'Kids Abaya',        'description' => 'Modest and stylish abaya dresses for girls.', 'sort_order' => 5],
+            ['name' => 'Inner Dress',       'description' => 'Comfortable under-abaya inner dresses and slips.', 'sort_order' => 6],
+            ['name' => 'Innerwear Top',     'description' => 'Modest innerwear tops, undershirts, and camisoles.', 'sort_order' => 7],
+            ['name' => 'Innerwear Bottom',  'description' => 'Full-coverage leggings, petticoats, and underskirts.', 'sort_order' => 8],
         ];
+
+        // Remove categories that no longer apply
+        $validSlugs = collect($categories)->map(fn($c) => Str::slug($c['name']))->toArray();
+        Category::whereNotIn('slug', $validSlugs)->delete();
 
         foreach ($categories as $cat) {
             Category::updateOrCreate(

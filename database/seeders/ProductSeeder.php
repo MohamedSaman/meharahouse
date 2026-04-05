@@ -12,200 +12,180 @@ class ProductSeeder extends Seeder
     public function run(): void
     {
         $products = [
-            // Electronics
+            // Abaya
             [
-                'category' => 'electronics',
-                'name'     => 'Samsung Galaxy A54',
-                'desc'     => 'A versatile mid-range smartphone with 50MP camera, 5000mAh battery, and 6.4" Super AMOLED display.',
-                'price'    => 14999, 'sale' => 12999, 'stock' => 25, 'featured' => true,
+                'category' => 'abaya',
+                'name'     => 'Classic Black Abaya',
+                'desc'     => 'Elegant full-length black abaya made from premium crepe fabric. Flowy and comfortable for everyday wear.',
+                'price'    => 1200, 'sale' => 999, 'stock' => 50, 'featured' => true,
             ],
             [
-                'category' => 'electronics',
-                'name'     => 'Apple AirPods Pro',
-                'desc'     => 'Active noise cancellation, Transparency mode, and adaptive audio for immersive listening.',
-                'price'    => 8999, 'sale' => null, 'stock' => 15, 'featured' => true,
+                'category' => 'abaya',
+                'name'     => 'Butterfly Abaya — Navy Blue',
+                'desc'     => 'Stylish butterfly-cut abaya in navy blue with subtle side embroidery. Lightweight and breathable.',
+                'price'    => 1450, 'sale' => null, 'stock' => 35, 'featured' => true,
             ],
             [
-                'category' => 'electronics',
-                'name'     => 'Lenovo IdeaPad Laptop 15"',
-                'desc'     => 'Intel Core i5, 8GB RAM, 512GB SSD, Windows 11 — perfect for work and study.',
-                'price'    => 32999, 'sale' => 29999, 'stock' => 8, 'featured' => true,
+                'category' => 'abaya',
+                'name'     => 'Open Front Abaya — Olive Green',
+                'desc'     => 'Modern open-front abaya in olive green nida fabric. Belt included for a fitted look.',
+                'price'    => 1350, 'sale' => 1150, 'stock' => 40, 'featured' => false,
             ],
             [
-                'category' => 'electronics',
-                'name'     => 'Smart LED TV 43"',
-                'desc'     => '4K UHD resolution, Android TV, built-in Chromecast, Dolby Audio.',
-                'price'    => 19500, 'sale' => 17000, 'stock' => 12, 'featured' => false,
+                'category' => 'abaya',
+                'name'     => 'Striped Abaya — Black & White',
+                'desc'     => 'Trendy striped abaya with bell sleeves and a relaxed fit. Perfect for casual outings.',
+                'price'    => 1100, 'sale' => null, 'stock' => 30, 'featured' => false,
             ],
-            // Clothing
+
+            // Jilbab
             [
-                'category' => 'clothing',
-                'name'     => 'Ethiopian Traditional Habesha Kemis',
-                'desc'     => 'Hand-woven pure cotton Habesha dress with intricate border embroidery. Available in multiple colors.',
-                'price'    => 1800, 'sale' => null, 'stock' => 40, 'featured' => true,
-            ],
-            [
-                'category' => 'clothing',
-                'name'     => 'Men\'s Classic Formal Shirt',
-                'desc'     => '100% cotton formal shirt available in white, blue, and grey. Perfect for office wear.',
-                'price'    => 650, 'sale' => 499, 'stock' => 60, 'featured' => false,
+                'category' => 'jilbab',
+                'name'     => 'Two-Piece Jilbab Set — Black',
+                'desc'     => 'Classic two-piece jilbab set with matching khimar. Made from high-quality medina silk.',
+                'price'    => 1600, 'sale' => 1399, 'stock' => 25, 'featured' => true,
             ],
             [
-                'category' => 'clothing',
-                'name'     => 'Women\'s Leather Jacket',
-                'desc'     => 'Premium faux leather jacket with quilted lining. Slim fit, available in black and brown.',
-                'price'    => 2200, 'sale' => 1850, 'stock' => 20, 'featured' => true,
-            ],
-            // Food & Drinks
-            [
-                'category' => 'food-drinks',
-                'name'     => 'Ethiopian Coffee Gift Set',
-                'desc'     => 'Premium single-origin Yirgacheffe coffee beans, 500g. Freshly roasted with rich aroma.',
-                'price'    => 450, 'sale' => null, 'stock' => 100, 'featured' => true,
+                'category' => 'jilbab',
+                'name'     => 'Jersey Jilbab — Dusty Rose',
+                'desc'     => 'Soft jersey jilbab in dusty rose. Breathable, non-iron fabric, full coverage.',
+                'price'    => 1250, 'sale' => null, 'stock' => 30, 'featured' => false,
             ],
             [
-                'category' => 'food-drinks',
-                'name'     => 'Organic Honey — 1kg',
-                'desc'     => 'Pure raw honey sourced from Ethiopian highlands. No additives, rich in natural enzymes.',
-                'price'    => 380, 'sale' => 330, 'stock' => 75, 'featured' => false,
+                'category' => 'jilbab',
+                'name'     => 'Nida Jilbab — Dark Grey',
+                'desc'     => 'Premium nida fabric jilbab in dark grey. Modest, wrinkle-resistant, and easy to wear.',
+                'price'    => 1400, 'sale' => 1200, 'stock' => 20, 'featured' => false,
+            ],
+
+            // Casual Abaya
+            [
+                'category' => 'casual-abaya',
+                'name'     => 'Linen Casual Abaya — Beige',
+                'desc'     => 'Relaxed-fit linen abaya in beige. Ideal for daily wear, shopping, and casual outings.',
+                'price'    => 950, 'sale' => 799, 'stock' => 60, 'featured' => true,
             ],
             [
-                'category' => 'food-drinks',
-                'name'     => 'Berbere Spice Mix',
-                'desc'     => 'Authentic Ethiopian berbere blend with 20+ spices. Perfect for traditional dishes.',
-                'price'    => 120, 'sale' => null, 'stock' => 200, 'featured' => false,
-            ],
-            // Beauty
-            [
-                'category' => 'beauty',
-                'name'     => 'Organic Shea Butter Cream',
-                'desc'     => 'Pure unrefined shea butter moisturizer. Nourishes and hydrates all skin types.',
-                'price'    => 299, 'sale' => 249, 'stock' => 80, 'featured' => true,
+                'category' => 'casual-abaya',
+                'name'     => 'Cotton Casual Abaya — White',
+                'desc'     => 'Lightweight white cotton abaya with pocket slits. Simple, clean, and comfortable.',
+                'price'    => 890, 'sale' => null, 'stock' => 55, 'featured' => false,
             ],
             [
-                'category' => 'beauty',
-                'name'     => 'Argan Oil Hair Treatment',
-                'desc'     => 'Cold-pressed Moroccan argan oil for smooth, shiny, and frizz-free hair.',
-                'price'    => 480, 'sale' => null, 'stock' => 45, 'featured' => false,
+                'category' => 'casual-abaya',
+                'name'     => 'Denim Abaya — Indigo',
+                'desc'     => 'Trendy denim-style abaya in indigo. Modern look with button placket and side pockets.',
+                'price'    => 1300, 'sale' => 1099, 'stock' => 25, 'featured' => true,
+            ],
+
+            // Formal Abaya
+            [
+                'category' => 'formal-abaya',
+                'name'     => 'Embroidered Abaya — Midnight Black',
+                'desc'     => 'Luxurious black abaya with gold floral embroidery on cuffs and hem. Perfect for weddings.',
+                'price'    => 2800, 'sale' => 2499, 'stock' => 15, 'featured' => true,
             ],
             [
-                'category' => 'beauty',
-                'name'     => 'Natural Charcoal Face Mask',
-                'desc'     => 'Deep cleansing activated charcoal mask. Removes impurities and unclogs pores.',
-                'price'    => 199, 'sale' => 149, 'stock' => 120, 'featured' => false,
-            ],
-            // Home & Living
-            [
-                'category' => 'home-living',
-                'name'     => 'Handwoven Basket Set (3 pcs)',
-                'desc'     => 'Traditional Ethiopian handwoven decorative baskets. Eco-friendly and durable.',
-                'price'    => 850, 'sale' => null, 'stock' => 30, 'featured' => true,
+                'category' => 'formal-abaya',
+                'name'     => 'Velvet Formal Abaya — Burgundy',
+                'desc'     => 'Rich burgundy velvet abaya with crystal button detailing. Elegant for special events.',
+                'price'    => 3200, 'sale' => null, 'stock' => 10, 'featured' => true,
             ],
             [
-                'category' => 'home-living',
-                'name'     => 'Stainless Steel Cookware Set',
-                'desc'     => '7-piece non-stick stainless steel cookware. Dishwasher safe, compatible with all hobs.',
-                'price'    => 3200, 'sale' => 2799, 'stock' => 15, 'featured' => false,
+                'category' => 'formal-abaya',
+                'name'     => 'Lace Overlay Abaya — Ivory',
+                'desc'     => 'Beautiful ivory abaya with delicate lace overlay and satin inner lining.',
+                'price'    => 2600, 'sale' => 2299, 'stock' => 12, 'featured' => false,
             ],
-            // Sports
+
+            // Kids Abaya
             [
-                'category' => 'sports',
-                'name'     => 'Yoga Mat — Premium Anti-Slip',
-                'desc'     => '6mm thick TPE eco-friendly yoga mat with alignment lines. Lightweight and portable.',
-                'price'    => 550, 'sale' => 450, 'stock' => 50, 'featured' => false,
-            ],
-            [
-                'category' => 'sports',
-                'name'     => 'Adjustable Dumbbell Set',
-                'desc'     => 'Quick-lock adjustable dumbbells from 5kg to 32kg. Space-saving home gym solution.',
-                'price'    => 5500, 'sale' => null, 'stock' => 10, 'featured' => true,
-            ],
-            // Books
-            [
-                'category' => 'books',
-                'name'     => 'Amharic-English Dictionary',
-                'desc'     => 'Comprehensive Amharic-English / English-Amharic dictionary with over 50,000 entries.',
-                'price'    => 320, 'sale' => null, 'stock' => 60, 'featured' => false,
+                'category' => 'kids-abaya',
+                'name'     => 'Girls Abaya — Pink Floral',
+                'desc'     => 'Adorable pink floral print abaya for girls ages 3-12. Soft, comfortable fabric.',
+                'price'    => 650, 'sale' => 499, 'stock' => 45, 'featured' => true,
             ],
             [
-                'category' => 'books',
-                'name'     => 'The Business of Tomorrow',
-                'desc'     => 'A practical guide to entrepreneurship and innovation for East African markets.',
-                'price'    => 280, 'sale' => 220, 'stock' => 35, 'featured' => false,
-            ],
-            // Toys & Kids
-            [
-                'category' => 'toys-kids',
-                'name'     => 'Educational STEM Building Blocks',
-                'desc'     => '200-piece colorful building blocks for ages 3+. Develops creativity and motor skills.',
-                'price'    => 650, 'sale' => 499, 'stock' => 40, 'featured' => true,
+                'category' => 'kids-abaya',
+                'name'     => 'Girls Casual Abaya — Black',
+                'desc'     => 'Simple black everyday abaya for girls ages 5-14. Easy to put on with button front.',
+                'price'    => 580, 'sale' => null, 'stock' => 50, 'featured' => false,
             ],
             [
-                'category' => 'toys-kids',
-                'name'     => 'Kids Wooden Puzzle Set',
-                'desc'     => 'Set of 5 educational wooden puzzles featuring Ethiopian animals. Ages 2-6.',
-                'price'    => 380, 'sale' => null, 'stock' => 55, 'featured' => false,
+                'category' => 'kids-abaya',
+                'name'     => 'Girls Embroidered Abaya — Lavender',
+                'desc'     => 'Sweet lavender abaya with floral embroidery at the hem. Perfect for Eid celebrations.',
+                'price'    => 850, 'sale' => 699, 'stock' => 30, 'featured' => false,
             ],
-            // Jewelry
+
+            // Inner Dress
             [
-                'category' => 'jewelry',
-                'name'     => 'Gold-Plated Ethiopian Cross Pendant',
-                'desc'     => 'Handcrafted gold-plated Ethiopian Orthodox cross pendant with 18" chain.',
-                'price'    => 1200, 'sale' => null, 'stock' => 20, 'featured' => true,
-            ],
-            [
-                'category' => 'jewelry',
-                'name'     => 'Silver Filigree Earrings',
-                'desc'     => 'Intricate sterling silver filigree earrings. Traditional Harari design, gift-boxed.',
-                'price'    => 780, 'sale' => 650, 'stock' => 25, 'featured' => false,
-            ],
-            // Furniture
-            [
-                'category' => 'furniture',
-                'name'     => 'Solid Wood Coffee Table',
-                'desc'     => 'Handcrafted solid Wanza wood coffee table with carved legs. 120x60cm, natural finish.',
-                'price'    => 6500, 'sale' => 5800, 'stock' => 5, 'featured' => false,
+                'category' => 'inner-dress',
+                'name'     => 'Full-Length Inner Slip Dress — White',
+                'desc'     => 'Smooth white under-abaya slip dress. Prevents see-through, non-static, soft jersey fabric.',
+                'price'    => 450, 'sale' => 380, 'stock' => 100, 'featured' => true,
             ],
             [
-                'category' => 'furniture',
-                'name'     => 'Ergonomic Office Chair',
-                'desc'     => 'Adjustable lumbar support, breathable mesh back, 360° swivel. Max load 150kg.',
-                'price'    => 7200, 'sale' => null, 'stock' => 8, 'featured' => true,
-            ],
-            // More Electronics
-            [
-                'category' => 'electronics',
-                'name'     => 'Wireless Bluetooth Speaker',
-                'desc'     => 'Waterproof portable speaker with 20hr battery, 360° surround sound.',
-                'price'    => 1999, 'sale' => 1599, 'stock' => 30, 'featured' => false,
+                'category' => 'inner-dress',
+                'name'     => 'Full-Length Inner Slip Dress — Black',
+                'desc'     => 'Classic black inner slip dress. Lightweight, breathable, and comfortable all day.',
+                'price'    => 450, 'sale' => null, 'stock' => 120, 'featured' => false,
             ],
             [
-                'category' => 'electronics',
-                'name'     => 'USB-C Fast Charger 65W',
-                'desc'     => 'GaN technology 65W USB-C fast charger. Compatible with laptops, phones, and tablets.',
-                'price'    => 699, 'sale' => null, 'stock' => 70, 'featured' => false,
+                'category' => 'inner-dress',
+                'name'     => 'Long Inner Dress with Sleeves — Nude',
+                'desc'     => 'Long-sleeved inner dress in nude. Ideal under open-front or sheer abayas.',
+                'price'    => 550, 'sale' => 480, 'stock' => 80, 'featured' => false,
             ],
-            // More Clothing
+
+            // Innerwear Top
             [
-                'category' => 'clothing',
-                'name'     => 'Men\'s Running Shoes',
-                'desc'     => 'Lightweight breathable mesh running shoes with cushioned sole. Sizes 38-46.',
-                'price'    => 1350, 'sale' => 1099, 'stock' => 45, 'featured' => false,
+                'category' => 'innerwear-top',
+                'name'     => 'Modest Camisole — White',
+                'desc'     => 'Full-coverage modest camisole in white. High neckline, longer length, soft cotton blend.',
+                'price'    => 250, 'sale' => 199, 'stock' => 150, 'featured' => false,
             ],
             [
-                'category' => 'clothing',
-                'name'     => 'Women\'s Summer Dress',
-                'desc'     => 'Floral print cotton summer dress, midi length. Sizes XS-3XL.',
-                'price'    => 899, 'sale' => null, 'stock' => 35, 'featured' => false,
+                'category' => 'innerwear-top',
+                'name'     => 'Long-Sleeve Undershirt — Black',
+                'desc'     => 'Thin, seamless long-sleeve undershirt. Perfect for layering under any abaya.',
+                'price'    => 299, 'sale' => null, 'stock' => 130, 'featured' => true,
             ],
-            // More Home
             [
-                'category' => 'home-living',
-                'name'     => 'Ethiopian Coffee Ceremony Set',
-                'desc'     => 'Complete traditional coffee ceremony set: jebena, cups, tray, and incense holder.',
-                'price'    => 1450, 'sale' => 1200, 'stock' => 18, 'featured' => true,
+                'category' => 'innerwear-top',
+                'name'     => 'Cotton Modest Undershirt — Skin',
+                'desc'     => 'Skin-tone undershirt with crew neck. Breathable cotton, anti-static, machine washable.',
+                'price'    => 280, 'sale' => 230, 'stock' => 110, 'featured' => false,
+            ],
+
+            // Innerwear Bottom
+            [
+                'category' => 'innerwear-bottom',
+                'name'     => 'Full-Length Leggings — Black',
+                'desc'     => 'Thick, opaque full-length leggings. Comfortable waistband, no see-through guarantee.',
+                'price'    => 350, 'sale' => 299, 'stock' => 200, 'featured' => true,
+            ],
+            [
+                'category' => 'innerwear-bottom',
+                'name'     => 'Underskirt Petticoat — White',
+                'desc'     => 'Flared white petticoat underskirt. Adds modesty and volume under abayas and dresses.',
+                'price'    => 400, 'sale' => null, 'stock' => 90, 'featured' => false,
+            ],
+            [
+                'category' => 'innerwear-bottom',
+                'name'     => 'Wide-Leg Undertrousers — Nude',
+                'desc'     => 'Loose, wide-leg modest undertrousers in nude. Breathable and cool for all-day wear.',
+                'price'    => 380, 'sale' => 320, 'stock' => 85, 'featured' => false,
             ],
         ];
+
+        // Remove products from old unrelated categories
+        $validCategorySlugs = [
+            'abaya', 'jilbab', 'casual-abaya', 'formal-abaya',
+            'kids-abaya', 'inner-dress', 'innerwear-top', 'innerwear-bottom',
+        ];
+        $validCategoryIds = Category::whereIn('slug', $validCategorySlugs)->pluck('id');
+        Product::whereNotIn('category_id', $validCategoryIds)->delete();
 
         foreach ($products as $p) {
             $category = Category::where('slug', $p['category'])->first();
@@ -214,7 +194,7 @@ class ProductSeeder extends Seeder
             $slug     = Str::slug($p['name']);
             $baseSlug = $slug;
             $counter  = 1;
-            while (Product::where('slug', $slug)->exists()) {
+            while (Product::where('slug', $slug)->whereNot('name', $p['name'])->exists()) {
                 $slug = $baseSlug . '-' . $counter++;
             }
 

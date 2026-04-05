@@ -61,7 +61,7 @@
                                    class="font-[Poppins] font-semibold text-sm text-[#0F172A] hover:text-[#D97706] leading-snug block truncate">
                                     {{ $item->product->name }}
                                 </a>
-                                <p class="text-xs text-[#64748B] mt-0.5">{{ $item->product->category->name }}</p>
+                                <p class="text-xs text-[#64748B] mt-0.5">{{ $item->product->category?->name ?? '' }}</p>
                                 <p class="font-semibold text-sm text-[#0F172A] mt-1">ETB {{ number_format($item->product->effectivePrice(), 0) }}</p>
                                 {{-- Remove (mobile) --}}
                                 <button wire:click="remove({{ $item->id ?? $item->product->id }})"

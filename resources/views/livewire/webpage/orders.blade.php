@@ -30,10 +30,10 @@
         </div>
         @else
 
+        @php $statusColors = ['pending'=>'bg-yellow-100 text-yellow-700','processing'=>'bg-blue-100 text-blue-700','shipped'=>'bg-purple-100 text-purple-700','delivered'=>'bg-green-100 text-green-700','cancelled'=>'bg-red-100 text-red-700']; @endphp
         <div class="space-y-4">
             @foreach($orders as $order)
-            @php $statusColors = ['pending'=>'bg-yellow-100 text-yellow-700','processing'=>'bg-blue-100 text-blue-700','shipped'=>'bg-purple-100 text-purple-700','delivered'=>'bg-green-100 text-green-700','cancelled'=>'bg-red-100 text-red-700']; @endphp
-            <div class="card overflow-hidden">
+            <div class="card overflow-hidden" wire:key="{{ $order->id }}">
                 {{-- Order Header --}}
                 <div class="px-5 py-4 bg-[#F8FAFC] border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3">
                     <div class="flex flex-wrap items-center gap-4 text-sm">

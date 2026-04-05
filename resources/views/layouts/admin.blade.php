@@ -34,12 +34,11 @@
         {{-- Sidebar Header --}}
         <div class="flex items-center justify-between h-16 px-4 border-b border-[#1E293B] shrink-0">
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 min-w-0">
-                <div class="w-9 h-9 bg-[#F59E0B] rounded-lg flex items-center justify-center shrink-0">
-                    <span class="text-[#0F172A] font-black text-sm font-[Poppins]">MH</span>
+                <div class="bg-white rounded-lg p-1 shrink-0">
+                    <img src="{{ asset('images/meharahouse-logo.png') }}" alt="Mehra House" class="h-8 w-auto">
                 </div>
                 <div x-show="!sidebarCollapsed" class="min-w-0">
-                    <span class="block font-black text-white text-base leading-none font-[Poppins] truncate">Meharahouse</span>
-                    <span class="block text-[#F59E0B] text-[10px] font-bold tracking-widest uppercase">Admin Panel</span>
+                    <span class="block text-[#F59E0B] text-[10px] font-bold tracking-widest uppercase mt-0.5">Admin Panel</span>
                 </div>
             </a>
             <button @click="sidebarCollapsed = !sidebarCollapsed"
