@@ -1,5 +1,5 @@
 {{-- resources/views/livewire/admin/order.blade.php --}}
-<div class="space-y-5">
+<div class="space-y-5" x-data="{ detailOpen: @entangle('showDetail') }">
 
     {{-- Flash --}}
     @if(session('success'))
@@ -82,22 +82,22 @@
                         <td>
                             <div class="flex items-center gap-1.5">
                                 <button wire:click="viewOrder({{ $order->id }})"
-                                        class="p-1.5 rounded-lg text-[#475569] hover:text-blue-600 hover:bg-blue-50 transition-colors" title="View Details">
+                                        class="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" title="View Details">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                 </button>
                                 @if($order->status === 'pending')
                                 <button wire:click="updateStatus({{ $order->id }}, 'processing')"
-                                        class="px-2 py-1 rounded text-[10px] font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
+                                        class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all duration-200 hover:-translate-y-0.5">
                                     Process
                                 </button>
                                 @elseif($order->status === 'processing')
                                 <button wire:click="updateStatus({{ $order->id }}, 'shipped')"
-                                        class="px-2 py-1 rounded text-[10px] font-semibold bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors">
+                                        class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 transition-all duration-200 hover:-translate-y-0.5">
                                     Ship
                                 </button>
                                 @elseif($order->status === 'shipped')
                                 <button wire:click="updateStatus({{ $order->id }}, 'delivered')"
-                                        class="px-2 py-1 rounded text-[10px] font-semibold bg-green-50 text-green-600 hover:bg-green-100 transition-colors">
+                                        class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-green-50 text-green-700 hover:bg-green-100 transition-all duration-200 hover:-translate-y-0.5">
                                     Deliver
                                 </button>
                                 @endif
@@ -116,9 +116,26 @@
     </div>
 
     {{-- Order Detail Modal --}}
-    @if($showDetail && $selectedOrder)
-    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    @if($selectedOrder)
+    <div x-show="detailOpen"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+         style="display:none;"
+         @click.self="$wire.set('showDetail', false)">
+        <div x-show="detailOpen"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+             x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+             class="bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200/80 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+             @click.stop>
             <div class="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] sticky top-0 bg-white z-10">
                 <div>
                     <h3 class="font-[Poppins] font-bold text-lg text-[#0F172A]">Order {{ $selectedOrder->order_number }}</h3>

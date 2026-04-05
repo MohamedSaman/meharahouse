@@ -76,8 +76,8 @@
                         </td>
                         <td><span class="text-xs text-[#94A3B8]">{{ $user->created_at->format('d M Y') }}</span></td>
                         <td>
-                            <button wire:click="viewCustomer({{ $user->id }})"
-                                    class="p-1.5 rounded-lg text-[#475569] hover:text-blue-600 hover:bg-blue-50 transition-colors" title="View Profile">
+                                <button wire:click="viewCustomer({{ $user->id }})"
+                                    class="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" title="View Profile">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                             </button>
                         </td>
@@ -101,8 +101,8 @@
 
     {{-- Customer Detail Modal --}}
     @if($showDetail && $selectedUser)
-    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-data @click.self="$wire.set('showDetail', false)">
+        <div class="bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200/80 w-full max-w-lg max-h-[90vh] overflow-y-auto" @click.stop>
             <div class="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] sticky top-0 bg-white">
                 <div>
                     <h3 class="font-[Poppins] font-bold text-lg text-[#0F172A]">{{ $selectedUser->name }}</h3>

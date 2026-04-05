@@ -4,19 +4,23 @@
     {{-- ══════════════════════════════════════════════════════
          PAGE HEADER
     ══════════════════════════════════════════════════════ --}}
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h2 class="font-[Poppins] font-bold text-xl text-[#0F172A]">Dashboard Overview</h2>
-            <p class="text-sm text-[#64748B] mt-0.5">{{ now()->format('l, d F Y') }}</p>
-        </div>
-        <div class="flex items-center gap-3">
-            <button class="btn-secondary btn-sm">
+    <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 sm:p-6 shadow-xl">
+        <div class="absolute -top-16 -right-12 h-44 w-44 rounded-full bg-amber-400/20 blur-3xl"></div>
+        <div class="absolute -bottom-16 -left-12 h-44 w-44 rounded-full bg-blue-400/20 blur-3xl"></div>
+        <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <p class="text-[11px] tracking-[0.18em] uppercase font-semibold text-amber-300">Meharahouse Admin</p>
+                <h2 class="font-[Poppins] font-bold text-2xl text-white">Dashboard Overview</h2>
+                <p class="text-sm text-slate-300 mt-1">{{ now()->format('l, d F Y') }}</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button class="inline-flex items-center gap-2 rounded-xl border border-slate-600/80 bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-700/70 transition-all duration-200">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
                 Export Report
             </button>
-            <button class="btn-primary btn-sm">
+            <button class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-3 py-2 text-xs font-bold text-slate-900 hover:bg-amber-300 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-400/30">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
@@ -31,7 +35,7 @@
     {{-- KPI Cards — real data --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {{-- Revenue --}}
-        <div class="stat-card">
+        <div class="stat-card hover:-translate-y-1 transition-all duration-300">
             <div class="w-12 h-12 rounded-xl bg-[#FEF3C7] flex items-center justify-center shrink-0">
                 <svg class="w-6 h-6 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -44,7 +48,7 @@
             </div>
         </div>
         {{-- Orders --}}
-        <div class="stat-card">
+        <div class="stat-card hover:-translate-y-1 transition-all duration-300">
             <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
                 <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -57,7 +61,7 @@
             </div>
         </div>
         {{-- Customers --}}
-        <div class="stat-card">
+        <div class="stat-card hover:-translate-y-1 transition-all duration-300">
             <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
                 <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -70,7 +74,7 @@
             </div>
         </div>
         {{-- Products --}}
-        <div class="stat-card">
+        <div class="stat-card hover:-translate-y-1 transition-all duration-300">
             <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
                 <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
@@ -94,7 +98,7 @@
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
         {{-- Revenue Chart (Placeholder) --}}
-        <div class="card xl:col-span-2 p-6">
+        <div class="card xl:col-span-2 p-6 shadow-sm hover:shadow-md transition-all duration-300">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                 <div>
                     <h3 class="font-[Poppins] font-bold text-[#0F172A]">Revenue Overview</h3>
@@ -133,7 +137,7 @@
                             ETB {{ $bar['val'] }}
                         </div>
                         {{-- Bar --}}
-                        <div class="w-full rounded-t-md {{ $i === 11 ? 'bg-[#F59E0B]' : 'bg-[#CBD5E1] group-hover:bg-[#0F172A]' }} transition-all duration-300"
+                            <div class="w-full rounded-t-md {{ $i === 11 ? 'bg-[#F59E0B]' : 'bg-[#CBD5E1] group-hover:bg-[#0F172A]' }} transition-all duration-300 hover:shadow-sm"
                              style="height: {{ $bar['h'] * 1.4 }}px;">
                         </div>
                     </div>
@@ -164,7 +168,7 @@
         </div>
 
         {{-- Order Status Donut --}}
-        <div class="card p-6">
+        <div class="card p-6 shadow-sm hover:shadow-md transition-all duration-300">
             <h3 class="font-[Poppins] font-bold text-[#0F172A] mb-1">Order Status</h3>
             <p class="text-xs text-[#64748B] mb-6">This month's breakdown</p>
 
@@ -215,7 +219,7 @@
     {{-- ══════════════════════════════════════════════════════
          QUICK ACTIONS
     ══════════════════════════════════════════════════════ --}}
-    <div class="card p-5">
+    <div class="card p-5 shadow-sm hover:shadow-md transition-all duration-300">
         <h3 class="font-[Poppins] font-bold text-[#0F172A] mb-4 text-sm">Quick Actions</h3>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             @php
@@ -227,7 +231,7 @@
             ];
             @endphp
             @foreach($actions as $action)
-            <button class="flex items-center gap-3 p-3.5 rounded-xl {{ $action['color'] }} transition-all duration-200 text-left font-semibold text-sm">
+            <button class="flex items-center gap-3 p-3.5 rounded-xl {{ $action['color'] }} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm text-left font-semibold text-sm">
                 <div class="w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center shrink-0">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $action['icon'] }}"/>
@@ -245,7 +249,7 @@
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
         {{-- Recent Orders Table --}}
-        <div class="card xl:col-span-2">
+        <div class="card xl:col-span-2 shadow-sm hover:shadow-md transition-all duration-300">
             <div class="flex items-center justify-between px-6 py-4 border-b border-[#F1F5F9]">
                 <h3 class="font-[Poppins] font-bold text-[#0F172A]">Recent Orders</h3>
                 <a href="{{ route('admin.orders') }}" class="text-xs font-semibold text-[#F59E0B] hover:text-[#D97706] flex items-center gap-1">
@@ -299,7 +303,7 @@
         </div>
 
         {{-- Low Stock Alert --}}
-        <div class="card">
+        <div class="card shadow-sm hover:shadow-md transition-all duration-300">
             <div class="flex items-center justify-between px-5 py-4 border-b border-[#F1F5F9]">
                 <h3 class="font-[Poppins] font-bold text-[#0F172A] text-sm">Low Stock Alerts</h3>
                 <span class="badge badge-danger">{{ $lowStockProducts->count() }} Items</span>

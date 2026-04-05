@@ -6,7 +6,10 @@ use Livewire\Component;
 use Livewire\Attributes\Title;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Layout;
 
+#[Title('Dashboard')]
+#[Layout('layouts.auth')]
 #[Title('Sign In — Meharahouse')]
 class Login extends Component
 {
@@ -44,7 +47,6 @@ class Login extends Component
 
     public function render()
     {
-        return view('livewire.auth.login')
-            ->layout('layouts.auth');
+        return view('livewire.auth.login');
     }
 }

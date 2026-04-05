@@ -9,7 +9,11 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Coupon;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Title;
+use Livewire\Attributes\Layout;
 
+#[Title('Checkout')]
+#[Layout('layouts.webpage')]
 class Checkout extends Component
 {
     public int $step = 1; // 1=address, 2=payment, 3=review, 4=success
@@ -217,8 +221,6 @@ class Checkout extends Component
         $tax      = round($subtotal * 0.15, 2);
         $total    = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
 
-        return view('livewire.webpage.checkout', compact('subtotal', 'shipping', 'tax', 'total'))
-            ->layout('layouts.webpage')
-            ->title('Checkout — Meharahouse');
+        return view('livewire.webpage.checkout', compact('subtotal', 'shipping', 'tax', 'total'));
     }
 }

@@ -7,7 +7,12 @@ use Livewire\Attributes\Title;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Attributes\Layout;
 
+
+
+#[Title('Dashboard')]
+#[Layout('layouts.auth')]
 #[Title('Create Account — Meharahouse')]
 class Register extends Component
 {
@@ -44,7 +49,6 @@ class Register extends Component
 
     public function render()
     {
-        return view('livewire.auth.register')
-            ->layout('layouts.auth');
+        return view('livewire.auth.register');
     }
 }

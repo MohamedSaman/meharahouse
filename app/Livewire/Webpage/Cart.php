@@ -6,7 +6,12 @@ use Livewire\Component;
 use App\Models\Cart as CartModel;
 use App\Models\Product;
 use App\Models\Coupon;
+use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Title;  
+use Livewire\Attributes\Layout;
 
+#[Title('Cart Cart')]
+#[Layout('layouts.webpage')]
 class Cart extends Component
 {
     public string $couponCode = '';
@@ -144,8 +149,6 @@ class Cart extends Component
         $tax      = round($subtotal * 0.15, 2);
         $total    = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
 
-        return view('livewire.webpage.cart', compact('subtotal', 'shipping', 'tax', 'total'))
-            ->layout('layouts.webpage')
-            ->title('Cart — Meharahouse');
+        return view('livewire.webpage.cart', compact('subtotal', 'shipping', 'tax', 'total'));
     }
 }
