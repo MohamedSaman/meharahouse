@@ -226,10 +226,6 @@
                         <svg class="w-4 h-4 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
                         Abayas
                     </a>
-                    <a href="{{ route('webpage.shop', ['category' => 'innerwear']) }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[#475569] hover:bg-[#FFFDF5] hover:text-[#D4A017] transition-all duration-200">
-                        <svg class="w-4 h-4 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                        Innerwear
-                    </a>
                     <a href="{{ route('webpage.about') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[#475569] hover:bg-[#FFFDF5] hover:text-[#D4A017] transition-all duration-200">
                         <svg class="w-4 h-4 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         About
