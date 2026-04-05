@@ -25,6 +25,13 @@
     x-data="{
         sidebarOpen: window.innerWidth >= 1024,
         sidebarCollapsed: false,
+        isDesktop: window.innerWidth >= 1024,
+        init() {
+            window.addEventListener('resize', () => {
+                this.isDesktop = window.innerWidth >= 1024;
+                if (this.isDesktop) this.sidebarOpen = true;
+            });
+        },
         get sidebarWidth() { return this.sidebarCollapsed ? '72px' : '256px' }
     }"
     class="min-h-screen flex"
@@ -227,12 +234,12 @@
         </div>
     </aside>
 
-    {{-- Sidebar Overlay (mobile) --}}
-    <div x-show="sidebarOpen" @click="sidebarOpen = false"
-         class="fixed inset-0 bg-black/50 z-40 lg:hidden" style="display:none;"></div>
+    {{-- Sidebar Overlay (mobile only) --}}
+    <div x-show="sidebarOpen && !isDesktop" @click="sidebarOpen = false"
+         class="fixed inset-0 bg-black/50 z-40" style="display:none;"></div>
 
     {{-- ════════════════════════ MAIN AREA ════════════════════════ --}}
-    <div :style="'margin-left:' + (window.innerWidth >= 1024 ? sidebarWidth : '0px')"
+    <div :style="isDesktop ? 'margin-left:' + sidebarWidth : 'margin-left:0px'"
          class="flex-1 min-w-0 flex flex-col transition-all duration-300">
 
         {{-- Top Header --}}
