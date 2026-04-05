@@ -67,7 +67,7 @@
         </div>
 
         {{-- Navigation --}}
-        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav class="flex-1 overflow-y-auto no-scrollbar py-4 px-3 space-y-1">
 
             {{-- Main --}}
             <p x-show="!sidebarCollapsed" class="sidebar-section-label">Main</p>

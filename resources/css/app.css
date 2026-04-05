@@ -530,6 +530,10 @@
     ::-webkit-scrollbar-thumb:hover { background: var(--color-navy-400); }
 }
 
+/* ── Hide scrollbar utility ── */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* ─────────────────────────────────────────────
    Utility Layer
 ───────────────────────────────────────────── */
