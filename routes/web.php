@@ -30,6 +30,7 @@ Route::prefix('/')->name('webpage.')->middleware('website.live')->group(function
     Route::get('/product/{slug}', App\Livewire\Webpage\ProductDetails::class)->name('product-details');
     Route::get('/about',          App\Livewire\Webpage\About::class)->name('about');
     Route::get('/contact',        App\Livewire\Webpage\Contact::class)->name('contact');
+    Route::get('/reviews',        App\Livewire\Webpage\Reviews::class)->name('reviews');
 
     // Guest-accessible routes (no login required)
     Route::get('/cart',     App\Livewire\Webpage\Cart::class)->name('cart');

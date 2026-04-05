@@ -41,7 +41,7 @@
         class="sticky top-0 z-50 transition-all duration-300 border-b border-[#F0EDE8]"
     >
         <div class="container-page">
-            <div class="flex items-center justify-between h-16 md:h-20">
+            <div class="flex items-center justify-between h-20 md:h-24 lg:h-28">
 
                 {{-- Logo --}}
                 {{-- Logo --}}
@@ -50,7 +50,7 @@
                         <img
                             src="{{ asset('images/meharahouse-logo.png') }}"
                             alt="Mehra House Logo"
-                            class="h-11 w-auto md:h-12 lg:h-[3.25rem] max-w-[170px] object-contain"
+                            class="h-16 w-auto md:h-20 lg:h-24 max-w-[240px] object-contain"
                         >
                     </div>
 
@@ -70,10 +70,7 @@
                        class="px-4 py-2 rounded-lg text-sm font-semibold text-[#475569] hover:text-[#D4A017] hover:bg-[#FFFDF5] transition-all duration-200">
                         Abayas
                     </a>
-                    <a href="{{ route('webpage.shop', ['category' => 'innerwear']) }}"
-                       class="px-4 py-2 rounded-lg text-sm font-semibold text-[#475569] hover:text-[#D4A017] hover:bg-[#FFFDF5] transition-all duration-200">
-                        Innerwear
-                    </a>
+
                     <a href="{{ route('webpage.about') }}"
                        class="px-4 py-2 rounded-lg text-sm font-semibold text-[#475569] hover:text-[#D4A017] hover:bg-[#FFFDF5] transition-all duration-200">
                         About
@@ -81,6 +78,14 @@
                     <a href="{{ route('webpage.contact') }}"
                        class="px-4 py-2 rounded-lg text-sm font-semibold text-[#475569] hover:text-[#D4A017] hover:bg-[#FFFDF5] transition-all duration-200">
                         Contact
+                    </a>
+                    <a href="{{ route('webpage.reviews') }}"
+                       class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-1.5
+                              {{ request()->routeIs('webpage.reviews') ? 'text-[#D4A017] bg-[#FFFDF5]' : 'text-[#475569] hover:text-[#D4A017] hover:bg-[#FFFDF5]' }}">
+                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                        Reviews
                     </a>
                 </nav>
 
@@ -228,6 +233,14 @@
                     <a href="{{ route('webpage.contact') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[#475569] hover:bg-[#FFFDF5] hover:text-[#D4A017] transition-all duration-200">
                         <svg class="w-4 h-4 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                         Contact
+                    </a>
+                    <a href="{{ route('webpage.reviews') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200
+                              {{ request()->routeIs('webpage.reviews') ? 'bg-[#FFFDF5] text-[#D4A017]' : 'text-[#475569] hover:bg-[#FFFDF5] hover:text-[#D4A017]' }}">
+                        <svg class="w-4 h-4 text-[#D4A017]" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                        Reviews
                     </a>
                     <div class="mt-3 px-4 pt-4 border-t border-[#F0EDE8]">
                         @auth

@@ -50,7 +50,7 @@ type: project
 
 ## Route Naming Convention
 - Auth: `auth.login`, `auth.register`, `auth.logout`
-- Webpage: `webpage.home`, `webpage.shop`, `webpage.product-details`, `webpage.cart`, `webpage.checkout`, `webpage.orders`, `webpage.about`, `webpage.contact`
+- Webpage: `webpage.home`, `webpage.shop`, `webpage.product-details`, `webpage.cart`, `webpage.checkout`, `webpage.orders`, `webpage.about`, `webpage.contact`, `webpage.reviews`
 - Admin: `admin.dashboard`, `admin.orders`, `admin.products`, `admin.categories`, `admin.customers`, `admin.payments`, `admin.reports`, `admin.manual-order`, `admin.suppliers`, `admin.purchasing`
 - Staff: `staff.dashboard`, `staff.orders`, `staff.customers`
 
