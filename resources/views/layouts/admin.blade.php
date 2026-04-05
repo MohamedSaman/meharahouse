@@ -81,7 +81,10 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                 </svg>
                 <span x-show="!sidebarCollapsed" class="text-sm">Orders</span>
-                <span x-show="!sidebarCollapsed" class="ml-auto badge badge-gold text-[10px] py-0.5 px-2">12</span>
+                @php $pendingCount = \App\Models\Order::where('status','pending')->count(); @endphp
+                @if($pendingCount > 0)
+                <span x-show="!sidebarCollapsed" class="ml-auto badge badge-gold text-[10px] py-0.5 px-2">{{ $pendingCount }}</span>
+                @endif
             </a>
 
             {{-- Catalog --}}
@@ -143,17 +146,20 @@
         <div class="border-t border-[#1E293B] p-3 shrink-0">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-full bg-[#F59E0B] flex items-center justify-center shrink-0">
-                    <span class="text-[#0F172A] font-bold text-sm">A</span>
+                    <span class="text-[#0F172A] font-bold text-sm">{{ auth()->check() ? strtoupper(substr(auth()->user()->name, 0, 1)) : 'A' }}</span>
                 </div>
                 <div x-show="!sidebarCollapsed" class="min-w-0">
-                    <p class="text-sm font-semibold text-white truncate">Admin User</p>
-                    <p class="text-xs text-[#64748B] truncate">admin@meharahouse.com</p>
+                    <p class="text-sm font-semibold text-white truncate">{{ auth()->user()?->name ?? 'Admin' }}</p>
+                    <p class="text-xs text-[#64748B] truncate">{{ auth()->user()?->email ?? 'admin@meharahouse.com' }}</p>
                 </div>
-                <button x-show="!sidebarCollapsed" class="ml-auto p-1.5 rounded-md text-[#64748B] hover:text-white hover:bg-[#1E293B] transition-colors shrink-0">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                    </svg>
-                </button>
+                <form x-show="!sidebarCollapsed" method="POST" action="{{ route('auth.logout') }}" class="ml-auto shrink-0">
+                    @csrf
+                    <button type="submit" class="p-1.5 rounded-md text-[#64748B] hover:text-white hover:bg-[#1E293B] transition-colors" title="Sign Out">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                    </button>
+                </form>
             </div>
         </div>
     </aside>
@@ -202,7 +208,7 @@
                 {{-- Admin Avatar --}}
                 <div x-data="{ open: false }" class="relative">
                     <button @click="open = !open" class="w-9 h-9 rounded-full bg-[#0F172A] flex items-center justify-center">
-                        <span class="text-[#F59E0B] font-bold text-sm">A</span>
+                        <span class="text-[#F59E0B] font-bold text-sm">{{ auth()->check() ? strtoupper(substr(auth()->user()->name, 0, 1)) : 'A' }}</span>
                     </button>
                     <div x-show="open" @click.outside="open = false"
                          x-transition:enter="transition ease-out duration-150"
@@ -210,17 +216,22 @@
                          x-transition:enter-end="opacity-100 scale-100"
                          class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl border border-[#E2E8F0] shadow-xl py-1 z-50" style="display:none;">
                         <div class="px-4 py-3 border-b border-[#F1F5F9]">
-                            <p class="text-sm font-semibold text-[#0F172A]">Admin User</p>
-                            <p class="text-xs text-[#64748B]">admin@meharahouse.com</p>
+                            <p class="text-sm font-semibold text-[#0F172A]">{{ auth()->user()?->name ?? 'Admin' }}</p>
+                            <p class="text-xs text-[#64748B]">{{ auth()->user()?->email }}</p>
                         </div>
-                        <a href="#" class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                            Profile
+                        <a href="{{ route('webpage.home') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                            Visit Storefront
                         </a>
-                        <a href="#" class="flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                            Sign Out
-                        </a>
+                        <div class="border-t border-[#F1F5F9] mt-1">
+                            <form method="POST" action="{{ route('auth.logout') }}">
+                                @csrf
+                                <button type="submit" class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                                    Sign Out
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

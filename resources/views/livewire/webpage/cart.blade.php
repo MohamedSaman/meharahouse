@@ -3,23 +3,40 @@
     <div class="bg-gradient-to-r from-[#0F172A] to-[#1E293B] py-12">
         <div class="container-page">
             <h1 class="font-[Poppins] font-bold text-3xl text-white">Shopping Cart</h1>
-            <p class="text-[#64748B] mt-1 text-sm">3 items in your cart</p>
+            <p class="text-[#64748B] mt-1 text-sm">{{ $this->cartItems->count() }} item(s) in your cart</p>
         </div>
     </div>
 
     <section class="py-10 container-page">
+
+        {{-- Flash --}}
+        @if(session('success'))
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)"
+             class="mb-4 flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {{ session('success') }}
+        </div>
+        @endif
+
+        @if($this->cartItems->isEmpty())
+        {{-- Empty Cart --}}
+        <div class="text-center py-20">
+            <div class="w-24 h-24 bg-[#F1F5F9] rounded-full flex items-center justify-center mx-auto mb-5">
+                <svg class="w-12 h-12 text-[#CBD5E1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                </svg>
+            </div>
+            <h3 class="font-[Poppins] font-bold text-xl text-[#0F172A] mb-2">Your Cart is Empty</h3>
+            <p class="text-[#64748B] mb-6">Browse our collection and add items you love.</p>
+            <a href="{{ route('webpage.shop') }}" class="btn-primary btn-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                Start Shopping
+            </a>
+        </div>
+        @else
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {{-- Cart Items --}}
             <div class="lg:col-span-2 space-y-4">
-                @php
-                $cartItems = [
-                    ['name' => 'Premium Wireless Headphones', 'variant' => 'Black', 'price' => 2499, 'qty' => 1, 'image' => 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=120&auto=format&fit=crop&q=80'],
-                    ['name' => 'Smart Watch Pro', 'variant' => 'Silver', 'price' => 4200, 'qty' => 1, 'image' => 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=120&auto=format&fit=crop&q=80'],
-                    ['name' => 'Natural Skincare Set', 'variant' => 'Standard', 'price' => 890, 'qty' => 2, 'image' => 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=120&auto=format&fit=crop&q=80'],
-                ];
-                @endphp
-
-                {{-- Header --}}
                 <div class="card overflow-hidden">
                     <div class="px-5 py-3 bg-[#F8FAFC] border-b border-[#E2E8F0] flex items-center justify-between">
                         <span class="text-xs font-bold text-[#64748B] uppercase tracking-wider">Product</span>
@@ -29,82 +46,137 @@
                         </div>
                     </div>
 
-                    @foreach($cartItems as $item)
-                    <div x-data="{ qty: {{ $item['qty'] }} }" class="flex items-start gap-4 p-5 border-b border-[#F1F5F9] last:border-0">
-                        <div class="w-20 h-20 rounded-xl overflow-hidden bg-[#F8FAFC] shrink-0">
-                            <img src="{{ $item['image'] }}" alt="{{ $item['name'] }}" class="w-full h-full object-cover">
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="font-[Poppins] font-semibold text-sm text-[#0F172A] mb-0.5">{{ $item['name'] }}</h4>
-                            <p class="text-xs text-[#64748B] mb-2">Variant: {{ $item['variant'] }}</p>
-                            <p class="text-sm font-bold text-[#0F172A]">ETB {{ number_format($item['price']) }}</p>
-                        </div>
-                        <div class="flex flex-col items-end gap-3 shrink-0">
-                            {{-- Qty Controls --}}
-                            <div class="flex items-center border border-[#E2E8F0] rounded-lg overflow-hidden">
-                                <button @click="qty = Math.max(1, qty - 1)" class="w-8 h-8 flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] transition-colors text-lg font-bold">-</button>
-                                <span x-text="qty" class="w-8 text-center text-sm font-bold text-[#0F172A]"></span>
-                                <button @click="qty++" class="w-8 h-8 flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] transition-colors text-lg font-bold">+</button>
+                    <div class="divide-y divide-[#F1F5F9]">
+                        @foreach($this->cartItems as $item)
+                        <div class="px-5 py-4 flex items-center gap-4" wire:key="{{ $item->id ?? $item->product->id }}">
+                            {{-- Image --}}
+                            <div class="w-20 h-20 rounded-xl overflow-hidden bg-[#F1F5F9] shrink-0">
+                                <img src="{{ $item->product->primaryImage() }}" alt="{{ $item->product->name }}"
+                                     class="w-full h-full object-cover"
+                                     onerror="this.src='https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=200&auto=format&fit=crop&q=80'">
                             </div>
-                            {{-- Subtotal --}}
-                            <span class="font-[Poppins] font-bold text-sm text-[#0F172A]">ETB <span x-text="({{ $item['price'] }} * qty).toLocaleString()"></span></span>
-                            {{-- Remove --}}
-                            <button class="text-xs text-red-400 hover:text-red-600 transition-colors flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                Remove
-                            </button>
+                            {{-- Info --}}
+                            <div class="flex-1 min-w-0">
+                                <a href="{{ route('webpage.product-details', $item->product->slug) }}"
+                                   class="font-[Poppins] font-semibold text-sm text-[#0F172A] hover:text-[#D97706] leading-snug block truncate">
+                                    {{ $item->product->name }}
+                                </a>
+                                <p class="text-xs text-[#64748B] mt-0.5">{{ $item->product->category->name }}</p>
+                                <p class="font-semibold text-sm text-[#0F172A] mt-1">ETB {{ number_format($item->product->effectivePrice(), 0) }}</p>
+                                {{-- Remove (mobile) --}}
+                                <button wire:click="remove({{ $item->id ?? $item->product->id }})"
+                                        class="text-xs text-red-400 hover:text-red-600 mt-1 sm:hidden">Remove</button>
+                            </div>
+                            {{-- Quantity --}}
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button wire:click="updateQuantity({{ $item->id ?? $item->product->id }}, {{ $item->quantity - 1 }})"
+                                        class="w-7 h-7 rounded-lg border border-[#E2E8F0] flex items-center justify-center text-[#475569] hover:border-[#F59E0B] hover:text-[#F59E0B] transition-colors text-sm font-bold">-</button>
+                                <span class="w-8 text-center text-sm font-bold text-[#0F172A]">{{ $item->quantity }}</span>
+                                <button wire:click="updateQuantity({{ $item->id ?? $item->product->id }}, {{ $item->quantity + 1 }})"
+                                        class="w-7 h-7 rounded-lg border border-[#E2E8F0] flex items-center justify-center text-[#475569] hover:border-[#F59E0B] hover:text-[#F59E0B] transition-colors text-sm font-bold">+</button>
+                            </div>
+                            {{-- Subtotal + Remove --}}
+                            <div class="text-right shrink-0 hidden sm:block">
+                                <p class="font-bold text-sm text-[#0F172A]">ETB {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}</p>
+                                <button wire:click="remove({{ $item->id ?? $item->product->id }})"
+                                        class="text-xs text-red-400 hover:text-red-600 mt-1">Remove</button>
+                            </div>
                         </div>
+                        @endforeach
                     </div>
-                    @endforeach
                 </div>
 
                 {{-- Coupon --}}
                 <div class="card p-5">
-                    <h3 class="font-[Poppins] font-semibold text-sm text-[#0F172A] mb-3">Have a Coupon Code?</h3>
-                    <div class="flex gap-3">
-                        <input type="text" placeholder="Enter coupon code" class="form-input flex-1">
-                        <button class="btn-secondary shrink-0">Apply</button>
+                    <h3 class="font-semibold text-sm text-[#0F172A] mb-3">Have a Coupon Code?</h3>
+                    @if($appliedCoupon)
+                    <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div>
+                            <p class="text-sm font-bold text-green-700">{{ $appliedCoupon->code }}</p>
+                            <p class="text-xs text-green-600">{{ $couponSuccess }}</p>
+                        </div>
+                        <button wire:click="removeCoupon" class="text-xs text-red-500 font-semibold hover:underline">Remove</button>
                     </div>
+                    @else
+                    <div class="flex gap-2">
+                        <input wire:model="couponCode" type="text" placeholder="Enter coupon code" class="form-input flex-1 uppercase" style="text-transform: uppercase;">
+                        <button wire:click="applyCoupon" class="btn-secondary btn-sm shrink-0">Apply</button>
+                    </div>
+                    @if($couponError)
+                    <p class="text-xs text-red-500 mt-1.5">{{ $couponError }}</p>
+                    @endif
+                    @endif
                 </div>
+
+                {{-- Continue Shopping --}}
+                <a href="{{ route('webpage.shop') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-[#475569] hover:text-[#F59E0B] transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    Continue Shopping
+                </a>
             </div>
 
             {{-- Order Summary --}}
             <div class="space-y-4">
-                <div class="card p-6">
-                    <h3 class="font-[Poppins] font-bold text-[#0F172A] mb-5">Order Summary</h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-[#64748B]">Subtotal (3 items)</span>
-                            <span class="font-semibold text-[#0F172A]">ETB 8,479</span>
+                <div class="card p-6 sticky top-24">
+                    <h3 class="font-[Poppins] font-bold text-lg text-[#0F172A] mb-5">Order Summary</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between text-[#475569]">
+                            <span>Subtotal ({{ $this->cartItems->count() }} items)</span>
+                            <span>ETB {{ number_format($subtotal, 0) }}</span>
                         </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-[#64748B]">Shipping</span>
-                            <span class="font-semibold text-green-600">Free</span>
+                        <div class="flex justify-between text-[#475569]">
+                            <span>Shipping</span>
+                            <span class="{{ $shipping === 0 ? 'text-green-600 font-semibold' : '' }}">
+                                {{ $shipping === 0 ? 'FREE' : 'ETB ' . number_format($shipping, 0) }}
+                            </span>
                         </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-[#64748B]">Discount</span>
-                            <span class="font-semibold text-red-500">-ETB 0</span>
+                        <div class="flex justify-between text-[#475569]">
+                            <span>Tax (15%)</span>
+                            <span>ETB {{ number_format($tax, 0) }}</span>
                         </div>
-                        <div class="border-t border-[#F1F5F9] pt-3 flex justify-between">
-                            <span class="font-[Poppins] font-bold text-[#0F172A]">Total</span>
-                            <span class="font-[Poppins] font-bold text-lg text-[#0F172A]">ETB 8,479</span>
+                        @if($discountAmount > 0)
+                        <div class="flex justify-between text-green-600 font-semibold">
+                            <span>Discount</span>
+                            <span>-ETB {{ number_format($discountAmount, 0) }}</span>
+                        </div>
+                        @endif
+                        @if($shipping > 0)
+                        <p class="text-[10px] text-[#94A3B8] bg-[#F8FAFC] rounded-lg px-3 py-2">
+                            Add ETB {{ number_format(500 - $subtotal, 0) }} more for free shipping!
+                        </p>
+                        @endif
+                    </div>
+                    <div class="border-t border-[#E2E8F0] mt-4 pt-4">
+                        <div class="flex justify-between font-bold text-lg">
+                            <span class="text-[#0F172A]">Total</span>
+                            <span class="text-[#0F172A]">ETB {{ number_format($total, 0) }}</span>
                         </div>
                     </div>
-                    <a href="{{ route('webpage.checkout') }}" class="btn-primary w-full justify-center mt-5 btn-lg">
+
+                    @auth
+                    <a href="{{ route('webpage.checkout') }}" class="btn-primary w-full justify-center mt-5 py-3 text-base">
                         Proceed to Checkout
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                     </a>
-                    <a href="{{ route('webpage.shop') }}" class="btn-ghost w-full justify-center mt-2">Continue Shopping</a>
-                </div>
+                    @else
+                    <a href="{{ route('auth.login') }}" class="btn-primary w-full justify-center mt-5 py-3 text-base">
+                        Sign In to Checkout
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    </a>
+                    @endauth
 
-                <div class="card p-5">
-                    <div class="flex items-center gap-2 text-sm text-[#475569] mb-3">
-                        <svg class="w-4 h-4 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                        <span class="font-semibold text-[#0F172A]">Secure Checkout</span>
+                    {{-- Trust badges --}}
+                    <div class="mt-4 flex flex-col gap-2 text-xs text-[#64748B]">
+                        @foreach(['Secure SSL Checkout', 'Easy 30-Day Returns', '100% Genuine Products'] as $badge)
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            {{ $badge }}
+                        </div>
+                        @endforeach
                     </div>
-                    <p class="text-xs text-[#64748B]">Your payment information is processed securely. We do not store credit card details.</p>
                 </div>
             </div>
         </div>
+        @endif
     </section>
 </div>

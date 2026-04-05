@@ -28,78 +28,64 @@
     {{-- ══════════════════════════════════════════════════════
          KPI CARDS
     ══════════════════════════════════════════════════════ --}}
-    @php
-    $kpis = [
-        [
-            'label'   => 'Total Revenue',
-            'value'   => 'ETB 284,500',
-            'change'  => '+12.5%',
-            'up'      => true,
-            'period'  => 'vs last month',
-            'icon'    => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-            'bg'      => 'bg-[#FFFBEB]',
-            'icon_color' => 'text-[#F59E0B]',
-            'icon_bg' => 'bg-[#FEF3C7]',
-        ],
-        [
-            'label'   => 'Total Orders',
-            'value'   => '1,248',
-            'change'  => '+8.2%',
-            'up'      => true,
-            'period'  => 'vs last month',
-            'icon'    => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-            'bg'      => 'bg-[#EFF6FF]',
-            'icon_color' => 'text-blue-600',
-            'icon_bg' => 'bg-blue-100',
-        ],
-        [
-            'label'   => 'Active Customers',
-            'value'   => '4,831',
-            'change'  => '+5.7%',
-            'up'      => true,
-            'period'  => 'vs last month',
-            'icon'    => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
-            'bg'      => 'bg-[#F0FDF4]',
-            'icon_color' => 'text-green-600',
-            'icon_bg' => 'bg-green-100',
-        ],
-        [
-            'label'   => 'Products Listed',
-            'value'   => '526',
-            'change'  => '-2.1%',
-            'up'      => false,
-            'period'  => 'vs last month',
-            'icon'    => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
-            'bg'      => 'bg-[#F5F3FF]',
-            'icon_color' => 'text-purple-600',
-            'icon_bg' => 'bg-purple-100',
-        ],
-    ];
-    @endphp
-
+    {{-- KPI Cards — real data --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        @foreach($kpis as $kpi)
+        {{-- Revenue --}}
         <div class="stat-card">
-            <div class="w-12 h-12 rounded-xl {{ $kpi['icon_bg'] }} flex items-center justify-center shrink-0">
-                <svg class="w-6 h-6 {{ $kpi['icon_color'] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $kpi['icon'] }}"/>
+            <div class="w-12 h-12 rounded-xl bg-[#FEF3C7] flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6 text-[#F59E0B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
             <div class="min-w-0">
-                <p class="text-xs text-[#64748B] font-medium uppercase tracking-wider mb-1">{{ $kpi['label'] }}</p>
-                <p class="font-[Poppins] font-bold text-xl text-[#0F172A] mb-1">{{ $kpi['value'] }}</p>
-                <div class="flex items-center gap-1.5">
-                    <span class="flex items-center gap-0.5 text-xs font-bold {{ $kpi['up'] ? 'text-green-600' : 'text-red-500' }}">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="{{ $kpi['up'] ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7' }}"/>
-                        </svg>
-                        {{ $kpi['change'] }}
-                    </span>
-                    <span class="text-xs text-[#94A3B8]">{{ $kpi['period'] }}</span>
-                </div>
+                <p class="text-xs text-[#64748B] font-medium uppercase tracking-wider mb-1">Total Revenue</p>
+                <p class="font-[Poppins] font-bold text-xl text-[#0F172A] mb-1">ETB {{ number_format($stats['total_revenue'], 0) }}</p>
+                <p class="text-xs text-[#94A3B8]">All non-cancelled orders</p>
             </div>
         </div>
-        @endforeach
+        {{-- Orders --}}
+        <div class="stat-card">
+            <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <p class="text-xs text-[#64748B] font-medium uppercase tracking-wider mb-1">Total Orders</p>
+                <p class="font-[Poppins] font-bold text-xl text-[#0F172A] mb-1">{{ number_format($stats['total_orders']) }}</p>
+                <p class="text-xs text-yellow-600 font-semibold">{{ $stats['pending_orders'] }} pending</p>
+            </div>
+        </div>
+        {{-- Customers --}}
+        <div class="stat-card">
+            <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <p class="text-xs text-[#64748B] font-medium uppercase tracking-wider mb-1">Customers</p>
+                <p class="font-[Poppins] font-bold text-xl text-[#0F172A] mb-1">{{ number_format($stats['total_users']) }}</p>
+                <p class="text-xs text-[#94A3B8]">Registered accounts</p>
+            </div>
+        </div>
+        {{-- Products --}}
+        <div class="stat-card">
+            <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <p class="text-xs text-[#64748B] font-medium uppercase tracking-wider mb-1">Products</p>
+                <p class="font-[Poppins] font-bold text-xl text-[#0F172A] mb-1">{{ number_format($stats['total_products']) }}</p>
+                @if($stats['out_of_stock'] > 0)
+                <p class="text-xs text-red-500 font-semibold">{{ $stats['out_of_stock'] }} out of stock</p>
+                @else
+                <p class="text-xs text-green-600 font-semibold">All in stock</p>
+                @endif
+            </div>
+        </div>
     </div>
 
     {{-- ══════════════════════════════════════════════════════
@@ -203,25 +189,22 @@
                 </div>
             </div>
 
-            {{-- Legend --}}
+            {{-- Legend — real data --}}
+            @php
+            $statusColors = ['pending' => 'bg-[#F59E0B]', 'processing' => 'bg-blue-500', 'shipped' => 'bg-purple-500', 'delivered' => 'bg-green-500', 'cancelled' => 'bg-red-500'];
+            $totalOrders  = $orderStatuses->sum() ?: 1;
+            @endphp
             <div class="space-y-3">
-                @php
-                $statuses = [
-                    ['label' => 'Pending',    'count' => 248, 'pct' => '20%', 'color' => 'bg-[#F59E0B]'],
-                    ['label' => 'Processing', 'count' => 312, 'pct' => '25%', 'color' => 'bg-blue-500'],
-                    ['label' => 'Delivered',  'count' => 562, 'pct' => '45%', 'color' => 'bg-green-500'],
-                    ['label' => 'Cancelled',  'count' => 126, 'pct' => '10%', 'color' => 'bg-red-500'],
-                ];
-                @endphp
-                @foreach($statuses as $s)
+                @foreach(['pending','processing','shipped','delivered','cancelled'] as $status)
+                @php $count = $orderStatuses[$status] ?? 0; $pct = round(($count / $totalOrders) * 100); @endphp
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full {{ $s['color'] }}"></span>
-                        <span class="text-xs text-[#475569] font-medium">{{ $s['label'] }}</span>
+                        <span class="w-2.5 h-2.5 rounded-full {{ $statusColors[$status] }}"></span>
+                        <span class="text-xs text-[#475569] font-medium">{{ ucfirst($status) }}</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-[#0F172A]">{{ $s['count'] }}</span>
-                        <span class="text-xs text-[#94A3B8]">{{ $s['pct'] }}</span>
+                        <span class="text-xs font-bold text-[#0F172A]">{{ $count }}</span>
+                        <span class="text-xs text-[#94A3B8]">{{ $pct }}%</span>
                     </div>
                 </div>
                 @endforeach
@@ -285,35 +268,31 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {{-- Real orders from DB --}}
                         @php
-                        $orders = [
-                            ['id' => '#ORD-1024', 'customer' => 'Selam T.',    'items' => 3, 'amount' => '4,200', 'status' => 'Delivered',  'status_class' => 'badge-success', 'date' => '2 min ago'],
-                            ['id' => '#ORD-1023', 'customer' => 'Yonas B.',    'items' => 1, 'amount' => '1,850', 'status' => 'Processing', 'status_class' => 'badge-info',    'date' => '18 min ago'],
-                            ['id' => '#ORD-1022', 'customer' => 'Hana G.',     'items' => 2, 'amount' => '2,750', 'status' => 'Pending',    'status_class' => 'badge-warning', 'date' => '45 min ago'],
-                            ['id' => '#ORD-1021', 'customer' => 'Dawit A.',    'items' => 5, 'amount' => '8,400', 'status' => 'Delivered',  'status_class' => 'badge-success', 'date' => '1 hr ago'],
-                            ['id' => '#ORD-1020', 'customer' => 'Mekdes F.',   'items' => 2, 'amount' => '3,100', 'status' => 'Cancelled',  'status_class' => 'badge-danger',  'date' => '2 hr ago'],
-                            ['id' => '#ORD-1019', 'customer' => 'Bereket M.',  'items' => 1, 'amount' => '890',   'status' => 'Processing', 'status_class' => 'badge-info',    'date' => '3 hr ago'],
-                        ];
+                        $statusBadge = ['pending'=>'badge-warning','processing'=>'badge-info','shipped'=>'badge-info','delivered'=>'badge-success','cancelled'=>'badge-danger'];
                         @endphp
-                        @foreach($orders as $order)
+                        @forelse($recentOrders as $order)
                         <tr>
                             <td>
-                                <span class="font-mono text-xs font-bold text-[#0F172A]">{{ $order['id'] }}</span>
+                                <span class="font-mono text-xs font-bold text-[#0F172A]">{{ $order->order_number }}</span>
                             </td>
                             <td>
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-7 h-7 rounded-full bg-[#0F172A] flex items-center justify-center">
-                                        <span class="text-[#F59E0B] text-[10px] font-bold">{{ substr($order['customer'], 0, 1) }}</span>
+                                        <span class="text-[#F59E0B] text-[10px] font-bold">{{ strtoupper(substr($order->user->name ?? 'G', 0, 1)) }}</span>
                                     </div>
-                                    <span class="text-sm font-medium text-[#0F172A]">{{ $order['customer'] }}</span>
+                                    <span class="text-sm font-medium text-[#0F172A]">{{ $order->user->name ?? 'Guest' }}</span>
                                 </div>
                             </td>
-                            <td><span class="text-sm text-[#475569]">{{ $order['items'] }} item{{ $order['items'] > 1 ? 's' : '' }}</span></td>
-                            <td><span class="font-semibold text-sm text-[#0F172A]">ETB {{ $order['amount'] }}</span></td>
-                            <td><span class="badge {{ $order['status_class'] }}">{{ $order['status'] }}</span></td>
-                            <td><span class="text-xs text-[#94A3B8]">{{ $order['date'] }}</span></td>
+                            <td><span class="text-sm text-[#475569]">{{ $order->items_count ?? '—' }} items</span></td>
+                            <td><span class="font-semibold text-sm text-[#0F172A]">ETB {{ number_format($order->total, 0) }}</span></td>
+                            <td><span class="badge {{ $statusBadge[$order->status] ?? 'badge-info' }}">{{ ucfirst($order->status) }}</span></td>
+                            <td><span class="text-xs text-[#94A3B8]">{{ $order->created_at->diffForHumans() }}</span></td>
                         </tr>
-                        @endforeach
+                        @empty
+                        <tr><td colspan="6" class="text-center py-8 text-[#94A3B8]">No orders yet.</td></tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -323,34 +302,28 @@
         <div class="card">
             <div class="flex items-center justify-between px-5 py-4 border-b border-[#F1F5F9]">
                 <h3 class="font-[Poppins] font-bold text-[#0F172A] text-sm">Low Stock Alerts</h3>
-                <span class="badge badge-danger">5 Items</span>
+                <span class="badge badge-danger">{{ $lowStockProducts->count() }} Items</span>
             </div>
             <div class="divide-y divide-[#F1F5F9]">
-                @php
-                $lowStock = [
-                    ['name' => 'Wireless Headphones', 'sku' => 'SKU-001', 'stock' => 3,  'max' => 50],
-                    ['name' => 'Smart Watch Pro',      'sku' => 'SKU-015', 'stock' => 6,  'max' => 100],
-                    ['name' => 'Leather Weekend Bag',  'sku' => 'SKU-023', 'stock' => 2,  'max' => 30],
-                    ['name' => 'Bluetooth Speaker',    'sku' => 'SKU-041', 'stock' => 8,  'max' => 80],
-                    ['name' => 'Running Shoes Pro',    'sku' => 'SKU-057', 'stock' => 4,  'max' => 60],
-                ];
-                @endphp
-                @foreach($lowStock as $item)
+                @forelse($lowStockProducts as $item)
                 <div class="px-5 py-3.5">
                     <div class="flex items-start justify-between gap-2 mb-2">
                         <div class="min-w-0">
-                            <p class="text-sm font-semibold text-[#0F172A] truncate">{{ $item['name'] }}</p>
-                            <p class="text-xs text-[#94A3B8]">{{ $item['sku'] }}</p>
+                            <p class="text-sm font-semibold text-[#0F172A] truncate">{{ $item->name }}</p>
+                            <p class="text-xs text-[#94A3B8]">{{ $item->sku ?? 'No SKU' }}</p>
                         </div>
-                        <span class="badge badge-danger shrink-0">{{ $item['stock'] }} left</span>
+                        <span class="badge {{ $item->stock === 0 ? 'badge-danger' : 'badge-warning' }} shrink-0">
+                            {{ $item->stock === 0 ? 'Out' : $item->stock . ' left' }}
+                        </span>
                     </div>
-                    {{-- Progress Bar --}}
                     <div class="w-full h-1.5 bg-[#F1F5F9] rounded-full overflow-hidden">
-                        <div class="h-full rounded-full {{ $item['stock'] <= 3 ? 'bg-red-500' : 'bg-orange-400' }}"
-                             style="width: {{ ($item['stock'] / $item['max']) * 100 }}%"></div>
+                        <div class="h-full rounded-full {{ $item->stock <= 2 ? 'bg-red-500' : 'bg-orange-400' }}"
+                             style="width: {{ $item->stock === 0 ? 5 : min(($item->stock / 50) * 100, 100) }}%"></div>
                     </div>
                 </div>
-                @endforeach
+                @empty
+                <div class="px-5 py-8 text-center text-sm text-green-600 font-semibold">All products are well stocked!</div>
+                @endforelse
             </div>
             <div class="p-4 border-t border-[#F1F5F9]">
                 <button class="btn-primary w-full justify-center btn-sm">

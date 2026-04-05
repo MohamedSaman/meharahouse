@@ -196,34 +196,58 @@
                 <p class="section-subtitle max-w-lg mx-auto">Explore our wide range of product categories curated for every need.</p>
             </div>
 
-            {{-- Category Grid --}}
+            {{-- Category Grid — real data from DB --}}
             @php
-            $categories = [
-                ['name' => 'Electronics', 'count' => '120 Products', 'icon' => 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', 'color' => 'from-blue-500 to-blue-700', 'bg' => '#EFF6FF'],
-                ['name' => 'Fashion', 'count' => '85 Products', 'icon' => 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01', 'color' => 'from-pink-500 to-rose-600', 'bg' => '#FFF1F2'],
-                ['name' => 'Home & Living', 'count' => '64 Products', 'icon' => 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', 'color' => 'from-amber-500 to-orange-600', 'bg' => '#FFFBEB'],
-                ['name' => 'Sports', 'count' => '47 Products', 'icon' => 'M13 10V3L4 14h7v7l9-11h-7z', 'color' => 'from-green-500 to-emerald-700', 'bg' => '#F0FDF4'],
-                ['name' => 'Beauty', 'count' => '93 Products', 'icon' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z', 'color' => 'from-purple-500 to-violet-700', 'bg' => '#F5F3FF'],
-                ['name' => 'Books', 'count' => '38 Products', 'icon' => 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', 'color' => 'from-teal-500 to-cyan-700', 'bg' => '#F0FDFA'],
+            $categoryColors = [
+                'from-blue-500 to-blue-700',
+                'from-pink-500 to-rose-600',
+                'from-amber-500 to-orange-600',
+                'from-green-500 to-emerald-700',
+                'from-purple-500 to-violet-700',
+                'from-teal-500 to-cyan-700',
+                'from-red-500 to-red-700',
+                'from-indigo-500 to-indigo-700',
+                'from-yellow-500 to-yellow-700',
+                'from-lime-500 to-lime-700',
+            ];
+            $categoryBgs = ['#EFF6FF','#FFF1F2','#FFFBEB','#F0FDF4','#F5F3FF','#F0FDFA','#FEF2F2','#EEF2FF','#FEFCE8','#F7FEE7'];
+            $categoryIcons = [
+                'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+                'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01',
+                'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+                'M13 10V3L4 14h7v7l9-11h-7z',
+                'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
+                'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+                'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+                'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+                'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+                'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
             ];
             @endphp
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                @foreach($categories as $cat)
-                <a href="{{ route('webpage.shop') }}"
-                   class="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-[#E2E8F0] hover:border-[#F59E0B] hover:shadow-lg transition-all duration-300 bg-white text-center cursor-pointer"
-                   style="background: {{ $cat['bg'] }};">
-                    <div class="w-14 h-14 rounded-xl bg-gradient-to-br {{ $cat['color'] }} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                @forelse($categories as $i => $cat)
+                @php
+                    $color = $categoryColors[$i % count($categoryColors)];
+                    $bg    = $categoryBgs[$i % count($categoryBgs)];
+                    $icon  = $categoryIcons[$i % count($categoryIcons)];
+                @endphp
+                <a href="{{ route('webpage.shop', ['category' => $cat->slug]) }}"
+                   class="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-[#E2E8F0] hover:border-[#F59E0B] hover:shadow-lg transition-all duration-300 text-center"
+                   style="background: {{ $bg }};">
+                    <div class="w-14 h-14 rounded-xl bg-gradient-to-br {{ $color }} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
                         <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $cat['icon'] }}"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $icon }}"/>
                         </svg>
                     </div>
                     <div>
-                        <h3 class="font-[Poppins] font-semibold text-sm text-[#0F172A] group-hover:text-[#D97706] transition-colors duration-200">{{ $cat['name'] }}</h3>
-                        <p class="text-xs text-[#64748B] mt-0.5">{{ $cat['count'] }}</p>
+                        <h3 class="font-[Poppins] font-semibold text-sm text-[#0F172A] group-hover:text-[#D97706] transition-colors duration-200">{{ $cat->name }}</h3>
+                        <p class="text-xs text-[#64748B] mt-0.5">{{ $cat->products_count }} Products</p>
                     </div>
                 </a>
-                @endforeach
+                @empty
+                <p class="col-span-5 text-center text-[#64748B] text-sm py-8">No categories yet.</p>
+                @endforelse
             </div>
         </div>
     </section>
@@ -262,40 +286,33 @@
                 </div>
             </div>
 
-            {{-- Products Grid --}}
-            @php
-            $products = [
-                ['name' => 'Premium Wireless Headphones', 'price' => '2,499', 'original' => '3,200', 'rating' => 4.8, 'reviews' => 124, 'badge' => 'Sale', 'badge_color' => 'badge-danger', 'image' => 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&auto=format&fit=crop&q=80'],
-                ['name' => 'Leather Weekend Bag', 'price' => '1,850', 'original' => null, 'rating' => 4.9, 'reviews' => 87, 'badge' => 'New', 'badge_color' => 'badge-info', 'image' => 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&auto=format&fit=crop&q=80'],
-                ['name' => 'Smart Watch Pro', 'price' => '4,200', 'original' => '5,500', 'rating' => 4.7, 'reviews' => 203, 'badge' => 'Trending', 'badge_color' => 'badge-gold', 'image' => 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&auto=format&fit=crop&q=80'],
-                ['name' => 'Natural Skincare Set', 'price' => '890', 'original' => null, 'rating' => 4.6, 'reviews' => 56, 'badge' => null, 'badge_color' => null, 'image' => 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400&auto=format&fit=crop&q=80'],
-                ['name' => 'Running Shoes Pro', 'price' => '3,100', 'original' => '3,800', 'rating' => 4.8, 'reviews' => 178, 'badge' => 'Sale', 'badge_color' => 'badge-danger', 'image' => 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&auto=format&fit=crop&q=80'],
-                ['name' => 'Ergonomic Desk Lamp', 'price' => '650', 'original' => null, 'rating' => 4.5, 'reviews' => 42, 'badge' => 'New', 'badge_color' => 'badge-info', 'image' => 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400&auto=format&fit=crop&q=80'],
-                ['name' => 'Ceramic Coffee Mug Set', 'price' => '480', 'original' => '600', 'rating' => 4.9, 'reviews' => 91, 'badge' => 'Sale', 'badge_color' => 'badge-danger', 'image' => 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=400&auto=format&fit=crop&q=80'],
-                ['name' => 'Portable Bluetooth Speaker', 'price' => '1,350', 'original' => null, 'rating' => 4.7, 'reviews' => 115, 'badge' => 'Trending', 'badge_color' => 'badge-gold', 'image' => 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400&auto=format&fit=crop&q=80'],
-            ];
-            @endphp
-
+            {{-- Products Grid — real data from DB --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                @foreach($products as $product)
+                @forelse($featuredProducts as $product)
                 <div class="product-card group" x-data="{ inWishlist: false }">
                     {{-- Image --}}
                     <div class="product-img-wrap h-56 relative">
-                        <img src="{{ $product['image'] }}" alt="{{ $product['name'] }}" loading="lazy">
+                        <img src="{{ $product->primaryImage() }}" alt="{{ $product->name }}" loading="lazy"
+                             onerror="this.src='https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400&auto=format&fit=crop&q=80'">
 
-                        {{-- Badge --}}
-                        @if($product['badge'])
-                        <span class="absolute top-3 left-3 {{ $product['badge_color'] }} badge z-10">{{ $product['badge'] }}</span>
+                        {{-- Badges --}}
+                        @if($product->isOnSale())
+                        <span class="absolute top-3 left-3 badge badge-danger z-10">-{{ $product->discountPercent() }}%</span>
+                        @elseif($product->created_at->isAfter(now()->subDays(14)))
+                        <span class="absolute top-3 left-3 badge badge-info z-10">New</span>
+                        @elseif($product->is_featured)
+                        <span class="absolute top-3 left-3 badge badge-gold z-10">Featured</span>
                         @endif
 
                         {{-- Quick Actions --}}
                         <div class="product-actions bg-white/90 backdrop-blur-sm rounded-t-xl">
-                            <button class="btn-primary btn-sm">
+                            <a href="{{ route('webpage.product-details', $product->slug) }}" class="btn-primary btn-sm">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
-                                Add to Cart
-                            </button>
+                                View Product
+                            </a>
                             <button @click="inWishlist = !inWishlist"
                                     :class="inWishlist ? 'text-red-500' : 'text-[#475569]'"
                                     class="p-2 rounded-lg bg-white border border-[#E2E8F0] hover:border-red-200 transition-all duration-200">
@@ -308,34 +325,46 @@
 
                     {{-- Info --}}
                     <div class="p-4">
-                        <a href="{{ route('webpage.product-details') }}" class="block font-[Poppins] font-semibold text-sm text-[#0F172A] hover:text-[#D97706] transition-colors duration-200 leading-snug mb-2">
-                            {{ $product['name'] }}
+                        <p class="text-[10px] font-semibold text-[#F59E0B] uppercase tracking-wider mb-1">{{ $product->category->name }}</p>
+                        <a href="{{ route('webpage.product-details', $product->slug) }}"
+                           class="block font-[Poppins] font-semibold text-sm text-[#0F172A] hover:text-[#D97706] transition-colors duration-200 leading-snug mb-2">
+                            {{ $product->name }}
                         </a>
 
                         {{-- Rating --}}
+                        @php $rating = $product->averageRating(); $reviewCount = $product->reviewCount(); @endphp
                         <div class="flex items-center gap-1.5 mb-3">
                             <div class="flex">
-                                @for($i = 1; $i <= 5; $i++)
-                                <svg class="w-3.5 h-3.5 {{ $i <= floor($product['rating']) ? 'text-[#F59E0B]' : 'text-[#CBD5E1]' }}" fill="currentColor" viewBox="0 0 20 20">
+                                @for($star = 1; $star <= 5; $star++)
+                                <svg class="w-3.5 h-3.5 {{ $star <= floor($rating) ? 'text-[#F59E0B]' : 'text-[#CBD5E1]' }}" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                                 </svg>
                                 @endfor
                             </div>
-                            <span class="text-xs text-[#64748B]">{{ $product['rating'] }} ({{ $product['reviews'] }})</span>
+                            <span class="text-xs text-[#64748B]">{{ $rating > 0 ? number_format($rating, 1) : 'No ratings' }} @if($reviewCount > 0)({{ $reviewCount }})@endif</span>
                         </div>
 
                         {{-- Price --}}
                         <div class="flex items-center justify-between">
                             <div class="flex items-baseline gap-2">
-                                <span class="font-[Poppins] font-bold text-base text-[#0F172A]">ETB {{ $product['price'] }}</span>
-                                @if($product['original'])
-                                <span class="text-xs text-[#94A3B8] line-through">ETB {{ $product['original'] }}</span>
+                                <span class="font-[Poppins] font-bold text-base text-[#0F172A]">ETB {{ number_format($product->effectivePrice(), 0) }}</span>
+                                @if($product->isOnSale())
+                                <span class="text-xs text-[#94A3B8] line-through">ETB {{ number_format($product->price, 0) }}</span>
                                 @endif
                             </div>
+                            @if($product->stock <= 5 && $product->stock > 0)
+                            <span class="text-[10px] font-semibold text-orange-500">Only {{ $product->stock }} left</span>
+                            @elseif($product->stock === 0)
+                            <span class="text-[10px] font-semibold text-red-500">Out of stock</span>
+                            @endif
                         </div>
                     </div>
                 </div>
-                @endforeach
+                @empty
+                <div class="col-span-4 text-center py-12">
+                    <p class="text-[#64748B]">No featured products yet. <a href="{{ route('webpage.shop') }}" class="text-[#F59E0B] font-semibold">Browse all products.</a></p>
+                </div>
+                @endforelse
             </div>
         </div>
     </section>

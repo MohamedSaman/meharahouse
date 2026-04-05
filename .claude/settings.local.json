@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(php artisan:*)"
+      "Bash(php artisan:*)",
+      "Bash(php -r ':*)",
+      "Bash(php -l app/Livewire/Admin/Dashboard.php)",
+      "Bash(php -l app/Livewire/Admin/Product.php)",
+      "Bash(php -l app/Livewire/Admin/Order.php)",
+      "Bash(php -l app/Livewire/Admin/Category.php)",
+      "Bash(php -l app/Livewire/Admin/Customer.php)"
     ]
   }
 }
