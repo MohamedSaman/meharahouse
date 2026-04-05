@@ -31,12 +31,10 @@ Route::prefix('/')->name('webpage.')->group(function () {
     Route::get('/about',          App\Livewire\Webpage\About::class)->name('about');
     Route::get('/contact',        App\Livewire\Webpage\Contact::class)->name('contact');
 
-    // Auth-protected customer routes
-    Route::middleware('auth')->group(function () {
-        Route::get('/cart',     App\Livewire\Webpage\Cart::class)->name('cart');
-        Route::get('/checkout', App\Livewire\Webpage\Checkout::class)->name('checkout');
-        Route::get('/orders',   App\Livewire\Webpage\Orders::class)->name('orders');
-    });
+    // Guest-accessible routes (no login required)
+    Route::get('/cart',     App\Livewire\Webpage\Cart::class)->name('cart');
+    Route::get('/checkout', App\Livewire\Webpage\Checkout::class)->name('checkout');
+    Route::get('/orders',   App\Livewire\Webpage\Orders::class)->name('orders');
 });
 
 /*

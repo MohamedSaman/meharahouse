@@ -14,7 +14,7 @@ class Checkout extends Component
 {
     public int $step = 1; // 1=address, 2=payment, 3=review, 4=success
 
-    // Step 1 — Shipping Address
+    // Step 1 — Customer Details & Shipping Address
     public string $fullName = '';
     public string $email = '';
     public string $phone = '';
@@ -31,21 +31,21 @@ class Checkout extends Component
     public string $couponCode = '';
     public float $discountAmount = 0;
     public ?Coupon $appliedCoupon = null;
+    public string $couponError = '';
+    public string $couponSuccess = '';
 
     // Success
     public ?string $orderNumber = null;
 
     public function mount(): void
     {
-        if (!auth()->check()) {
-            $this->redirect(route('auth.login'));
-            return;
+        // Pre-fill details if user is logged in
+        if (auth()->check()) {
+            $user = auth()->user();
+            $this->fullName = $user->name;
+            $this->email    = $user->email;
+            $this->phone    = $user->phone ?? '';
         }
-
-        $user = auth()->user();
-        $this->fullName = $user->name;
-        $this->email    = $user->email;
-        $this->phone    = $user->phone ?? '';
     }
 
     protected function stepOneRules(): array
@@ -75,14 +75,70 @@ class Checkout extends Component
 
     public function getCartItemsProperty()
     {
-        return CartModel::where('user_id', auth()->id())
-            ->with('product')
-            ->get();
+        if (auth()->check()) {
+            return CartModel::where('user_id', auth()->id())
+                ->with('product')
+                ->get();
+        }
+
+        // Guest cart from session
+        $sessionCart = session()->get('cart', []);
+        if (empty($sessionCart)) return collect();
+
+        $productIds = array_keys($sessionCart);
+        $products   = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        return collect($sessionCart)->map(function ($item, $productId) use ($products) {
+            $product = $products->get($productId);
+            if (!$product) return null;
+            return (object)[
+                'id'         => $productId,
+                'product_id' => $productId,
+                'product'    => $product,
+                'quantity'   => $item['quantity'],
+            ];
+        })->filter()->values();
     }
 
     public function getSubtotal(): float
     {
         return $this->cartItems->sum(fn($i) => $i->product->effectivePrice() * $i->quantity);
+    }
+
+    public function applyCoupon(): void
+    {
+        $this->couponError   = '';
+        $this->couponSuccess = '';
+
+        $coupon = Coupon::where('code', strtoupper(trim($this->couponCode)))->first();
+
+        if (!$coupon || !$coupon->isValid()) {
+            $this->couponError    = 'Invalid or expired coupon code.';
+            $this->appliedCoupon  = null;
+            $this->discountAmount = 0;
+            return;
+        }
+
+        $subtotal = $this->getSubtotal();
+        $discount = $coupon->calculateDiscount($subtotal);
+
+        if ($discount <= 0) {
+            $this->couponError = 'Your order does not meet the minimum requirement (ETB ' . number_format($coupon->min_order) . ').';
+            return;
+        }
+
+        $this->appliedCoupon  = $coupon;
+        $this->discountAmount  = $discount;
+        $this->couponSuccess   = 'Coupon applied! You save ETB ' . number_format($discount) . '.';
+    }
+
+    public function removeCoupon(): void
+    {
+        $this->appliedCoupon  = null;
+        $this->discountAmount  = 0;
+        $this->couponCode     = '';
+        $this->couponError    = '';
+        $this->couponSuccess  = '';
     }
 
     public function placeOrder(): void
@@ -94,15 +150,15 @@ class Checkout extends Component
             return;
         }
 
-        $subtotal     = $this->getSubtotal();
-        $shipping     = $subtotal >= 500 ? 0 : 50;
-        $tax          = round($subtotal * 0.15, 2);
-        $total        = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
-        $orderNumber  = Order::generateOrderNumber();
+        $subtotal    = $this->getSubtotal();
+        $shipping    = $subtotal >= 500 ? 0 : 50;
+        $tax         = round($subtotal * 0.15, 2);
+        $total       = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
+        $orderNumber = Order::generateOrderNumber();
 
         DB::transaction(function () use ($subtotal, $shipping, $tax, $total, $orderNumber) {
             $order = Order::create([
-                'user_id'          => auth()->id(),
+                'user_id'          => auth()->id(), // null for guests
                 'order_number'     => $orderNumber,
                 'status'           => 'pending',
                 'subtotal'         => $subtotal,
@@ -135,17 +191,19 @@ class Checkout extends Component
                     'subtotal'     => $item->product->effectivePrice() * $item->quantity,
                 ]);
 
-                // Decrement stock
                 $item->product->decrement('stock', $item->quantity);
             }
 
-            // Increment coupon usage
             if ($this->appliedCoupon) {
                 $this->appliedCoupon->increment('used_count');
             }
 
-            // Clear cart
-            CartModel::where('user_id', auth()->id())->delete();
+            // Clear cart — DB for logged-in users, session for guests
+            if (auth()->check()) {
+                CartModel::where('user_id', auth()->id())->delete();
+            } else {
+                session()->forget('cart');
+            }
         });
 
         $this->orderNumber = $orderNumber;
@@ -154,7 +212,7 @@ class Checkout extends Component
 
     public function render()
     {
-        $subtotal = auth()->check() ? $this->getSubtotal() : 0;
+        $subtotal = $this->getSubtotal();
         $shipping = $subtotal >= 500 ? 0 : 50;
         $tax      = round($subtotal * 0.15, 2);
         $total    = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
