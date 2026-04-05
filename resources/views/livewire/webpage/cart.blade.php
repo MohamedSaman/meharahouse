@@ -62,7 +62,7 @@
                                     {{ $item->product->name }}
                                 </a>
                                 <p class="text-xs text-[#64748B] mt-0.5">{{ $item->product->category?->name ?? '' }}</p>
-                                <p class="font-semibold text-sm text-[#0F172A] mt-1">ETB {{ number_format($item->product->effectivePrice(), 0) }}</p>
+                                <p class="font-semibold text-sm text-[#0F172A] mt-1">Rs. {{ number_format($item->product->effectivePrice(), 0) }}</p>
                                 {{-- Remove (mobile) --}}
                                 <button wire:click="remove({{ $item->id ?? $item->product->id }})"
                                         class="text-xs text-red-400 hover:text-red-600 mt-1 sm:hidden">Remove</button>
@@ -77,7 +77,7 @@
                             </div>
                             {{-- Subtotal + Remove --}}
                             <div class="text-right shrink-0 hidden sm:block">
-                                <p class="font-bold text-sm text-[#0F172A]">ETB {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}</p>
+                                <p class="font-bold text-sm text-[#0F172A]">Rs. {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}</p>
                                 <button wire:click="remove({{ $item->id ?? $item->product->id }})"
                                         class="text-xs text-red-400 hover:text-red-600 mt-1">Remove</button>
                             </div>
@@ -122,34 +122,34 @@
                     <div class="space-y-3 text-sm">
                         <div class="flex justify-between text-[#475569]">
                             <span>Subtotal ({{ $this->cartItems->count() }} items)</span>
-                            <span>ETB {{ number_format($subtotal, 0) }}</span>
+                            <span>Rs. {{ number_format($subtotal, 0) }}</span>
                         </div>
                         <div class="flex justify-between text-[#475569]">
                             <span>Shipping</span>
                             <span class="{{ $shipping === 0 ? 'text-green-600 font-semibold' : '' }}">
-                                {{ $shipping === 0 ? 'FREE' : 'ETB ' . number_format($shipping, 0) }}
+                                {{ $shipping === 0 ? 'FREE' : 'Rs. ' . number_format($shipping, 0) }}
                             </span>
                         </div>
                         <div class="flex justify-between text-[#475569]">
                             <span>Tax (15%)</span>
-                            <span>ETB {{ number_format($tax, 0) }}</span>
+                            <span>Rs. {{ number_format($tax, 0) }}</span>
                         </div>
                         @if($discountAmount > 0)
                         <div class="flex justify-between text-green-600 font-semibold">
                             <span>Discount</span>
-                            <span>-ETB {{ number_format($discountAmount, 0) }}</span>
+                            <span>-Rs. {{ number_format($discountAmount, 0) }}</span>
                         </div>
                         @endif
                         @if($shipping > 0)
                         <p class="text-[10px] text-[#94A3B8] bg-[#F8FAFC] rounded-lg px-3 py-2">
-                            Add ETB {{ number_format(500 - $subtotal, 0) }} more for free shipping!
+                            Add Rs. {{ number_format(500 - $subtotal, 0) }} more for free shipping!
                         </p>
                         @endif
                     </div>
                     <div class="border-t border-[#E2E8F0] mt-4 pt-4">
                         <div class="flex justify-between font-bold text-lg">
                             <span class="text-[#0F172A]">Total</span>
-                            <span class="text-[#0F172A]">ETB {{ number_format($total, 0) }}</span>
+                            <span class="text-[#0F172A]">Rs. {{ number_format($total, 0) }}</span>
                         </div>
                     </div>
 

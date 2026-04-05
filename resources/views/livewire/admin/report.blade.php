@@ -22,9 +22,9 @@
     {{-- KPIs --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         @foreach([
-            ['label' => 'Total Revenue', 'value' => 'ETB 284,500', 'change' => '+12.5%', 'up' => true],
+            ['label' => 'Total Revenue', 'value' => 'Rs. 284,500', 'change' => '+12.5%', 'up' => true],
             ['label' => 'Orders Placed', 'value' => '1,248', 'change' => '+8.2%', 'up' => true],
-            ['label' => 'Avg. Order Value', 'value' => 'ETB 228', 'change' => '+3.1%', 'up' => true],
+            ['label' => 'Avg. Order Value', 'value' => 'Rs. 228', 'change' => '+3.1%', 'up' => true],
             ['label' => 'Return Rate', 'value' => '2.4%', 'change' => '-0.8%', 'up' => true],
         ] as $kpi)
         <div class="card p-5">
@@ -60,7 +60,7 @@
                         <div class="h-full rounded-full bg-gradient-to-r from-[#F59E0B] to-[#FBBF24]" style="width: {{ $item['pct'] }}%"></div>
                     </div>
                 </div>
-                <span class="text-xs font-bold text-[#0F172A] shrink-0 hidden sm:block">ETB {{ $item['revenue'] }}</span>
+                <span class="text-xs font-bold text-[#0F172A] shrink-0 hidden sm:block">Rs. {{ $item['revenue'] }}</span>
             </div>
             @endforeach
         </div>

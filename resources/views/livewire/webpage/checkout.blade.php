@@ -175,7 +175,7 @@
                                     <p class="text-sm font-medium text-[#0F172A] truncate">{{ $item->product->name }}</p>
                                     <p class="text-xs text-[#64748B]">Qty: {{ $item->quantity }}</p>
                                 </div>
-                                <span class="text-sm font-semibold text-[#0F172A] shrink-0">ETB {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}</span>
+                                <span class="text-sm font-semibold text-[#0F172A] shrink-0">Rs. {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}</span>
                             </div>
                             @endforeach
                         </div>
@@ -188,7 +188,7 @@
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                             </svg>
-                            <span wire:loading.remove>Place Order — ETB {{ number_format($total, 0) }}</span>
+                            <span wire:loading.remove>Place Order — Rs. {{ number_format($total, 0) }}</span>
                             <span wire:loading>Placing order...</span>
                         </button>
                     </div>
@@ -201,15 +201,15 @@
                 <div class="card p-5 sticky top-24">
                     <h3 class="font-[Poppins] font-bold text-base text-[#0F172A] mb-4">Order Summary</h3>
                     <div class="space-y-2 text-sm">
-                        <div class="flex justify-between text-[#475569]"><span>Subtotal</span><span>ETB {{ number_format($subtotal, 0) }}</span></div>
-                        <div class="flex justify-between text-[#475569]"><span>Shipping</span><span class="{{ $shipping === 0 ? 'text-green-600 font-semibold' : '' }}">{{ $shipping === 0 ? 'FREE' : 'ETB ' . number_format($shipping, 0) }}</span></div>
-                        <div class="flex justify-between text-[#475569]"><span>Tax (15%)</span><span>ETB {{ number_format($tax, 0) }}</span></div>
+                        <div class="flex justify-between text-[#475569]"><span>Subtotal</span><span>Rs. {{ number_format($subtotal, 0) }}</span></div>
+                        <div class="flex justify-between text-[#475569]"><span>Shipping</span><span class="{{ $shipping === 0 ? 'text-green-600 font-semibold' : '' }}">{{ $shipping === 0 ? 'FREE' : 'Rs. ' . number_format($shipping, 0) }}</span></div>
+                        <div class="flex justify-between text-[#475569]"><span>Tax (15%)</span><span>Rs. {{ number_format($tax, 0) }}</span></div>
                         @if($discountAmount > 0)
-                        <div class="flex justify-between text-green-600 font-semibold"><span>Discount</span><span>-ETB {{ number_format($discountAmount, 0) }}</span></div>
+                        <div class="flex justify-between text-green-600 font-semibold"><span>Discount</span><span>-Rs. {{ number_format($discountAmount, 0) }}</span></div>
                         @endif
                         <div class="border-t border-[#E2E8F0] pt-2 flex justify-between font-bold text-base">
                             <span class="text-[#0F172A]">Total</span>
-                            <span class="text-[#0F172A]">ETB {{ number_format($total, 0) }}</span>
+                            <span class="text-[#0F172A]">Rs. {{ number_format($total, 0) }}</span>
                         </div>
                     </div>
                     <div class="mt-4 flex flex-col gap-2 text-xs text-[#64748B]">

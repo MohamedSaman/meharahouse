@@ -108,7 +108,7 @@
                             <span class="text-sm text-[#475569]">{{ $order->items_count ?? $order->items->count() }} item(s)</span>
                         </td>
                         <td>
-                            <span class="font-semibold text-sm text-[#0F172A]">ETB {{ number_format($order->total, 0) }}</span>
+                            <span class="font-semibold text-sm text-[#0F172A]">Rs. {{ number_format($order->total, 0) }}</span>
                         </td>
                         <td>
                             <span class="text-xs font-semibold text-[#475569]">{{ str_replace('_', ' ', ucwords($order->payment_method)) }}</span>
@@ -226,7 +226,7 @@
                     </div>
                     <div class="p-3 bg-[#F8FAFC] rounded-lg">
                         <p class="text-xs text-[#94A3B8] font-medium mb-1">Total Amount</p>
-                        <p class="text-sm font-semibold text-[#0F172A]">ETB {{ number_format($selectedOrder->total, 0) }}</p>
+                        <p class="text-sm font-semibold text-[#0F172A]">Rs. {{ number_format($selectedOrder->total, 0) }}</p>
                     </div>
                 </div>
 
@@ -247,7 +247,7 @@
                                     <p class="text-xs text-[#94A3B8]">Qty: {{ $item->quantity }}</p>
                                 </div>
                             </div>
-                            <span class="text-sm font-semibold text-[#0F172A]">ETB {{ number_format($item->subtotal, 0) }}</span>
+                            <span class="text-sm font-semibold text-[#0F172A]">Rs. {{ number_format($item->subtotal, 0) }}</span>
                         </div>
                         @endforeach
                     </div>

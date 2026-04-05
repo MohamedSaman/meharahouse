@@ -47,7 +47,7 @@
                         </div>
                         <div>
                             <p class="text-xs text-[#64748B]">Total</p>
-                            <p class="font-bold text-[#0F172A]">ETB {{ number_format($order->total, 0) }}</p>
+                            <p class="font-bold text-[#0F172A]">Rs. {{ number_format($order->total, 0) }}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -123,9 +123,9 @@
                             <div class="flex justify-between text-sm py-2 border-b border-[#F1F5F9] last:border-0">
                                 <div>
                                     <p class="font-medium text-[#0F172A]">{{ $item->product_name }}</p>
-                                    <p class="text-xs text-[#64748B]">ETB {{ number_format($item->price, 0) }} x {{ $item->quantity }}</p>
+                                    <p class="text-xs text-[#64748B]">Rs. {{ number_format($item->price, 0) }} x {{ $item->quantity }}</p>
                                 </div>
-                                <span class="font-semibold">ETB {{ number_format($item->subtotal, 0) }}</span>
+                                <span class="font-semibold">Rs. {{ number_format($item->subtotal, 0) }}</span>
                             </div>
                             @endforeach
                         </div>
@@ -133,11 +133,11 @@
 
                     {{-- Totals --}}
                     <div class="bg-[#F8FAFC] rounded-xl p-4 space-y-2 text-sm">
-                        <div class="flex justify-between text-[#64748B]"><span>Subtotal</span><span>ETB {{ number_format($selectedOrder->subtotal, 0) }}</span></div>
-                        <div class="flex justify-between text-[#64748B]"><span>Shipping</span><span>ETB {{ number_format($selectedOrder->shipping_cost, 0) }}</span></div>
-                        <div class="flex justify-between text-[#64748B]"><span>Tax</span><span>ETB {{ number_format($selectedOrder->tax, 0) }}</span></div>
+                        <div class="flex justify-between text-[#64748B]"><span>Subtotal</span><span>Rs. {{ number_format($selectedOrder->subtotal, 0) }}</span></div>
+                        <div class="flex justify-between text-[#64748B]"><span>Shipping</span><span>Rs. {{ number_format($selectedOrder->shipping_cost, 0) }}</span></div>
+                        <div class="flex justify-between text-[#64748B]"><span>Tax</span><span>Rs. {{ number_format($selectedOrder->tax, 0) }}</span></div>
                         <div class="flex justify-between font-bold border-t border-[#E2E8F0] pt-2">
-                            <span>Total</span><span>ETB {{ number_format($selectedOrder->total, 0) }}</span>
+                            <span>Total</span><span>Rs. {{ number_format($selectedOrder->total, 0) }}</span>
                         </div>
                     </div>
 

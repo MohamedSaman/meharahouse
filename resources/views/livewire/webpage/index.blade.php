@@ -31,7 +31,7 @@
                 {
                     tag: 'Fast Delivery',
                     title: 'Nationwide Delivery\nAcross Ethiopia',
-                    subtitle: 'Order today, receive within 2-3 business days. Free shipping on orders above ETB 500.',
+                    subtitle: 'Order today, receive within 2-3 business days. Free shipping on orders above Rs. 500.',
                     cta: 'Start Shopping',
                     ctaLink: '{{ route("webpage.shop") }}',
                     bg: 'from-[#134e4a] to-[#0f3d3a]',
@@ -162,7 +162,7 @@
                 $stats = [
                     ['icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', 'value' => '500+', 'label' => 'Products Available'],
                     ['icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', 'value' => '12K+', 'label' => 'Happy Customers'],
-                    ['icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', 'value' => 'ETB 500', 'label' => 'Free Shipping Above'],
+                    ['icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z', 'value' => 'Rs. 500', 'label' => 'Free Shipping Above'],
                     ['icon' => 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', 'value' => '100%', 'label' => 'Authentic Products'],
                 ];
                 @endphp
@@ -347,9 +347,9 @@
                         {{-- Price --}}
                         <div class="flex items-center justify-between">
                             <div class="flex items-baseline gap-2">
-                                <span class="font-[Poppins] font-bold text-base text-[#0F172A]">ETB {{ number_format($product->effectivePrice(), 0) }}</span>
+                                <span class="font-[Poppins] font-bold text-base text-[#0F172A]">Rs. {{ number_format($product->effectivePrice(), 0) }}</span>
                                 @if($product->isOnSale())
-                                <span class="text-xs text-[#94A3B8] line-through">ETB {{ number_format($product->price, 0) }}</span>
+                                <span class="text-xs text-[#94A3B8] line-through">Rs. {{ number_format($product->price, 0) }}</span>
                                 @endif
                             </div>
                             @if($product->stock <= 5 && $product->stock > 0)
@@ -394,7 +394,7 @@
                 <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#134e4a] to-[#065f46] p-8 flex items-center gap-6">
                     <div class="relative z-10">
                         <span class="text-[#6ee7b7] text-xs font-bold uppercase tracking-widest">Free Shipping</span>
-                        <h3 class="font-[Poppins] font-bold text-2xl text-white mt-1 mb-2">Orders Above<br>ETB 500 Only</h3>
+                        <h3 class="font-[Poppins] font-bold text-2xl text-white mt-1 mb-2">Orders Above<br>Rs. 500 Only</h3>
                         <a href="{{ route('webpage.shop') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-[#6ee7b7] text-[#064e3b] text-sm font-bold rounded-lg hover:bg-[#34d399] transition-colors duration-200">
                             Start Shopping
                         </a>

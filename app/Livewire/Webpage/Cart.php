@@ -104,13 +104,13 @@ class Cart extends Component
         $discount = $coupon->calculateDiscount($subtotal);
 
         if ($discount <= 0) {
-            $this->couponError = 'Your order does not meet the minimum requirement for this coupon (ETB ' . number_format($coupon->min_order, 2) . ').';
+            $this->couponError = 'Your order does not meet the minimum requirement for this coupon (Rs. ' . number_format($coupon->min_order, 2) . ').';
             return;
         }
 
         $this->appliedCoupon  = $coupon;
         $this->discountAmount  = $discount;
-        $this->couponSuccess   = 'Coupon applied! You save ETB ' . number_format($discount, 2) . '.';
+        $this->couponSuccess   = 'Coupon applied! You save Rs. ' . number_format($discount, 2) . '.';
     }
 
     public function removeCoupon(): void

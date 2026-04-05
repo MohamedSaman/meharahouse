@@ -12,8 +12,8 @@ class SettingSeeder extends Seeder
         $settings = [
             'site_name'         => 'Meharahouse',
             'site_tagline'      => 'Quality You Can Trust',
-            'currency'          => 'ETB',
-            'currency_symbol'   => 'ETB',
+            'currency'          => 'Rs.',
+            'currency_symbol'   => 'Rs.',
             'currency_position' => 'before',
             'tax_rate'          => '15',
             'free_shipping_min' => '500',

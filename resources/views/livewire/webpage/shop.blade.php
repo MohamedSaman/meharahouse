@@ -37,7 +37,7 @@
                     </ul>
                 </div>
                 <div class="card p-5">
-                    <h3 class="font-[Poppins] font-bold text-sm text-[#0F172A] mb-4 uppercase tracking-wider">Price Range (ETB)</h3>
+                    <h3 class="font-[Poppins] font-bold text-sm text-[#0F172A] mb-4 uppercase tracking-wider">Price Range (Rs.)</h3>
                     <div class="space-y-3">
                         <div class="flex items-center gap-3">
                             <input type="number" wire:model.live.debounce.500ms="priceMin" placeholder="Min" class="form-input text-xs">
@@ -121,9 +121,9 @@
                             <p class="text-xs text-[#94A3B8] mb-1">{{ $product->category->name ?? '' }}</p>
                             <a href="{{ route('webpage.product-details', $product->slug) }}" class="block font-[Poppins] font-semibold text-sm text-[#0F172A] hover:text-[#D97706] transition-colors leading-snug mb-2">{{ $product->name }}</a>
                             <div class="flex items-baseline gap-2">
-                                <span class="font-[Poppins] font-bold text-[#0F172A]">ETB {{ number_format($product->effectivePrice()) }}</span>
+                                <span class="font-[Poppins] font-bold text-[#0F172A]">Rs. {{ number_format($product->effectivePrice()) }}</span>
                                 @if($product->isOnSale())
-                                <span class="text-xs text-[#94A3B8] line-through">ETB {{ number_format($product->price) }}</span>
+                                <span class="text-xs text-[#94A3B8] line-through">Rs. {{ number_format($product->price) }}</span>
                                 <span class="text-xs text-green-600 font-semibold">{{ $product->discountPercent() }}% off</span>
                                 @endif
                             </div>

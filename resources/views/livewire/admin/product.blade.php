@@ -22,7 +22,7 @@
         <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <p class="text-[11px] tracking-[0.16em] uppercase font-semibold text-amber-300">Catalog Manager</p>
-            <h2 class="font-[Poppins] font-bold text-2xl text-white">Products</h2>
+            <h2 class="font-[Poppins] font-bold text-2xl text-dark">Products</h2>
             <p class="text-sm text-slate-300">{{ $products->total() }} products in your catalog</p>
         </div>
         <button wire:click.prevent="openCreate" wire:loading.attr="disabled" wire:target="openCreate" class="btn-primary btn-sm shadow-sm hover:shadow-md transition-all duration-200">
@@ -116,9 +116,9 @@
                         <td><span class="font-mono text-xs text-[#64748B]">{{ $product->sku ?? '—' }}</span></td>
                         <td>
                             <div>
-                                <span class="font-semibold text-sm text-[#0F172A]">ETB {{ number_format($product->effectivePrice(), 0) }}</span>
+                                <span class="font-semibold text-sm text-[#0F172A]">Rs. {{ number_format($product->effectivePrice(), 0) }}</span>
                                 @if($product->isOnSale())
-                                <br><span class="text-xs text-[#94A3B8] line-through">ETB {{ number_format($product->price, 0) }}</span>
+                                <br><span class="text-xs text-[#94A3B8] line-through">Rs. {{ number_format($product->price, 0) }}</span>
                                 @endif
                             </div>
                         </td>
@@ -226,9 +226,9 @@
                 {{-- Price + Sale Price --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-[#374151] mb-1.5">Price (ETB) <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-semibold text-[#374151] mb-1.5">Price (Rs.) <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] font-semibold">ETB</span>
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] font-semibold">Rs.</span>
                             <input wire:model="price" type="number" step="0.01" min="0"
                                    class="form-input pl-12 @error('price') border-red-400 bg-red-50 @enderror"
                                    placeholder="0.00">
@@ -236,9 +236,9 @@
                         @error('price')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-[#374151] mb-1.5">Sale Price (ETB) <span class="text-xs font-normal text-[#94A3B8]">(optional)</span></label>
+                        <label class="block text-sm font-semibold text-[#374151] mb-1.5">Sale Price (Rs.) <span class="text-xs font-normal text-[#94A3B8]">(optional)</span></label>
                         <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] font-semibold">ETB</span>
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] font-semibold">Rs.</span>
                             <input wire:model="sale_price" type="number" step="0.01" min="0"
                                    class="form-input pl-12 @error('sale_price') border-red-400 bg-red-50 @enderror"
                                    placeholder="Leave empty for no discount">

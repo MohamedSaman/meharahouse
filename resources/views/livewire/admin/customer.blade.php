@@ -133,7 +133,7 @@
                                 <p class="text-xs text-[#64748B]">{{ $order->created_at->format('d M Y') }}</p>
                             </div>
                             <div class="text-right">
-                                <p class="font-semibold text-[#0F172A]">ETB {{ number_format($order->total, 0) }}</p>
+                                <p class="font-semibold text-[#0F172A]">Rs. {{ number_format($order->total, 0) }}</p>
                                 <span class="text-xs font-semibold {{ match($order->status) { 'delivered'=>'text-green-600', 'cancelled'=>'text-red-500', 'pending'=>'text-yellow-600', default=>'text-blue-600' } }}">{{ ucfirst($order->status) }}</span>
                             </div>
                         </div>

@@ -19,15 +19,18 @@
     </div>
 
     {{-- Status Filter Tabs --}}
-    <div class="flex flex-wrap gap-2">
+    <div class="flex flex-wrap gap-2 p-2 rounded-2xl bg-white/80 border border-slate-200 shadow-sm">
         @php $statuses = [''=>'All', 'pending'=>'Pending', 'processing'=>'Processing', 'shipped'=>'Shipped', 'delivered'=>'Delivered', 'cancelled'=>'Cancelled']; @endphp
         @foreach($statuses as $key => $label)
         <button wire:click="$set('filterStatus', '{{ $key }}')"
-                class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200
-                    {{ $filterStatus === $key ? 'bg-[#0F172A] text-white' : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]' }}">
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 border
+                    {{ $filterStatus === $key
+                        ? 'bg-blue-600 text-white border-blue-700 shadow-lg shadow-blue-600/25 -translate-y-px'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300 hover:-translate-y-px' }}">
+            <span class="w-1.5 h-1.5 rounded-full {{ $filterStatus === $key ? 'bg-white' : 'bg-slate-300' }}"></span>
             {{ $label }}
             @if($key !== '' && isset($statusCounts[$key]))
-            <span class="ml-1 opacity-70">({{ $statusCounts[$key] }})</span>
+            <span class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold {{ $filterStatus === $key ? 'bg-white/15 text-white' : 'bg-slate-200 text-slate-500' }}">{{ $statusCounts[$key] }}</span>
             @endif
         </button>
         @endforeach
@@ -75,7 +78,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td><span class="font-semibold text-sm text-[#0F172A]">ETB {{ number_format($order->total, 0) }}</span></td>
+                        <td><span class="font-semibold text-sm text-[#0F172A]">Rs. {{ number_format($order->total, 0) }}</span></td>
                         <td><span class="badge {{ $payColors[$order->payment_status] ?? 'badge-info' }} text-[10px]">{{ ucfirst($order->payment_status) }}</span></td>
                         <td><span class="badge {{ $statusColors[$order->status] ?? 'badge-info' }}">{{ ucfirst($order->status) }}</span></td>
                         <td><span class="text-xs text-[#94A3B8]">{{ $order->created_at->format('d M Y') }}</span></td>
@@ -183,9 +186,9 @@
                         <div class="flex items-center justify-between py-2 border-b border-[#F1F5F9] last:border-0">
                             <div>
                                 <p class="text-sm font-medium text-[#0F172A]">{{ $item->product_name }}</p>
-                                <p class="text-xs text-[#64748B]">ETB {{ number_format($item->price, 0) }} x {{ $item->quantity }}</p>
+                                <p class="text-xs text-[#64748B]">Rs. {{ number_format($item->price, 0) }} x {{ $item->quantity }}</p>
                             </div>
-                            <span class="font-semibold text-sm text-[#0F172A]">ETB {{ number_format($item->subtotal, 0) }}</span>
+                            <span class="font-semibold text-sm text-[#0F172A]">Rs. {{ number_format($item->subtotal, 0) }}</span>
                         </div>
                         @endforeach
                     </div>
@@ -193,15 +196,15 @@
 
                 {{-- Totals --}}
                 <div class="bg-[#F8FAFC] rounded-xl p-4 space-y-2 text-sm">
-                    <div class="flex justify-between"><span class="text-[#64748B]">Subtotal</span><span>ETB {{ number_format($selectedOrder->subtotal, 0) }}</span></div>
-                    <div class="flex justify-between"><span class="text-[#64748B]">Shipping</span><span>ETB {{ number_format($selectedOrder->shipping_cost, 0) }}</span></div>
-                    <div class="flex justify-between"><span class="text-[#64748B]">Tax (15%)</span><span>ETB {{ number_format($selectedOrder->tax, 0) }}</span></div>
+                    <div class="flex justify-between"><span class="text-[#64748B]">Subtotal</span><span>Rs. {{ number_format($selectedOrder->subtotal, 0) }}</span></div>
+                    <div class="flex justify-between"><span class="text-[#64748B]">Shipping</span><span>Rs. {{ number_format($selectedOrder->shipping_cost, 0) }}</span></div>
+                    <div class="flex justify-between"><span class="text-[#64748B]">Tax (15%)</span><span>Rs. {{ number_format($selectedOrder->tax, 0) }}</span></div>
                     @if($selectedOrder->discount > 0)
-                    <div class="flex justify-between text-green-600"><span>Discount</span><span>-ETB {{ number_format($selectedOrder->discount, 0) }}</span></div>
+                    <div class="flex justify-between text-green-600"><span>Discount</span><span>-Rs. {{ number_format($selectedOrder->discount, 0) }}</span></div>
                     @endif
                     <div class="flex justify-between font-bold text-base border-t border-[#E2E8F0] pt-2">
                         <span class="text-[#0F172A]">Total</span>
-                        <span class="text-[#0F172A]">ETB {{ number_format($selectedOrder->total, 0) }}</span>
+                        <span class="text-[#0F172A]">Rs. {{ number_format($selectedOrder->total, 0) }}</span>
                     </div>
                 </div>
 

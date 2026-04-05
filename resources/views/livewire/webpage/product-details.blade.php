@@ -99,9 +99,9 @@
 
                 {{-- Price --}}
                 <div class="flex items-baseline gap-3 mb-5">
-                    <span class="font-[Poppins] font-bold text-3xl text-[#0F172A]">ETB {{ number_format($product->effectivePrice(), 0) }}</span>
+                    <span class="font-[Poppins] font-bold text-3xl text-[#0F172A]">Rs. {{ number_format($product->effectivePrice(), 0) }}</span>
                     @if($product->isOnSale())
-                    <span class="text-lg text-[#94A3B8] line-through">ETB {{ number_format($product->price, 0) }}</span>
+                    <span class="text-lg text-[#94A3B8] line-through">Rs. {{ number_format($product->price, 0) }}</span>
                     <span class="badge badge-danger">{{ $product->discountPercent() }}% OFF</span>
                     @endif
                 </div>
@@ -163,7 +163,7 @@
 
                 {{-- Trust Badges --}}
                 <div class="flex flex-wrap gap-4 pt-5 border-t border-[#F1F5F9]">
-                    @foreach(['Free Delivery on orders above ETB 500', '30-Day Easy Returns', '100% Authentic Product'] as $t)
+                    @foreach(['Free Delivery on orders above Rs. 500', '30-Day Easy Returns', '100% Authentic Product'] as $t)
                     <div class="flex items-center gap-2 text-xs text-[#64748B]">
                         <svg class="w-4 h-4 text-[#F59E0B] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         {{ $t }}
@@ -270,7 +270,7 @@
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-semibold text-[#0F172A] leading-snug truncate">{{ $related->name }}</p>
                             <p class="text-xs text-[#94A3B8] mt-0.5">{{ $related->category?->name }}</p>
-                            <p class="text-sm font-bold text-[#F59E0B] mt-1">ETB {{ number_format($related->effectivePrice(), 0) }}</p>
+                            <p class="text-sm font-bold text-[#F59E0B] mt-1">Rs. {{ number_format($related->effectivePrice(), 0) }}</p>
                         </div>
                     </a>
                     @endforeach

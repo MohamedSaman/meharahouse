@@ -43,7 +43,7 @@
             </div>
             <div class="min-w-0">
                 <p class="text-xs text-[#64748B] font-medium uppercase tracking-wider mb-1">Total Revenue</p>
-                <p class="font-[Poppins] font-bold text-xl text-[#0F172A] mb-1">ETB {{ number_format($stats['total_revenue'], 0) }}</p>
+                <p class="font-[Poppins] font-bold text-xl text-[#0F172A] mb-1">Rs. {{ number_format($stats['total_revenue'], 0) }}</p>
                 <p class="text-xs text-[#94A3B8]">All non-cancelled orders</p>
             </div>
         </div>
@@ -134,7 +134,7 @@
                     <div class="w-full relative">
                         {{-- Tooltip --}}
                         <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#0F172A] text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            ETB {{ $bar['val'] }}
+                            Rs. {{ $bar['val'] }}
                         </div>
                         {{-- Bar --}}
                             <div class="w-full rounded-t-md {{ $i === 11 ? 'bg-[#F59E0B]' : 'bg-[#CBD5E1] group-hover:bg-[#0F172A]' }} transition-all duration-300 hover:shadow-sm"
@@ -162,7 +162,7 @@
                 </div>
                 <div class="ml-auto text-right">
                     <p class="text-xs text-[#64748B]">Year Total</p>
-                    <p class="font-[Poppins] font-bold text-sm text-[#0F172A]">ETB 365,600</p>
+                    <p class="font-[Poppins] font-bold text-sm text-[#0F172A]">Rs. 365,600</p>
                 </div>
             </div>
         </div>
@@ -290,7 +290,7 @@
                                 </div>
                             </td>
                             <td><span class="text-sm text-[#475569]">{{ $order->items_count ?? '—' }} items</span></td>
-                            <td><span class="font-semibold text-sm text-[#0F172A]">ETB {{ number_format($order->total, 0) }}</span></td>
+                            <td><span class="font-semibold text-sm text-[#0F172A]">Rs. {{ number_format($order->total, 0) }}</span></td>
                             <td><span class="badge {{ $statusBadge[$order->status] ?? 'badge-info' }}">{{ ucfirst($order->status) }}</span></td>
                             <td><span class="text-xs text-[#94A3B8]">{{ $order->created_at->diffForHumans() }}</span></td>
                         </tr>

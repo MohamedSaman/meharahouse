@@ -28,29 +28,26 @@
     {{-- ════════════════════════ SIDEBAR ════════════════════════ --}}
     <aside
         :class="{ '-translate-x-full': !sidebarOpen }"
-        :style="sidebarCollapsed ? 'width:72px' : 'width:256px'"
-        class="fixed top-0 left-0 h-screen bg-[#0F172A] z-50 flex flex-col transition-all duration-300 shadow-2xl lg:translate-x-0"
+        :style="sidebarCollapsed ? 'width:72px' : 'width:264px'"
+        class="fixed top-0 left-0 h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 z-50 flex flex-col transition-all duration-300 shadow-2xl border-r border-white/5 lg:translate-x-0"
     >
         {{-- Sidebar Header --}}
-        <div class="flex items-center justify-between h-16 px-4 border-b border-[#1E293B] shrink-0">
-            <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 min-w-0">
-                <div class="bg-white rounded-lg p-1 shrink-0">
-                    <img src="{{ asset('images/meharahouse-logo.png') }}" alt="Mehra House" class="h-8 w-auto">
-                </div>
-                <div x-show="!sidebarCollapsed" class="min-w-0">
-                    <span class="block text-[#F59E0B] text-[10px] font-bold tracking-widest uppercase mt-0.5">Admin Panel</span>
-                </div>
-            </a>
+        <div class="relative flex items-center h-16 px-4 border-b border-white/10 shrink-0">
+            <a href="{{ route('admin.dashboard') }}"
+               class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center gap-0.5">
+                <div class="rounded-xl px-2 py-1 ">
+                    <img src="{{ asset('images/meharahouse-logo.png') }}" alt="Mehra House" class="h-18 w-auto">
+                </div>            </a>
             <button @click="sidebarCollapsed = !sidebarCollapsed"
                     x-show="!sidebarCollapsed"
-                    class="hidden lg:flex w-7 h-7 rounded-md bg-[#1E293B] items-center justify-center text-[#64748B] hover:text-white transition-colors shrink-0">
+                    class="absolute right-4 hidden lg:flex w-8 h-8 rounded-xl bg-white/5 items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all shrink-0">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
                 </svg>
             </button>
             <button @click="sidebarCollapsed = !sidebarCollapsed"
                     x-show="sidebarCollapsed"
-                    class="hidden lg:flex w-7 h-7 rounded-md bg-[#1E293B] items-center justify-center text-[#64748B] hover:text-white transition-colors shrink-0"
+                    class="absolute right-4 hidden lg:flex w-8 h-8 rounded-xl bg-white/5 items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all shrink-0"
                     style="display:none;">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
@@ -59,7 +56,7 @@
         </div>
 
         {{-- Navigation --}}
-        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
 
             {{-- Main --}}
             <p x-show="!sidebarCollapsed" class="sidebar-section-label">Main</p>
@@ -123,12 +120,22 @@
             <p x-show="!sidebarCollapsed" class="sidebar-section-label">Finance</p>
 
             <a href="{{ route('admin.payments') }}"
-               class="sidebar-nav-item {{ request()->routeIs('admin.payments*') ? 'active' : '' }}"
+               class="sidebar-nav-item {{ request()->routeIs('admin.payments') ? 'active' : '' }}"
                :title="sidebarCollapsed ? 'Payments' : ''">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
                 <span x-show="!sidebarCollapsed" class="text-sm">Payments</span>
+            </a>
+
+            <a href="{{ route('admin.payment-integration') }}"
+               class="sidebar-nav-item {{ request()->routeIs('admin.payment-integration*') ? 'active' : '' }}"
+               :title="sidebarCollapsed ? 'Payment Integration' : ''">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span x-show="!sidebarCollapsed" class="text-sm">Payment Integration</span>
             </a>
 
             <a href="{{ route('admin.reports') }}"
@@ -142,18 +149,18 @@
         </nav>
 
         {{-- Sidebar Footer --}}
-        <div class="border-t border-[#1E293B] p-3 shrink-0">
+        <div class="border-t border-white/10 p-3 shrink-0 bg-black/10">
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full bg-[#F59E0B] flex items-center justify-center shrink-0">
-                    <span class="text-[#0F172A] font-bold text-sm">{{ auth()->check() ? strtoupper(substr(auth()->user()->name, 0, 1)) : 'A' }}</span>
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
+                    <span class="text-slate-950 font-bold text-sm">{{ auth()->check() ? strtoupper(substr(auth()->user()->name, 0, 1)) : 'A' }}</span>
                 </div>
                 <div x-show="!sidebarCollapsed" class="min-w-0">
-                    <p class="text-sm font-semibold text-white truncate">{{ auth()->user()?->name ?? 'Admin' }}</p>
-                    <p class="text-xs text-[#64748B] truncate">{{ auth()->user()?->email ?? 'admin@meharahouse.com' }}</p>
+                    <p class="text-sm font-semibold text-slate-100 truncate">{{ auth()->user()?->name ?? 'Admin' }}</p>
+                    <p class="text-xs text-slate-400 truncate">{{ auth()->user()?->email ?? 'admin@meharahouse.com' }}</p>
                 </div>
                 <form x-show="!sidebarCollapsed" method="POST" action="{{ route('auth.logout') }}" class="ml-auto shrink-0">
                     @csrf
-                    <button type="submit" class="p-1.5 rounded-md text-[#64748B] hover:text-white hover:bg-[#1E293B] transition-colors" title="Sign Out">
+                    <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all" title="Sign Out">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                         </svg>
@@ -172,7 +179,7 @@
          class="flex-1 min-w-0 flex flex-col transition-all duration-300">
 
         {{-- Top Header --}}
-        <header class="sticky top-0 z-30 bg-white border-b border-[#E2E8F0] h-16 flex items-center px-4 md:px-6 gap-4 shadow-sm">
+        <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 h-16 flex items-center px-4 md:px-6 gap-4 shadow-sm">
             {{-- Mobile menu toggle --}}
             <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-lg text-[#475569] hover:bg-[#F1F5F9]">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

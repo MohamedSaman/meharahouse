@@ -48,8 +48,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/products',   App\Livewire\Admin\Product::class)->name('products');
     Route::get('/categories', App\Livewire\Admin\Category::class)->name('categories');
     Route::get('/customers',  App\Livewire\Admin\Customer::class)->name('customers');
-    Route::get('/payments',   App\Livewire\Admin\Payment::class)->name('payments');
-    Route::get('/reports',    App\Livewire\Admin\Report::class)->name('reports');
+    Route::get('/payments',             App\Livewire\Admin\Payment::class)->name('payments');
+    Route::get('/payment-integration', App\Livewire\Admin\PaymentIntegration::class)->name('payment-integration');
+    Route::get('/reports',              App\Livewire\Admin\Report::class)->name('reports');
 });
 
 /*

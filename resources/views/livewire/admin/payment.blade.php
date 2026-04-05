@@ -6,7 +6,7 @@
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        @foreach([['label' => 'Total Collected', 'value' => 'ETB 284,500', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', 'bg' => 'bg-[#FFFBEB] text-[#F59E0B]'], ['label' => 'Pending Payments', 'value' => 'ETB 12,400', 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'bg' => 'bg-yellow-50 text-yellow-600'], ['label' => 'Failed Transactions', 'value' => '14', 'icon' => 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z', 'bg' => 'bg-red-50 text-red-600']] as $card)
+        @foreach([['label' => 'Total Collected', 'value' => 'Rs. 284,500', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', 'bg' => 'bg-[#FFFBEB] text-[#F59E0B]'], ['label' => 'Pending Payments', 'value' => 'Rs. 12,400', 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'bg' => 'bg-yellow-50 text-yellow-600'], ['label' => 'Failed Transactions', 'value' => '14', 'icon' => 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z', 'bg' => 'bg-red-50 text-red-600']] as $card)
         <div class="stat-card">
             <div class="w-11 h-11 rounded-xl {{ $card['bg'] }} flex items-center justify-center shrink-0">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $card['icon'] }}"/></svg>
@@ -49,7 +49,7 @@
                         <td><span class="font-mono text-xs text-[#64748B]">{{ $p['order'] }}</span></td>
                         <td><span class="text-sm text-[#475569]">{{ $p['customer'] }}</span></td>
                         <td><span class="badge badge-navy">{{ $p['method'] }}</span></td>
-                        <td><span class="font-semibold text-sm text-[#0F172A]">ETB {{ $p['amount'] }}</span></td>
+                        <td><span class="font-semibold text-sm text-[#0F172A]">Rs. {{ $p['amount'] }}</span></td>
                         <td><span class="badge {{ $p['sc'] }}">{{ $p['status'] }}</span></td>
                         <td><span class="text-xs text-[#94A3B8]">{{ $p['date'] }}</span></td>
                     </tr>
