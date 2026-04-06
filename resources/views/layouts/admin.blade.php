@@ -369,7 +369,7 @@
                          x-transition:enter="transition ease-out duration-150"
                          x-transition:enter-start="opacity-0 scale-95"
                          x-transition:enter-end="opacity-100 scale-100"
-                         class="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl border border-[#E2E8F0] shadow-xl z-50"
+                         class="absolute right-0 top-full mt-2 w-[30rem] bg-white rounded-xl border border-[#E2E8F0] shadow-xl z-50"
                          style="display:none;">
 
                         {{-- Header --}}
