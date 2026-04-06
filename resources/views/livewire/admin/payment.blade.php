@@ -110,20 +110,9 @@
                 <option value="stripe">Stripe</option>
             </select>
         </div>
-        {{-- Date Range --}}
-        <div class="flex items-center gap-2 flex-wrap mt-3">
-            <div class="flex items-center gap-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-2 py-1.5">
-                <svg class="w-4 h-4 text-[#94A3B8] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-                <input wire:model.live="dateFrom" type="date"
-                       class="text-xs text-[#475569] bg-transparent border-none outline-none w-32">
-                <span class="text-xs text-[#94A3B8]">—</span>
-                <input wire:model.live="dateTo" type="date"
-                       class="text-xs text-[#475569] bg-transparent border-none outline-none w-32">
-            </div>
-            {{-- Quick Presets --}}
-            <div class="flex gap-1" x-data="{
+        {{-- Date Range + Presets + Status Tabs — single row --}}
+        <div class="flex items-center gap-2 flex-wrap mt-3"
+             x-data="{
                 setRange(from, to) {
                     $wire.set('dateFrom', from);
                     $wire.set('dateTo', to);
@@ -149,21 +138,32 @@
                     let to   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
                     this.setRange(from, to);
                 }
-            }">
+             }">
+            {{-- Date inputs --}}
+            <div class="flex items-center gap-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-2 py-1.5 shrink-0">
+                <svg class="w-4 h-4 text-[#94A3B8] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <input wire:model.live="dateFrom" type="date"
+                       class="text-xs text-[#475569] bg-transparent border-none outline-none w-28">
+                <span class="text-xs text-[#94A3B8]">—</span>
+                <input wire:model.live="dateTo" type="date"
+                       class="text-xs text-[#475569] bg-transparent border-none outline-none w-28">
+            </div>
+            {{-- Quick Presets --}}
+            <div class="flex gap-1 shrink-0">
                 <button @click="today()"      class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">Today</button>
                 <button @click="last7()"      class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">7d</button>
                 <button @click="thisMonth()"  class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">Month</button>
                 <button @click="lastMonth()"  class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">Last Mo</button>
                 @if($dateFrom || $dateTo)
                 <button wire:click="clearDates"
-                        class="px-2 py-1 text-[10px] font-semibold rounded-md bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                    Clear
-                </button>
+                        class="px-2 py-1 text-[10px] font-semibold rounded-md bg-red-50 text-red-500 hover:bg-red-100 transition-colors">Clear</button>
                 @endif
             </div>
-        </div>
-        {{-- Quick Tabs --}}
-        <div class="flex gap-2 flex-wrap mt-3">
+            {{-- Divider --}}
+            <span class="h-5 w-px bg-[#E2E8F0] shrink-0"></span>
+            {{-- Status Tabs --}}
             @foreach([
                 ''         => ['label' => 'All',      'count' => $summary['total_orders']],
                 'paid'     => ['label' => 'Paid',      'count' => $summary['count_paid']],
@@ -173,7 +173,7 @@
                 'refunded' => ['label' => 'Refunded',  'count' => $summary['count_refunded']],
             ] as $val => $tab)
             <button wire:click="$set('filterStatus', '{{ $val }}')"
-                    class="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors
+                    class="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors shrink-0
                     {{ $filterStatus === $val
                         ? 'bg-[#0F172A] text-white border-[#0F172A]'
                         : 'bg-white text-[#64748B] border-[#E2E8F0] hover:border-[#0F172A]' }}">
