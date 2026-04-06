@@ -51,7 +51,7 @@
             <div>
                 <p class="text-xs text-slate-500 font-medium uppercase tracking-wide">Total Invoiced</p>
                 <p class="text-2xl font-bold text-[#0F172A] font-[Poppins] mt-0.5">
-                    {{ number_format($stats['total_invoiced'], 2) }} <span class="text-sm font-medium text-slate-400">ETB</span>
+                    {{ number_format($stats['total_invoiced'], 2) }} <span class="text-sm font-medium text-slate-400">Rs.</span>
                 </p>
             </div>
         </div>
@@ -66,7 +66,7 @@
             <div>
                 <p class="text-xs text-slate-500 font-medium uppercase tracking-wide">Total Paid</p>
                 <p class="text-2xl font-bold text-emerald-600 font-[Poppins] mt-0.5">
-                    {{ number_format($stats['total_paid'], 2) }} <span class="text-sm font-medium text-slate-400">ETB</span>
+                    {{ number_format($stats['total_paid'], 2) }} <span class="text-sm font-medium text-slate-400">Rs.</span>
                 </p>
             </div>
         </div>
@@ -81,7 +81,7 @@
             <div>
                 <p class="text-xs text-slate-500 font-medium uppercase tracking-wide">Total Due</p>
                 <p class="text-2xl font-bold text-red-500 font-[Poppins] mt-0.5">
-                    {{ number_format($stats['total_due'], 2) }} <span class="text-sm font-medium text-slate-400">ETB</span>
+                    {{ number_format($stats['total_due'], 2) }} <span class="text-sm font-medium text-slate-400">Rs.</span>
                 </p>
             </div>
         </div>
@@ -222,7 +222,7 @@
                                                             </svg>
                                                         </div>
                                                         <div class="flex-1 min-w-0">
-                                                            <span class="font-semibold text-[#0F172A]">{{ number_format($record->amount, 2) }} ETB</span>
+                                                            <span class="font-semibold text-[#0F172A]">{{ number_format($record->amount, 2) }} Rs.</span>
                                                             <span class="mx-1.5 text-slate-300">·</span>
                                                             <span class="text-slate-500 text-sm">{{ $record->methodLabel() }}</span>
                                                             @if($record->reference)
@@ -375,7 +375,7 @@
                             @error('invoiceDate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Total Amount (ETB) <span class="text-red-500">*</span></label>
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Total Amount (Rs.) <span class="text-red-500">*</span></label>
                             <input wire:model="totalAmount" type="number" step="0.01" min="0.01" placeholder="0.00"
                                    class="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0F172A]/10 focus:border-[#0F172A]/30">
                             @error('totalAmount') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
@@ -446,7 +446,7 @@
 
                     {{-- Amount --}}
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Amount (ETB) <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Amount (Rs.) <span class="text-red-500">*</span></label>
                         <input wire:model="payAmount" type="number" step="0.01" min="0.01" placeholder="0.00"
                                class="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0F172A]/10 focus:border-[#0F172A]/30">
                         @error('payAmount') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
