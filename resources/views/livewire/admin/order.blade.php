@@ -60,12 +60,21 @@
             <h2 class="font-[Poppins] font-bold text-xl text-[#0F172A]">Orders</h2>
             <p class="text-sm text-[#64748B]">{{ $orders->total() }} total orders</p>
         </div>
-        @if($pendingReceiptCount > 0)
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold">
-            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-            {{ $pendingReceiptCount }} receipt{{ $pendingReceiptCount > 1 ? 's' : '' }} awaiting confirmation
+        <div class="flex items-center gap-3 flex-wrap">
+            @if($pendingReceiptCount > 0)
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                {{ $pendingReceiptCount }} receipt{{ $pendingReceiptCount > 1 ? 's' : '' }} awaiting confirmation
+            </div>
+            @endif
+            <button wire:click="exportCsv"
+                    class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all duration-200 hover:-translate-y-0.5 shrink-0">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Export CSV
+            </button>
         </div>
-        @endif
     </div>
 
     {{-- ══════════════════════ STATUS FILTER TABS ══════════════════════ --}}
@@ -227,6 +236,12 @@
                             </div>
                         </td>
                         <td>
+                            @php
+                                $addr    = $order->shipping_address ?? [];
+                                $phone   = $addr['phone'] ?? ($order->user?->phone ?? '');
+                                $digits  = preg_replace('/[^0-9]/', '', $phone);
+                                $last4   = strlen($digits) >= 4 ? substr($digits, -4) : '';
+                            @endphp
                             <div class="flex items-center gap-2">
                                 <div class="w-7 h-7 rounded-full bg-[#0F172A] flex items-center justify-center shrink-0">
                                     @php $nameChar = strtoupper(substr($order->user->name ?? ($order->shipping_address['full_name'] ?? 'G'), 0, 1)); @endphp
@@ -237,6 +252,11 @@
                                         {{ $order->user->name ?? ($order->shipping_address['full_name'] ?? 'Guest') }}
                                     </p>
                                     <p class="text-xs text-[#94A3B8] truncate">{{ $order->user->email ?? ($order->shipping_address['phone'] ?? '') }}</p>
+                                    @if($last4)
+                                    <span class="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold border border-emerald-100">
+                                        WA-{{ $last4 }}
+                                    </span>
+                                    @endif
                                 </div>
                             </div>
                         </td>
@@ -412,19 +432,39 @@
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     Customer & Delivery
                 </h4>
+                @php
+                    $detailAddr   = $selectedOrder->shipping_address ?? [];
+                    $detailPhone  = $detailAddr['phone'] ?? ($selectedOrder->user?->phone ?? '');
+                    $detailDigits = preg_replace('/[^0-9]/', '', $detailPhone);
+                    $detailLast4  = strlen($detailDigits) >= 4 ? substr($detailDigits, -4) : '';
+                @endphp
                 <div class="grid grid-cols-2 gap-3 text-sm">
                     <div>
                         <p class="text-[#64748B] text-xs font-semibold uppercase tracking-wide">Customer</p>
                         <p class="font-semibold text-[#0F172A] mt-1">{{ $selectedOrder->user->name ?? ($selectedOrder->shipping_address['full_name'] ?? 'Guest') }}</p>
                         <p class="text-[#64748B] text-xs mt-0.5">{{ $selectedOrder->user->email ?? ($selectedOrder->shipping_address['email'] ?? '') }}</p>
-                        <p class="text-[#64748B] text-xs">{{ $selectedOrder->user->phone ?? ($selectedOrder->shipping_address['phone'] ?? '') }}</p>
+                        <div class="flex items-center gap-2 flex-wrap mt-0.5">
+                            <p class="text-[#64748B] text-xs">{{ $detailPhone }}</p>
+                            @if($detailLast4)
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold border border-emerald-100">
+                                WA-{{ $detailLast4 }}
+                            </span>
+                            @endif
+                        </div>
                     </div>
                     <div>
                         <p class="text-[#64748B] text-xs font-semibold uppercase tracking-wide">Shipping Address</p>
                         <p class="font-semibold text-[#0F172A] mt-1">{{ $selectedOrder->shipping_address['full_name'] ?? '' }}</p>
                         <p class="text-[#64748B] text-xs mt-0.5">{{ $selectedOrder->shipping_address['address'] ?? '' }}</p>
                         <p class="text-[#64748B] text-xs">{{ $selectedOrder->shipping_address['city'] ?? '' }}{{ isset($selectedOrder->shipping_address['region']) ? ', ' . $selectedOrder->shipping_address['region'] : '' }}</p>
-                        <p class="text-[#64748B] text-xs">{{ $selectedOrder->shipping_address['phone'] ?? '' }}</p>
+                        <div class="flex items-center gap-2 flex-wrap mt-0.5">
+                            <p class="text-[#64748B] text-xs">{{ $selectedOrder->shipping_address['phone'] ?? '' }}</p>
+                            @if($detailLast4)
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold border border-emerald-100">
+                                WA-{{ $detailLast4 }}
+                            </span>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -700,6 +740,22 @@
             @endif
 
         </div>{{-- end scrollable body --}}
+
+        {{-- Panel Footer — sticky action bar --}}
+        <div class="shrink-0 border-t border-slate-100 bg-white px-6 py-4 flex items-center gap-3">
+            <a href="{{ route('admin.order.waybill', $selectedOrder) }}"
+               target="_blank"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                </svg>
+                Print Waybill
+            </a>
+            <button wire:click="closeDetail"
+                    class="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-all">
+                Close
+            </button>
+        </div>
     </div>
     @endif
 

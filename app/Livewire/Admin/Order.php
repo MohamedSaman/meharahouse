@@ -401,6 +401,77 @@ class Order extends Component
         session()->flash('whatsapp_reminder_order', $order->order_number);
     }
 
+    // ── CSV Export ───────────────────────────────────────────────────
+
+    public function exportCsv(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $orders = OrderModel::with(['user', 'items', 'payments'])
+            ->when($this->search, function ($q) {
+                $q->where('order_number', 'like', "%{$this->search}%")
+                  ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$this->search}%"));
+            })
+            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
+            ->when($this->filterSource, fn($q) => $q->where('source', $this->filterSource))
+            ->when($this->filterPayment, fn($q) => $q->where('payment_status', $this->filterPayment))
+            ->when($this->dateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo,   fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
+            ->orderBy($this->sortBy, $this->sortDir)
+            ->get();
+
+        $filename = 'orders-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($orders) {
+            $handle = fopen('php://output', 'w');
+
+            // Header row
+            fputcsv($handle, [
+                'Order #', 'Date', 'Customer Name', 'Phone', 'Alt Phone',
+                'WhatsApp Tag (Last 4)', 'City', 'District', 'Address',
+                'Abaya Size', 'Abaya Model',
+                'Items', 'Subtotal', 'Advance', 'Balance Due',
+                'Total', 'Payment Status', 'Order Status', 'Source',
+                'Waybill #', 'Delivery Agent', 'Notes'
+            ]);
+
+            foreach ($orders as $order) {
+                $addr    = $order->shipping_address ?? [];
+                $phone   = $addr['phone'] ?? '';
+                $last4   = strlen(preg_replace('/[^0-9]/', '', $phone)) >= 4
+                            ? substr(preg_replace('/[^0-9]/', '', $phone), -4)
+                            : '';
+                $items   = $order->items->map(fn($i) => $i->product_name . ' x' . $i->quantity)->implode(' | ');
+                $balance = $order->balanceDue();
+
+                fputcsv($handle, [
+                    $order->order_number,
+                    $order->created_at->format('Y-m-d H:i'),
+                    $addr['full_name'] ?? ($order->user?->name ?? ''),
+                    $phone,
+                    $addr['alt_phone'] ?? '',
+                    $last4,
+                    $addr['city'] ?? '',
+                    $addr['district'] ?? '',
+                    $addr['address'] ?? '',
+                    $addr['abaya_size'] ?? '',
+                    $addr['abaya_model'] ?? '',
+                    $items,
+                    $order->subtotal,
+                    $order->advance_amount,
+                    $balance,
+                    $order->total,
+                    $order->payment_status,
+                    $order->status,
+                    $order->source,
+                    $order->waybill_number ?? '',
+                    $order->delivery_agent ?? '',
+                    $order->notes ?? '',
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
     // ── Legacy status update (kept for compatibility) ─────────────────
 
     public function updateStatus(int $id, string $status): void

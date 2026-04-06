@@ -89,6 +89,11 @@ class Order extends Model
         return $this->hasOne(Refund::class);
     }
 
+    public function orderReturn(): HasOne
+    {
+        return $this->hasOne(OrderReturn::class);
+    }
+
     // ── Scopes ────────────────────────────────────────────────────────
 
     public function scopeStatus($query, string $status)

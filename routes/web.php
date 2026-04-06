@@ -82,6 +82,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     // Payment Management
     Route::get('/supplier-payments', App\Livewire\Admin\SupplierPayments::class)->name('supplier-payments');
     Route::get('/customer-payments', App\Livewire\Admin\CustomerPayments::class)->name('customer-payments');
+
+    // Waybill / Packing Slip — plain print view, not a Livewire component
+    Route::get('/orders/{order}/waybill', function (App\Models\Order $order) {
+        $order->load(['items', 'shipmentBatch']);
+        $addr = $order->shipping_address ?? [];
+        return view('admin.waybill', compact('order', 'addr'));
+    })->name('order.waybill');
 });
 
 /*
