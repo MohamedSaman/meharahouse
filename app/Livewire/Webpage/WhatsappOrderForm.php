@@ -83,7 +83,7 @@ class WhatsappOrderForm extends Component
             'abayas'        => ['nullable', 'string', 'max:100'],
             'abayaModel'    => ['nullable', 'string', 'max:200'],
             'notes'         => ['nullable', 'string', 'max:1000'],
-            'receiptFile'   => ['required', 'image', 'max:5120'],
+            'receiptFile'   => ['required', 'image', 'max:30720'], // 30MB — iPhone Pro Max photos
         ]);
 
         // Store the uploaded receipt
