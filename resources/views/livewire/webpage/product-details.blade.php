@@ -127,8 +127,23 @@
 
                 {{-- Actions --}}
                 <div class="flex gap-3 mb-6">
-                    <button wire:click="addToCart" wire:loading.attr="disabled"
+                    {{-- Pre-Order Now → goes straight to checkout --}}
+                    <button wire:click="preOrderNow" wire:loading.attr="disabled"
                             class="btn-primary flex-1 justify-center btn-lg">
+                        <svg wire:loading wire:target="preOrderNow" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <svg wire:loading.remove wire:target="preOrderNow" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        <span wire:loading.remove wire:target="preOrderNow">Pre-Order Now</span>
+                        <span wire:loading wire:target="preOrderNow">Please wait...</span>
+                    </button>
+
+                    {{-- Add to Cart --}}
+                    <button wire:click="addToCart" wire:loading.attr="disabled"
+                            class="btn-secondary justify-center btn-lg px-5">
                         <svg wire:loading wire:target="addToCart" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -136,7 +151,7 @@
                         <svg wire:loading.remove wire:target="addToCart" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                         </svg>
-                        <span wire:loading.remove wire:target="addToCart">Pre-Order Now</span>
+                        <span wire:loading.remove wire:target="addToCart">Add to Cart</span>
                         <span wire:loading wire:target="addToCart">Adding...</span>
                     </button>
 

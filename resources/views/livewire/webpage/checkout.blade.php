@@ -197,21 +197,59 @@
 
             {{-- Order Summary Sidebar --}}
             <div>
-                <div class="card p-5 sticky top-24">
-                    <h3 class="font-[Poppins] font-bold text-base text-[#0F172A] mb-4">Order Summary</h3>
-                    <div class="space-y-2 text-sm">
+                <div class="card p-5 sticky top-24 space-y-4">
+                    <h3 class="font-[Poppins] font-bold text-base text-[#0F172A]">Order Summary</h3>
+
+                    {{-- Product Cards --}}
+                    <div class="space-y-3">
+                        @foreach($this->cartItems as $item)
+                        <a href="{{ route('webpage.product-details', $item->product->slug) }}"
+                           target="_blank"
+                           class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#F8FAFC] transition-colors group">
+                            {{-- Product image --}}
+                            <div class="w-14 h-14 rounded-lg overflow-hidden bg-[#F1F5F9] shrink-0 border border-[#E2E8F0]">
+                                @if($item->product->primaryImage())
+                                <img src="{{ $item->product->primaryImage() }}"
+                                     alt="{{ $item->product->name }}"
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                     onerror="this.style.display='none'">
+                                @endif
+                            </div>
+                            {{-- Product info --}}
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-[#0F172A] truncate group-hover:text-[#F59E0B] transition-colors">
+                                    {{ $item->product->name }}
+                                </p>
+                                <p class="text-xs text-[#94A3B8] mt-0.5">Qty: {{ $item->quantity }}</p>
+                            </div>
+                            {{-- Price --}}
+                            <span class="text-sm font-bold text-[#0F172A] shrink-0">
+                                Rs. {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}
+                            </span>
+                        </a>
+                        @endforeach
+                    </div>
+
+                    {{-- Price breakdown --}}
+                    <div class="border-t border-[#E2E8F0] pt-3 space-y-2 text-sm">
                         <div class="flex justify-between text-[#475569]"><span>Subtotal</span><span>Rs. {{ number_format($subtotal, 0) }}</span></div>
-                        <div class="flex justify-between text-[#475569]"><span>Shipping</span><span class="{{ $shipping === 0 ? 'text-green-600 font-semibold' : '' }}">{{ $shipping === 0 ? 'FREE' : 'Rs. ' . number_format($shipping, 0) }}</span></div>
+                        <div class="flex justify-between text-[#475569]">
+                            <span>Delivery</span>
+                            <span class="{{ $shipping == 0 ? 'text-green-600 font-semibold' : '' }}">
+                                {{ $shipping == 0 ? 'FREE' : 'Rs. ' . number_format($shipping, 0) }}
+                            </span>
+                        </div>
                         <div class="flex justify-between text-[#475569]"><span>Tax (15%)</span><span>Rs. {{ number_format($tax, 0) }}</span></div>
                         @if($discountAmount > 0)
                         <div class="flex justify-between text-green-600 font-semibold"><span>Discount</span><span>-Rs. {{ number_format($discountAmount, 0) }}</span></div>
                         @endif
                         <div class="border-t border-[#E2E8F0] pt-2 flex justify-between font-bold text-base">
                             <span class="text-[#0F172A]">Total</span>
-                            <span class="text-[#0F172A]">Rs. {{ number_format($total, 0) }}</span>
+                            <span class="text-[#F59E0B]">Rs. {{ number_format($total, 0) }}</span>
                         </div>
                     </div>
-                    <div class="mt-4 flex flex-col gap-2 text-xs text-[#64748B]">
+
+                    <div class="flex flex-col gap-2 text-xs text-[#64748B]">
                         @foreach(['Secure SSL Checkout', 'Easy 30-Day Returns'] as $badge)
                         <div class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>

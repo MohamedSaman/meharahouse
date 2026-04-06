@@ -39,29 +39,26 @@ class ProductDetails extends Component
 
     private function putInCart(): void
     {
+        $productId = $this->product->id;
+        $qty       = max(1, $this->quantity);
+
         if (auth()->check()) {
             $cart = Cart::where('user_id', auth()->id())
-                ->where('product_id', $this->product->id)
+                ->where('product_id', $productId)
                 ->first();
 
             if ($cart) {
-                $cart->update(['quantity' => $cart->quantity + $this->quantity]);
+                $cart->increment('quantity', $qty);
             } else {
                 Cart::create([
                     'user_id'    => auth()->id(),
-                    'product_id' => $this->product->id,
-                    'quantity'   => $this->quantity,
+                    'product_id' => $productId,
+                    'quantity'   => $qty,
                 ]);
             }
         } else {
-            $sessionCart = session()->get('cart', []);
-            $productId   = $this->product->id;
-
-            if (isset($sessionCart[$productId])) {
-                $sessionCart[$productId]['quantity'] += $this->quantity;
-            } else {
-                $sessionCart[$productId] = ['quantity' => $this->quantity];
-            }
+            $sessionCart              = session()->get('cart', []);
+            $sessionCart[$productId]  = ['quantity' => ($sessionCart[$productId]['quantity'] ?? 0) + $qty];
             session()->put('cart', $sessionCart);
         }
 
@@ -77,7 +74,7 @@ class ProductDetails extends Component
     public function preOrderNow(): void
     {
         $this->putInCart();
-        $this->redirect(route('webpage.checkout'), navigate: true);
+        $this->redirect(route('webpage.checkout'));
     }
 
     public function toggleWishlist(): void
