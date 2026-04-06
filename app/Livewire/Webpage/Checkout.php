@@ -23,12 +23,18 @@ class Checkout extends Component
     // Step 1 — Customer Details & Shipping Address
     public string $fullName = '';
     public string $email = '';
+    public string $country = 'LK'; // LK = Sri Lanka, AE = UAE
     public string $phone = '';
     public string $addressLine = '';
     public string $city = '';
     public string $region = '';
     public string $postalCode = '';
     public string $notes = '';
+
+    protected array $countryConfig = [
+        'LK' => ['name' => 'Sri Lanka', 'code' => '+94', 'flag' => '🇱🇰', 'regions' => ['Western','Central','Southern','Northern','Eastern','North Western','North Central','Uva','Sabaragamuwa']],
+        'AE' => ['name' => 'UAE (Dubai)', 'code' => '+971', 'flag' => '🇦🇪', 'regions' => ['Dubai','Abu Dhabi','Sharjah','Ajman','Fujairah','Ras Al Khaimah','Umm Al Quwain']],
+    ];
 
     // Step 2 — Payment
     public string $paymentMethod = 'cash_on_delivery';
@@ -52,6 +58,25 @@ class Checkout extends Component
             $this->email    = $user->email;
             $this->phone    = $user->phone ?? '';
         }
+        // Set default phone prefix
+        if (empty($this->phone)) {
+            $this->phone = $this->countryConfig[$this->country]['code'];
+        }
+    }
+
+    public function updatedCountry(string $value): void
+    {
+        $code = $this->countryConfig[$value]['code'] ?? '+94';
+        // Replace only the country code prefix, keep rest of number if already typed
+        $current = $this->phone;
+        foreach ($this->countryConfig as $conf) {
+            if (str_starts_with($current, $conf['code'])) {
+                $current = substr($current, strlen($conf['code']));
+                break;
+            }
+        }
+        $this->phone  = $code . $current;
+        $this->region = ''; // reset region when country changes
     }
 
     protected function stepOneMessages(): array
@@ -66,6 +91,7 @@ class Checkout extends Component
         return [
             'fullName'    => 'required|string|max:255',
             'email'       => 'required|email',
+            'country'     => 'required|in:LK,AE',
             'phone'       => ['required', 'string', 'max:20', 'regex:/^\+[1-9][0-9]{6,14}$/'],
             'addressLine' => 'required|string|max:500',
             'city'        => 'required|string|max:100',
@@ -186,6 +212,7 @@ class Checkout extends Component
                     'address'     => $this->addressLine,
                     'city'        => $this->city,
                     'region'      => $this->region,
+                    'country'     => $this->country,
                     'postal_code' => $this->postalCode,
                 ],
                 'payment_method'   => $this->paymentMethod,

@@ -63,12 +63,32 @@
                             <input wire:model="email" type="email" class="form-input @error('email') border-red-400 @enderror" placeholder="you@example.com">
                             @error('email')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                         </div>
+                        {{-- Country --}}
+                        <div>
+                            <label class="block text-sm font-semibold text-[#374151] mb-1.5">Country *</label>
+                            <select wire:model.live="country" class="form-input @error('country') border-red-400 @enderror">
+                                <option value="LK">🇱🇰 Sri Lanka</option>
+                                <option value="AE">🇦🇪 UAE (Dubai)</option>
+                            </select>
+                            @error('country')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                        </div>
+
+                        {{-- Phone with auto country code --}}
                         <div>
                             <label class="block text-sm font-semibold text-[#374151] mb-1.5">Phone *</label>
-                            <input wire:model="phone" type="tel" class="form-input @error('phone') border-red-400 @enderror" placeholder="+94 761 265 772">
-                            <p class="mt-1 text-xs text-slate-400">Include country code (e.g. +251, +94, +1)</p>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center px-3 py-2 rounded-lg border border-[#E5E7EB] bg-slate-50 text-sm font-semibold text-slate-600 shrink-0">
+                                    @if($country === 'LK') 🇱🇰 +94
+                                    @elseif($country === 'AE') 🇦🇪 +971
+                                    @endif
+                                </span>
+                                <input wire:model="phone" type="tel"
+                                       class="form-input flex-1 @error('phone') border-red-400 @enderror"
+                                       placeholder="{{ $country === 'LK' ? '761265772' : '501234567' }}">
+                            </div>
                             @error('phone')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                         </div>
+
                         <div class="sm:col-span-2">
                             <label class="block text-sm font-semibold text-[#374151] mb-1.5">Street Address *</label>
                             <input wire:model="addressLine" type="text" class="form-input @error('addressLine') border-red-400 @enderror" placeholder="Building, Street Name, Area">
@@ -76,16 +96,23 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-[#374151] mb-1.5">City *</label>
-                            <input wire:model="city" type="text" class="form-input @error('city') border-red-400 @enderror" placeholder="Addis Ababa">
+                            <input wire:model="city" type="text" class="form-input @error('city') border-red-400 @enderror"
+                                   placeholder="{{ $country === 'AE' ? 'Dubai' : 'Colombo' }}">
                             @error('city')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-[#374151] mb-1.5">Region *</label>
+                            <label class="block text-sm font-semibold text-[#374151] mb-1.5">{{ $country === 'AE' ? 'Emirate' : 'Province' }} *</label>
                             <select wire:model="region" class="form-input @error('region') border-red-400 @enderror">
-                                <option value="">Select region...</option>
-                                @foreach(['Addis Ababa','Amhara','Oromia','Tigray','SNNPR','Afar','Somali','Gambela','Benishangul-Gumuz','Harari','Dire Dawa'] as $r)
-                                <option value="{{ $r }}">{{ $r }}</option>
-                                @endforeach
+                                <option value="">Select...</option>
+                                @if($country === 'LK')
+                                    @foreach(['Western','Central','Southern','Northern','Eastern','North Western','North Central','Uva','Sabaragamuwa'] as $r)
+                                        <option value="{{ $r }}">{{ $r }}</option>
+                                    @endforeach
+                                @elseif($country === 'AE')
+                                    @foreach(['Dubai','Abu Dhabi','Sharjah','Ajman','Fujairah','Ras Al Khaimah','Umm Al Quwain'] as $r)
+                                        <option value="{{ $r }}">{{ $r }}</option>
+                                    @endforeach
+                                @endif
                             </select>
                             @error('region')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                         </div>
