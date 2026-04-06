@@ -8,7 +8,7 @@
         <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <p class="text-[11px] tracking-[0.18em] uppercase font-semibold text-amber-300">Purchasing</p>
-                <h2 class="font-[Poppins] font-bold text-2xl text-white">Purchase Orders</h2>
+                <h2 class="font-[Poppins] font-bold text-2xl text-dark">Purchase Orders</h2>
                 <p class="text-sm text-slate-300 mt-1">Create and manage supplier purchase orders and stock intake</p>
             </div>
             <button wire:click="openCreatePo"

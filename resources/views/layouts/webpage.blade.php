@@ -291,10 +291,13 @@
                 {{-- Brand --}}
                 <div>
                     <div class="flex items-center gap-3 mb-5">
-                        <div class="w-10 h-10 rounded-xl bg-[#D4A017]/10 border border-[#D4A017]/20 flex items-center justify-center">
-                            <span class="font-[Poppins] font-black text-[#D4A017] text-base leading-none">MH</span>
-                        </div>
-                        <div><span class="font-[Poppins] font-bold text-white text-base">Mehra</span><span class="font-[Poppins] font-bold text-[#D4A017] text-base">House</span></div>
+                        <a href="{{ route('webpage.home') }}" class="flex items-center" aria-label="Mehra House home">
+                            <img
+                                src="{{ asset('images/meharahouse-logo.png') }}"
+                                alt="Mehra House Logo"
+                                class="h-16 w-auto max-w-[180px] object-contain"
+                            >
+                        </a>
                     </div>
                     <p class="text-sm leading-relaxed mb-6 text-[#64748B]">Ethiopia's premier destination for premium abaya dresses and modest innerwear. Elegance crafted for the modern woman of faith.</p>
                     <div class="flex gap-2.5">

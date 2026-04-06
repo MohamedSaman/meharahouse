@@ -72,11 +72,7 @@
                     @if($product->category)
                     <span class="badge badge-navy">{{ $product->category->name }}</span>
                     @endif
-                    @if($product->stock <= 0)
-                    <span class="badge badge-danger">Out of Stock</span>
-                    @elseif($product->stock <= 5)
-                    <span class="badge" style="background:#FFF7ED;color:#C2410C;">Only {{ $product->stock }} left</span>
-                    @endif
+                    <span class="badge" style="background:#F0FDF4;color:#166534;">Pre-Order Available</span>
                 </div>
 
                 <h1 class="font-[Poppins] font-bold text-2xl text-[#0F172A] mb-3">{{ $product->name }}</h1>
@@ -116,7 +112,6 @@
                 @endif
 
                 {{-- Quantity --}}
-                @if($product->stock > 0)
                 <div class="mb-6">
                     <label class="block text-sm font-semibold text-[#374151] mb-2">Quantity</label>
                     <div class="flex items-center gap-4">
@@ -127,14 +122,11 @@
                             <button wire:click="incrementQty"
                                     class="w-10 h-10 flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] text-xl font-bold transition-colors">+</button>
                         </div>
-                        <span class="text-xs text-[#64748B]">{{ $product->stock }} units in stock</span>
                     </div>
                 </div>
-                @endif
 
                 {{-- Actions --}}
                 <div class="flex gap-3 mb-6">
-                    @if($product->stock > 0)
                     <button wire:click="addToCart" wire:loading.attr="disabled"
                             class="btn-primary flex-1 justify-center btn-lg">
                         <svg wire:loading wire:target="addToCart" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -144,14 +136,9 @@
                         <svg wire:loading.remove wire:target="addToCart" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                         </svg>
-                        <span wire:loading.remove wire:target="addToCart">Add to Cart</span>
+                        <span wire:loading.remove wire:target="addToCart">Pre-Order Now</span>
                         <span wire:loading wire:target="addToCart">Adding...</span>
                     </button>
-                    @else
-                    <button disabled class="btn-secondary flex-1 justify-center btn-lg opacity-60 cursor-not-allowed">
-                        Out of Stock
-                    </button>
-                    @endif
 
                     <button wire:click="toggleWishlist"
                             class="{{ $this->isInWishlist() ? 'text-red-500 border-red-200 bg-red-50' : 'text-[#475569]' }} p-4 rounded-xl border-2 border-[#E2E8F0] hover:border-red-200 transition-all duration-200">

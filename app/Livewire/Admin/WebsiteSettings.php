@@ -36,6 +36,14 @@ class WebsiteSettings extends Component
     public string $socialTikTok    = '';
     public string $socialYoutube   = '';
 
+    // ── Order Settings ───────────────────────────────────────────
+    public int    $advancePaymentPercentage = 50;
+    public string $bankTransferDetails      = '';
+
+    // ── Delivery Fee ─────────────────────────────────────────────
+    public bool  $deliveryFeeEnabled = false;
+    public float $deliveryFeeAmount  = 0;
+
     public function mount(): void
     {
         // Live Status
@@ -60,6 +68,14 @@ class WebsiteSettings extends Component
         $this->socialInstagram = Setting::get('social_instagram', '') ?? '';
         $this->socialTikTok    = Setting::get('social_tiktok', '') ?? '';
         $this->socialYoutube   = Setting::get('social_youtube', '') ?? '';
+
+        // Order Settings
+        $this->advancePaymentPercentage = (int) Setting::get('advance_payment_percentage', '50');
+        $this->bankTransferDetails      = Setting::get('bank_transfer_details', '') ?? '';
+
+        // Delivery Fee
+        $this->deliveryFeeEnabled = Setting::get('delivery_fee_enabled', '0') === '1';
+        $this->deliveryFeeAmount  = (float) Setting::get('delivery_fee_amount', '0');
     }
 
     // ── Save: Live Status ─────────────────────────────────────────
@@ -130,6 +146,23 @@ class WebsiteSettings extends Component
         Setting::set('social_youtube', $this->socialYoutube);
 
         session()->flash('success_social', 'Social media links saved successfully.');
+    }
+
+    // ── Save: Order Settings ──────────────────────────────────────
+    public function saveOrderSettings(): void
+    {
+        $this->validate([
+            'advancePaymentPercentage' => ['required', 'integer', 'min:1', 'max:100'],
+            'bankTransferDetails'      => ['nullable', 'string', 'max:1000'],
+            'deliveryFeeAmount'        => ['required_if:deliveryFeeEnabled,true', 'numeric', 'min:0'],
+        ]);
+
+        Setting::set('advance_payment_percentage', (string) $this->advancePaymentPercentage);
+        Setting::set('bank_transfer_details', $this->bankTransferDetails);
+        Setting::set('delivery_fee_enabled', $this->deliveryFeeEnabled ? '1' : '0');
+        Setting::set('delivery_fee_amount', (string) $this->deliveryFeeAmount);
+
+        session()->flash('success_order_settings', 'Order settings saved successfully.');
     }
 
     public function render()

@@ -51,7 +51,8 @@ type: project
 ## Route Naming Convention
 - Auth: `auth.login`, `auth.register`, `auth.logout`
 - Webpage: `webpage.home`, `webpage.shop`, `webpage.product-details`, `webpage.cart`, `webpage.checkout`, `webpage.orders`, `webpage.about`, `webpage.contact`, `webpage.reviews`
-- Admin: `admin.dashboard`, `admin.orders`, `admin.products`, `admin.categories`, `admin.customers`, `admin.payments`, `admin.payment-integration`, `admin.reports`, `admin.manual-order`, `admin.suppliers`, `admin.purchasing`, `admin.website-settings`, `admin.supplier-payments`, `admin.customer-payments`
+- Admin: `admin.dashboard`, `admin.orders`, `admin.whatsapp-orders`, `admin.products`, `admin.categories`, `admin.customers`, `admin.payments`, `admin.payment-integration`, `admin.reports`, `admin.manual-order`, `admin.suppliers`, `admin.purchasing`, `admin.website-settings`, `admin.supplier-payments`, `admin.customer-payments`
+- Public (no auth): `whatsapp.order.form`
 - Staff: `staff.dashboard`, `staff.orders`, `staff.customers`
 
 ## Database Schema (All Migrations Run)
@@ -98,6 +99,50 @@ type: project
 - New "Payment Management" section added after "Purchasing" section in admin layout
 - Supplier Payments link shows badge count of pending+partial invoices
 - Customer Payments link shows badge count of pending+partial accounts
+
+## Order Management System (Added April 2026)
+
+### Two Customer Types
+1. **Website Orders** (pre-order): Customer orders → pays advance % → uploads receipt → admin confirms → sources/dispatches → customer pays balance
+2. **WhatsApp Orders**: Admin generates one-time token link → sends to customer via WA → customer opens link, sees products, uploads receipt, fills address → order created labeled 'whatsapp'
+
+### New Database Tables (migration prefix 2024_01_07)
+- **orders** (altered): added `source` ENUM(website,whatsapp), `advance_percentage` TINYINT, `advance_amount` DECIMAL, `balance_amount` DECIMAL, `supplier_status` ENUM(none,ordered,received,unavailable), `refund_option` ENUM(refund,reorder) nullable
+- **orders** status column: changed to ENUM(new,payment_received,confirmed,sourcing,dispatched,delivered,completed,refunded,cancelled) — old statuses migrated: pending→new, processing→confirmed, shipped→dispatched
+- **order_payments**: id, order_id FK, type ENUM(advance,balance,refund), amount, method ENUM(bank_transfer,online,cash), receipt_path nullable, reference nullable, status ENUM(pending,confirmed,rejected), confirmed_by FK users nullable, confirmed_at nullable, notes
+- **order_status_logs**: id, order_id FK cascade, from_status nullable, to_status, notes, created_by FK users nullable
+- **whatsapp_order_tokens**: id, token VARCHAR(64) unique, created_by FK users, products JSON, subtotal, advance_percentage, advance_amount, expires_at nullable, used_at nullable, order_id FK nullable, status ENUM(pending,used,expired), notes
+- **refunds**: id, order_id FK, amount, method ENUM(bank_transfer,online), reference nullable, notes, processed_by FK nullable, processed_at nullable
+
+### New Models
+- `App\Models\OrderPayment` — scopes: pending(), confirmed(), advance(), balance(); receiptUrl() returns asset URL
+- `App\Models\OrderStatusLog` — belongs to Order, belongs to User (createdBy)
+- `App\Models\WhatsappOrderToken` — isUsable(), markUsed($orderId), static generate(...)
+- `App\Models\Refund` — belongs to Order, belongs to User (processedBy)
+- `App\Models\Order` updated — added: payments(), statusLogs(), whatsappToken(), refund(), isWhatsapp(), advancePayment(), balanceDue(), logStatus()
+
+### New Livewire Components
+- `App\Livewire\Admin\WhatsappOrders` → route `admin.whatsapp-orders` (/admin/whatsapp-orders) — generate tokens, view token list, copy links
+- `App\Livewire\Webpage\WhatsappOrderForm` → route `whatsapp.order.form` (/order/whatsapp/{token}) — PUBLIC, no auth, no maintenance gate
+
+### Settings Added
+- `advance_payment_percentage` — integer 1-100, default 50 — controls advance % for all order types
+- `bank_transfer_details` — text — bank name/account shown to customers for payment
+
+### Updated Admin Components
+- `App\Livewire\Admin\Order` — expanded with: confirmPayment(), rejectPayment(), confirmOrder(), markSourcing(), markSupplierReceived(), markSupplierUnavailable(), markDispatched(), markDelivered(), markCompleted(), offerRefund(), offerReorder(), openRefundModal(), processRefund(), sendBalanceReminder(), closeDetail()
+- Order view: source badges (Web/WA), receipt status indicators, contextual quick action buttons per status, full slide-over detail panel with status timeline, payment review, supplier section, refund modal
+
+### Admin Sidebar
+- "WhatsApp Orders" nav item added under Orders with WhatsApp green icon, badge shows pending token count
+- Orders badge changed from 'pending' status to 'new' status count
+
+### Public Route (No Auth)
+- `/order/whatsapp/{token}` declared BEFORE `website.live` middleware group so it works during maintenance mode
+
+### Status Badge Mapping
+- new=slate, payment_received=amber, confirmed=blue, sourcing=orange, dispatched=indigo, delivered=teal, completed=green, refunded=red, cancelled=red
+- Supplier: none=slate, ordered=orange, received=green, unavailable=red
 
 ## Business Logic
 - Tax: 15% of subtotal

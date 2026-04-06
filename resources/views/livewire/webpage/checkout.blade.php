@@ -29,7 +29,7 @@
 
         {{-- Step 4: Success --}}
         @if($step === 4)
-        <div class="text-center py-16 max-w-lg mx-auto">
+        <div class="max-w-lg mx-auto py-12 text-center">
             <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
                 <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -37,12 +37,9 @@
             </div>
             <h2 class="font-[Poppins] font-bold text-2xl text-[#0F172A] mb-2">Order Placed Successfully!</h2>
             <p class="text-[#64748B] mb-1">Your order number is:</p>
-            <p class="font-mono font-bold text-xl text-[#F59E0B] mb-5">{{ $orderNumber }}</p>
-            <p class="text-sm text-[#64748B] mb-8">We'll send a confirmation to your email. Expect delivery within 2-3 business days.</p>
-            <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                <a href="{{ route('webpage.orders') }}" class="btn-primary btn-lg">View My Orders</a>
-                <a href="{{ route('webpage.shop') }}" class="btn-secondary btn-lg">Continue Shopping</a>
-            </div>
+            <p class="font-mono font-bold text-2xl text-[#F59E0B] mb-4">{{ $orderNumber }}</p>
+            <p class="text-sm text-[#64748B] mb-8">Our team will review your payment and confirm your order shortly.</p>
+            <a href="{{ route('webpage.shop') }}" class="btn-secondary">Continue Shopping</a>
         </div>
 
         @else

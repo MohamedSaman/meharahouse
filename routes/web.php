@@ -21,6 +21,16 @@ Route::prefix('auth')->name('auth.')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| WhatsApp Order Form — Public, no auth, no maintenance check
+| Must be declared BEFORE the website.live middleware group so it is always
+| accessible even when the storefront is in maintenance mode.
+|--------------------------------------------------------------------------
+*/
+Route::get('/order/whatsapp/{token}', App\Livewire\Webpage\WhatsappOrderForm::class)
+    ->name('whatsapp.order.form');
+
+/*
+|--------------------------------------------------------------------------
 | Webpage (Public Storefront) Routes
 |--------------------------------------------------------------------------
 */
@@ -56,6 +66,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/suppliers',            App\Livewire\Admin\Supplier::class)->name('suppliers');
     Route::get('/purchasing',           App\Livewire\Admin\Purchasing::class)->name('purchasing');
     Route::get('/website-settings',     App\Livewire\Admin\WebsiteSettings::class)->name('website-settings');
+    Route::get('/whatsapp-orders',      App\Livewire\Admin\WhatsappOrders::class)->name('whatsapp-orders');
 
     // Payment Management
     Route::get('/supplier-payments', App\Livewire\Admin\SupplierPayments::class)->name('supplier-payments');

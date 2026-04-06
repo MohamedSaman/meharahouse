@@ -126,6 +126,7 @@
     {{-- Always in DOM, shown/hidden via Alpine x-show for instant response --}}
     <div x-show="showForm"
          x-on:keydown.escape.window="showForm = false"
+         wire:ignore.self
          style="display:none;"
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
          x-transition:enter="transition ease-out duration-200"

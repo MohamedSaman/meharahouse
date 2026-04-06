@@ -21,7 +21,7 @@ class Dashboard extends Component
         $stats = [
             'total_revenue'  => Order::whereNotIn('status', ['cancelled'])->sum('total'),
             'total_orders'   => Order::count(),
-            'pending_orders' => Order::where('status', 'pending')->count(),
+            'pending_orders' => Order::whereIn('status', ['new', 'payment_received'])->count(),
             'total_products' => Product::count(),
             'total_users'    => User::where('role', 'customer')->count(),
             'low_stock'      => Product::where('stock', '<=', 5)->where('stock', '>', 0)->count(),

@@ -153,17 +153,10 @@
                         </div>
                     </div>
 
-                    @auth
                     <a href="{{ route('webpage.checkout') }}" class="btn-primary w-full justify-center mt-5 py-3 text-base">
                         Proceed to Checkout
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                     </a>
-                    @else
-                    <a href="{{ route('auth.login') }}" class="btn-primary w-full justify-center mt-5 py-3 text-base">
-                        Sign In to Checkout
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    </a>
-                    @endauth
 
                     {{-- Trust badges --}}
                     <div class="mt-4 flex flex-col gap-2 text-xs text-[#64748B]">

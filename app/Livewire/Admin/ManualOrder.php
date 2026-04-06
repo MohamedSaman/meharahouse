@@ -179,7 +179,7 @@ class ManualOrder extends Component
             $order = Order::create([
                 'user_id'          => $this->foundCustomer->id,
                 'order_number'     => $orderNumber,
-                'status'           => 'pending',
+                'status'           => 'new',
                 'subtotal'         => $subtotal,
                 'tax'              => 0,
                 'shipping_cost'    => 0,

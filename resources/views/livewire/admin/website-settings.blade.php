@@ -23,7 +23,7 @@
     </div>
 
     {{-- ══════════════════════ FLASH MESSAGES ══════════════════════ --}}
-    @foreach(['success_live' => 'emerald', 'success_announcement' => 'emerald', 'success_siteinfo' => 'emerald', 'success_social' => 'emerald'] as $key => $color)
+    @foreach(['success_live' => 'emerald', 'success_announcement' => 'emerald', 'success_siteinfo' => 'emerald', 'success_social' => 'emerald', 'success_order_settings' => 'emerald'] as $key => $color)
         @if(session($key))
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
              class="flex items-center gap-3 p-4 bg-{{ $color }}-50 border border-{{ $color }}-200 rounded-xl text-{{ $color }}-800 text-sm font-medium">
@@ -413,6 +413,119 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
                     Save Social Links
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════════════════════════
+         5. ORDER SETTINGS
+    ══════════════════════════════════════════════════════════════ --}}
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+
+        <div class="flex items-center gap-3 px-5 sm:px-6 py-4 border-b border-slate-100">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-semibold text-slate-800 text-sm">Order Settings</h3>
+                <p class="text-xs text-slate-400">Configure advance payment percentage and bank transfer details shown to customers.</p>
+            </div>
+        </div>
+
+        <div class="px-5 sm:px-6 py-5 space-y-5">
+
+            {{-- Advance Payment Percentage --}}
+            <div class="max-w-xs">
+                <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Advance Payment Percentage <span class="text-red-400">*</span>
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number"
+                           wire:model="advancePaymentPercentage"
+                           min="1"
+                           max="100"
+                           class="form-input w-28 text-center font-bold text-lg"
+                           placeholder="50">
+                    <span class="text-slate-500 text-sm font-semibold">%</span>
+                    <span class="text-xs text-slate-400">of order total required upfront</span>
+                </div>
+                @error('advancePaymentPercentage')
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                @enderror
+                <p class="mt-2 text-xs text-slate-400">
+                    This percentage is used when generating WhatsApp order links and shown to website customers at checkout. Default is 50%.
+                </p>
+            </div>
+
+            {{-- Bank Transfer Details --}}
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Bank Transfer Details</label>
+                <textarea wire:model="bankTransferDetails"
+                          rows="4"
+                          class="form-input w-full resize-none font-mono text-sm"
+                          placeholder="Bank: Meezan Bank&#10;Account Name: Meharahouse&#10;Account Number: 0123456789&#10;Branch: Main Branch"></textarea>
+                @error('bankTransferDetails')
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                @enderror
+                <p class="mt-1.5 text-xs text-slate-400">
+                    Shown to customers who need to make bank transfers for advance or balance payments.
+                </p>
+            </div>
+
+            {{-- Live preview --}}
+            @if($bankTransferDetails)
+            <div class="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                <p class="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">Customer Preview</p>
+                <div class="text-sm text-slate-700 whitespace-pre-line font-mono">{{ $bankTransferDetails }}</div>
+            </div>
+            @endif
+
+            {{-- Delivery Fee --}}
+            <div class="rounded-xl border border-slate-200 p-4 space-y-4"
+                 x-data="{ enabled: @js($deliveryFeeEnabled) }">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-700">Delivery Fee</p>
+                        <p class="text-xs text-slate-400 mt-0.5">Charge a fixed delivery fee on every order</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" wire:model="deliveryFeeEnabled" @change="enabled = $event.target.checked" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:ring-2 peer-focus:ring-[#D4A017]/30 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D4A017]"></div>
+                    </label>
+                </div>
+
+                <div x-show="enabled" style="display:none;">
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Delivery Fee Amount <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rs.</span>
+                        <input wire:model="deliveryFeeAmount"
+                               type="number" min="0" step="0.01"
+                               placeholder="0.00"
+                               class="form-input w-full pl-10">
+                    </div>
+                    @error('deliveryFeeAmount')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                    <p class="mt-1.5 text-xs text-slate-400">This amount is added to every order at checkout.</p>
+                </div>
+
+                <div x-show="!enabled" class="text-xs text-slate-400 italic" style="display:none;">
+                    Delivery fee is currently <strong>disabled</strong> — no delivery charge is added to orders.
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-1 border-t border-slate-100">
+                <button wire:click="saveOrderSettings" class="btn-primary inline-flex items-center gap-2 text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Save Order Settings
                 </button>
             </div>
         </div>

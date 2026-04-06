@@ -27,9 +27,7 @@ class ProductDetails extends Component
 
     public function incrementQty(): void
     {
-        if ($this->quantity < $this->product->stock) {
-            $this->quantity++;
-        }
+        $this->quantity++;
     }
 
     public function decrementQty(): void
@@ -39,38 +37,28 @@ class ProductDetails extends Component
         }
     }
 
-    public function addToCart(): void
+    private function putInCart(): void
     {
-        if ($this->product->stock <= 0) {
-            session()->flash('error', 'This product is out of stock.');
-            return;
-        }
-
         if (auth()->check()) {
             $cart = Cart::where('user_id', auth()->id())
                 ->where('product_id', $this->product->id)
                 ->first();
 
             if ($cart) {
-                $newQty = $cart->quantity + $this->quantity;
-                $cart->update(['quantity' => min($newQty, $this->product->stock)]);
+                $cart->update(['quantity' => $cart->quantity + $this->quantity]);
             } else {
                 Cart::create([
                     'user_id'    => auth()->id(),
                     'product_id' => $this->product->id,
-                    'quantity'   => min($this->quantity, $this->product->stock),
+                    'quantity'   => $this->quantity,
                 ]);
             }
         } else {
-            // Guest cart via session
             $sessionCart = session()->get('cart', []);
             $productId   = $this->product->id;
 
             if (isset($sessionCart[$productId])) {
-                $sessionCart[$productId]['quantity'] = min(
-                    $sessionCart[$productId]['quantity'] + $this->quantity,
-                    $this->product->stock
-                );
+                $sessionCart[$productId]['quantity'] += $this->quantity;
             } else {
                 $sessionCart[$productId] = ['quantity' => $this->quantity];
             }
@@ -78,7 +66,18 @@ class ProductDetails extends Component
         }
 
         $this->dispatch('cart-updated');
+    }
+
+    public function addToCart(): void
+    {
+        $this->putInCart();
         session()->flash('success', 'Added to cart!');
+    }
+
+    public function preOrderNow(): void
+    {
+        $this->putInCart();
+        $this->redirect(route('webpage.checkout'), navigate: true);
     }
 
     public function toggleWishlist(): void

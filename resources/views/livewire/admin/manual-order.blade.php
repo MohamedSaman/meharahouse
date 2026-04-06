@@ -8,7 +8,7 @@
         <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <p class="text-[11px] tracking-[0.18em] uppercase font-semibold text-amber-300">Admin Tool</p>
-                <h2 class="font-[Poppins] font-bold text-2xl text-white">Create Manual Order</h2>
+                <h2 class="font-[Poppins] font-bold text-2xl text-dark">Create Manual Order</h2>
                 <p class="text-sm text-slate-300 mt-1">Place an order on behalf of a customer by phone or walk-in</p>
             </div>
             <a href="{{ route('admin.orders') }}"

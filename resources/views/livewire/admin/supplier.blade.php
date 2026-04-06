@@ -8,7 +8,7 @@
         <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <p class="text-[11px] tracking-[0.18em] uppercase font-semibold text-amber-300">Purchasing</p>
-                <h2 class="font-[Poppins] font-bold text-2xl text-white">Suppliers</h2>
+                <h2 class="font-[Poppins] font-bold text-2xl text-dark">Suppliers</h2>
                 <p class="text-sm text-slate-300 mt-1">
                     Manage production companies &amp; wholesalers Meharahouse buys stock from
                     <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-white text-xs font-medium">

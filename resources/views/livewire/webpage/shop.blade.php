@@ -127,11 +127,6 @@
                                 <span class="text-xs text-green-600 font-semibold">{{ $product->discountPercent() }}% off</span>
                                 @endif
                             </div>
-                            @if($product->stock <= 5 && $product->stock > 0)
-                            <p class="text-xs text-orange-500 mt-1">Only {{ $product->stock }} left!</p>
-                            @elseif($product->stock == 0)
-                            <p class="text-xs text-red-500 mt-1">Out of stock</p>
-                            @endif
                         </div>
                     </div>
                     @endforeach

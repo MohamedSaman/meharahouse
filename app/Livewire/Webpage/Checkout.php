@@ -156,7 +156,7 @@ class Checkout extends Component
         }
 
         $subtotal    = $this->getSubtotal();
-        $shipping    = $subtotal >= 500 ? 0 : 50;
+        $shipping    = Setting::get('delivery_fee_enabled', '0') === '1' ? (float) Setting::get('delivery_fee_amount', '0') : 0;
         $tax         = round($subtotal * 0.15, 2);
         $total       = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
         $orderNumber = Order::generateOrderNumber();
@@ -165,7 +165,7 @@ class Checkout extends Component
             $order = Order::create([
                 'user_id'          => auth()->id(), // null for guests
                 'order_number'     => $orderNumber,
-                'status'           => 'pending',
+                'status'           => 'new',
                 'subtotal'         => $subtotal,
                 'tax'              => $tax,
                 'shipping_cost'    => $shipping,
