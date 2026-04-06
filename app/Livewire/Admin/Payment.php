@@ -131,6 +131,11 @@ class Payment extends Component
         $siteName    = Setting::get('site_name', 'Meharahouse');
         $bankDetails = Setting::get('bank_transfer_details', '(Bank details not configured)');
 
+        if (!$phone) {
+            session()->flash('error', 'No phone number found for this customer.');
+            return;
+        }
+
         $confirmedTotal = $order->payments->sum('amount');
         $due            = max(0, (float) $order->total - $confirmedTotal);
 
@@ -143,10 +148,12 @@ class Payment extends Component
             . "Please transfer the balance to:\n{$bankDetails}\n\n"
             . "Thank you for shopping with {$siteName}! 🙏";
 
-        if ($phone) {
-            $this->dispatch('open-payment-whatsapp', phone: $phone, message: $message);
+        $result = WhatsappService::send($phone, $message);
+
+        if ($result['success']) {
+            session()->flash('success', 'Payment reminder sent via WhatsApp to ' . $phone . '.');
         } else {
-            session()->flash('error', 'No phone number found for this customer.');
+            session()->flash('error', 'WhatsApp failed: ' . $result['message']);
         }
     }
 
