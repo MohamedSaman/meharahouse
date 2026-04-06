@@ -344,17 +344,30 @@
 
                 {{-- Admin Avatar --}}
                 <div x-data="{ open: false }" class="relative">
-                    <button @click="open = !open" class="w-9 h-9 rounded-full bg-[#0F172A] flex items-center justify-center">
-                        <span class="text-[#F59E0B] font-bold text-sm">{{ auth()->check() ? strtoupper(substr(auth()->user()->name, 0, 1)) : 'A' }}</span>
+                    <button @click="open = !open" class="w-9 h-9 rounded-full bg-[#0F172A] flex items-center justify-center overflow-hidden ring-2 ring-[#F59E0B]/40 hover:ring-[#F59E0B]/80 transition-all">
+                        @if(auth()->check() && auth()->user()->profile_photo_path)
+                            <img src="{{ auth()->user()->profile_photo_url }}" alt="{{ auth()->user()->name }}" class="w-full h-full object-cover">
+                        @else
+                            <span class="text-[#F59E0B] font-bold text-sm">{{ auth()->check() ? strtoupper(substr(auth()->user()->name, 0, 1)) : 'A' }}</span>
+                        @endif
                     </button>
                     <div x-show="open" @click.outside="open = false"
                          x-transition:enter="transition ease-out duration-150"
                          x-transition:enter-start="opacity-0 scale-95"
                          x-transition:enter-end="opacity-100 scale-100"
                          class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl border border-[#E2E8F0] shadow-xl py-1 z-50" style="display:none;">
-                        <div class="px-4 py-3 border-b border-[#F1F5F9]">
-                            <p class="text-sm font-semibold text-[#0F172A]">{{ auth()->user()?->name ?? 'Admin' }}</p>
-                            <p class="text-xs text-[#64748B]">{{ auth()->user()?->email }}</p>
+                        <div class="px-4 py-3 border-b border-[#F1F5F9] flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-[#0F172A] flex items-center justify-center overflow-hidden ring-2 ring-[#F59E0B]/40 shrink-0">
+                                @if(auth()->check() && auth()->user()->profile_photo_path)
+                                    <img src="{{ auth()->user()->profile_photo_url }}" alt="{{ auth()->user()->name }}" class="w-full h-full object-cover">
+                                @else
+                                    <span class="text-[#F59E0B] font-bold text-sm">{{ strtoupper(substr(auth()->user()?->name ?? 'A', 0, 1)) }}</span>
+                                @endif
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-[#0F172A] truncate">{{ auth()->user()?->name ?? 'Admin' }}</p>
+                                <p class="text-xs text-[#64748B] truncate">{{ auth()->user()?->email }}</p>
+                            </div>
                         </div>
                         <a href="{{ route('admin.profile') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>

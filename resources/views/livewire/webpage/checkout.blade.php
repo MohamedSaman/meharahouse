@@ -114,7 +114,7 @@
                         @endif
                         @foreach($paymentMethods as $key => $method)
                         <label class="flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 {{ $paymentMethod === $key ? 'border-[#F59E0B] bg-[#FFFBEB]' : 'border-[#E2E8F0] hover:border-[#F59E0B]/50' }}">
-                            <input wire:model="paymentMethod" type="radio" value="{{ $key }}" class="mt-1 text-[#F59E0B] focus:ring-[#F59E0B]">
+                            <input wire:model="paymentMethod" type="radio" name="paymentMethod" value="{{ $key }}" class="mt-1 text-[#F59E0B] focus:ring-[#F59E0B]">
                             <div class="flex items-start gap-3 flex-1">
                                 <div class="w-10 h-10 rounded-lg bg-[#F1F5F9] flex items-center justify-center shrink-0">
                                     <svg class="w-5 h-5 text-[#475569]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $method['icon'] }}"/></svg>
