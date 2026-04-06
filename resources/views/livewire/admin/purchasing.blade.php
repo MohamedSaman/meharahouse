@@ -465,7 +465,7 @@
                                             @error("poItems.{$idx}.product_name") <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p> @enderror
                                         </td>
                                         <td class="py-2.5 pr-3">
-                                            <input wire:model="poItems.{{ $idx }}.sku"
+                                            <input wire:model.live="poItems.{{ $idx }}.sku"
                                                    type="text"
                                                    class="form-input w-full text-sm py-1.5"
                                                    placeholder="Code">
@@ -935,6 +935,7 @@
                     <thead>
                         <tr class="border-b border-slate-100">
                             <th class="text-left py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</th>
+                            <th class="text-left py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Code</th>
                             <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Orders</th>
                             <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Needed</th>
                             <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">In Stock</th>
@@ -945,6 +946,7 @@
                         @foreach($planItems as $item)
                         <tr class="{{ $item['to_buy'] > 0 ? 'bg-red-50/40' : '' }}">
                             <td class="py-3 font-medium text-slate-800">{{ $item['product_name'] }}</td>
+                            <td class="py-3 text-slate-500 font-mono text-xs">{{ $item['sku'] ?: '—' }}</td>
                             <td class="py-3 text-center text-slate-500">{{ $item['order_count'] }}</td>
                             <td class="py-3 text-center font-semibold text-slate-700">{{ $item['qty_needed'] }}</td>
                             <td class="py-3 text-center">

@@ -29,9 +29,13 @@ class WhatsappOrders extends Component
     public array  $selectedProducts  = []; // Each: {id, name, price, quantity}
     public string $notes             = '';
 
+    // Customer WhatsApp number
+    public string $customerPhone = '';
+
     // Flash link after generation
     public ?string $generatedLink    = null;
     public ?string $generatedTokenId = null;
+    public ?string $generatedPhone   = null;
 
     // ── Listeners ─────────────────────────────────────────────────────
     protected $listeners = ['closeModal'];
@@ -121,6 +125,14 @@ class WhatsappOrders extends Component
         $this->productResults = [];
     }
 
+    public function updatePrice(int $index, string $price): void
+    {
+        $value = max(0, (float) $price);
+        if (isset($this->selectedProducts[$index])) {
+            $this->selectedProducts[$index]['price'] = $value;
+        }
+    }
+
     public function removeProduct(int $index): void
     {
         array_splice($this->selectedProducts, $index, 1);
@@ -169,6 +181,7 @@ class WhatsappOrders extends Component
 
         $this->generatedLink    = route('whatsapp.order.form', ['token' => $token->token]);
         $this->generatedTokenId = $token->token;
+        $this->generatedPhone   = preg_replace('/[^0-9+]/', '', $this->customerPhone) ?: null;
 
         // Reset modal state
         $this->showGenerateModal = false;
@@ -176,6 +189,7 @@ class WhatsappOrders extends Component
         $this->searchProduct     = '';
         $this->productResults    = [];
         $this->notes             = '';
+        $this->customerPhone     = '';
         $this->resetPage();
     }
 
@@ -183,6 +197,7 @@ class WhatsappOrders extends Component
     {
         $this->generatedLink    = null;
         $this->generatedTokenId = null;
+        $this->generatedPhone   = null;
     }
 
     // ── Render ────────────────────────────────────────────────────────

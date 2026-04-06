@@ -67,6 +67,23 @@
                             <span x-text="copyDone ? 'Copied!' : 'Copy'"></span>
                         </button>
                     </div>
+                    {{-- Send via WhatsApp --}}
+                    @if($generatedPhone)
+                    @php
+                        $waMsg = urlencode("Hello! Here is your order link for Meharahouse:\n\n" . $generatedLink . "\n\nPlease click the link to complete your order details and upload your payment receipt. Thank you!");
+                        $waUrl = "https://wa.me/{$generatedPhone}?text={$waMsg}";
+                    @endphp
+                    <div class="mt-3">
+                        <a href="{{ $waUrl }}" target="_blank"
+                           class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-white transition-all hover:-translate-y-0.5"
+                           style="background-color:#25D366;">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413A11.815 11.815 0 0012.05 0z"/>
+                            </svg>
+                            Send via WhatsApp (+{{ $generatedPhone }})
+                        </a>
+                    </div>
+                    @endif
                 </div>
                 <button wire:click="dismissGeneratedLink" class="shrink-0 p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -400,7 +417,15 @@
                              class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-semibold text-[#0F172A] truncate">{{ $product['name'] }}</p>
-                                <p class="text-xs text-[#64748B]">Rs. {{ number_format($product['price'], 0) }} each</p>
+                                <div class="flex items-center gap-1 mt-1">
+                                    <span class="text-xs text-slate-400">Rs.</span>
+                                    <input type="number"
+                                           min="0" step="0.01"
+                                           value="{{ $product['price'] }}"
+                                           wire:change="updatePrice({{ $index }}, $event.target.value)"
+                                           class="w-24 text-xs font-semibold text-amber-700 bg-white border border-slate-200 rounded-lg px-2 py-1 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/30">
+                                    <span class="text-xs text-slate-400">each</span>
+                                </div>
                             </div>
                             {{-- Quantity Spinner --}}
                             <div class="flex items-center gap-1 shrink-0">
@@ -455,6 +480,23 @@
                     <p class="text-xs text-slate-500 mt-3">Advance % is configured in <strong class="text-slate-400">Website Settings</strong></p>
                 </div>
                 @endif
+
+                {{-- Customer WhatsApp Number --}}
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        Customer WhatsApp Number
+                        <span class="text-slate-400 font-normal ml-1">(optional — enables direct send)</span>
+                    </label>
+                    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-400/20 transition-all">
+                        <svg class="w-4 h-4 shrink-0" style="color:#25D366" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413A11.815 11.815 0 0012.05 0z"/>
+                        </svg>
+                        <input wire:model="customerPhone" type="tel"
+                               placeholder="e.g. +94771234567"
+                               class="bg-transparent outline-none flex-1 text-sm text-[#0F172A] placeholder-slate-400">
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">If provided, a "Send via WhatsApp" button will appear after generating the link.</p>
+                </div>
 
                 {{-- Notes Field --}}
                 <div>
