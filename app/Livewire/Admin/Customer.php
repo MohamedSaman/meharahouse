@@ -7,6 +7,7 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
 use App\Models\User;
+use Illuminate\Validation\Rule;
 
 #[Title('Customers')]
 #[Layout('layouts.admin')]
@@ -18,8 +19,23 @@ class Customer extends Component
     public string $filterRole = 'customer';
     public string $dateFrom   = '';
     public string $dateTo     = '';
-    public bool $showDetail = false;
+
+    // Detail modal
+    public bool  $showDetail  = false;
     public ?User $selectedUser = null;
+
+    // Edit modal
+    public bool   $showEdit   = false;
+    public int    $editId     = 0;
+    public string $editName   = '';
+    public string $editEmail  = '';
+    public string $editPhone  = '';
+    public string $editRole   = '';
+
+    // Delete confirm
+    public bool $showDelete   = false;
+    public int  $deleteId     = 0;
+    public string $deleteName = '';
 
     public function updatingSearch(): void
     {
@@ -49,6 +65,84 @@ class Customer extends Component
 
         User::findOrFail($id)->update(['role' => $role]);
         session()->flash('success', 'User role updated.');
+    }
+
+    // ── Edit ──────────────────────────────────────────────────────────────
+
+    public function editCustomer(int $id): void
+    {
+        $user = User::findOrFail($id);
+        $this->editId    = $id;
+        $this->editName  = $user->name;
+        $this->editEmail = $user->email;
+        $this->editPhone = $user->phone ?? '';
+        $this->editRole  = $user->role;
+        $this->showEdit  = true;
+        $this->resetErrorBag();
+    }
+
+    public function saveCustomer(): void
+    {
+        $this->validate([
+            'editName'  => 'required|string|max:255',
+            'editEmail' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->editId)],
+            'editPhone' => 'nullable|string|max:20',
+            'editRole'  => 'required|in:admin,staff,customer',
+        ]);
+
+        User::findOrFail($this->editId)->update([
+            'name'  => $this->editName,
+            'email' => $this->editEmail,
+            'phone' => $this->editPhone ?: null,
+            'role'  => $this->editRole,
+        ]);
+
+        $this->showEdit = false;
+        $this->resetPage();
+        session()->flash('success', 'Customer updated successfully.');
+    }
+
+    public function closeEdit(): void
+    {
+        $this->showEdit = false;
+        $this->resetErrorBag();
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────
+
+    public function confirmDelete(int $id): void
+    {
+        $user = User::findOrFail($id);
+
+        if ($user->id === auth()->id()) {
+            session()->flash('error', 'You cannot delete your own account.');
+            return;
+        }
+
+        $this->deleteId   = $id;
+        $this->deleteName = $user->name;
+        $this->showDelete = true;
+    }
+
+    public function deleteCustomer(): void
+    {
+        $user = User::findOrFail($this->deleteId);
+
+        if ($user->id === auth()->id()) {
+            session()->flash('error', 'You cannot delete your own account.');
+            $this->showDelete = false;
+            return;
+        }
+
+        $user->delete();
+        $this->showDelete = false;
+        $this->resetPage();
+        session()->flash('success', "Customer \"{$this->deleteName}\" deleted.");
+    }
+
+    public function closeDelete(): void
+    {
+        $this->showDelete = false;
     }
 
     public function render()
