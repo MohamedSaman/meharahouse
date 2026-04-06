@@ -743,7 +743,7 @@
 
         {{-- Panel Footer — sticky action bar --}}
         <div class="shrink-0 border-t border-slate-100 bg-white px-6 py-4 flex items-center gap-3">
-            <a href="{{ route('admin.order.waybill', $selectedOrder) }}"
+            <a href="{{ auth()->user()->isAdmin() ? route('admin.order.waybill', $selectedOrder) : route('staff.order.waybill', $selectedOrder) }}"
                target="_blank"
                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

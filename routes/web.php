@@ -109,6 +109,13 @@ Route::prefix('staff')->name('staff.')->middleware(['auth', 'staff'])->group(fun
     Route::get('/notifications',    App\Livewire\Staff\Notifications::class)->name('notifications');
     Route::get('/customers',        App\Livewire\Staff\Customer::class)->name('customers');
     Route::get('/profile',          App\Livewire\Admin\Profile::class)->name('profile');
+
+    // Waybill — staff also need to print waybills
+    Route::get('/orders/{order}/waybill', function (App\Models\Order $order) {
+        $order->load(['items', 'shipmentBatch']);
+        $addr = $order->shipping_address ?? [];
+        return view('admin.waybill', compact('order', 'addr'));
+    })->name('order.waybill');
 });
 
 // Jetstream session-auth middleware group — kept for Jetstream's own routes.
