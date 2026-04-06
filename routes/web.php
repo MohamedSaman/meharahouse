@@ -2,12 +2,22 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
 | Authentication Routes
 |--------------------------------------------------------------------------
 */
+// ── Payment Gateway Pages (no auth required) ─────────────────────────────
+Route::prefix('payment')->name('payment.')->group(function () {
+    Route::get('/payhere/{order}',         [PaymentController::class, 'payhereForm'])->name('payhere');
+    Route::post('/payhere/{order}/process',[PaymentController::class, 'payhereProcess'])->name('payhere.process');
+    Route::get('/paypal/{order}',          [PaymentController::class, 'paypalForm'])->name('paypal');
+    Route::post('/paypal/{order}/process', [PaymentController::class, 'paypalProcess'])->name('paypal.process');
+    Route::get('/success/{order}',         [PaymentController::class, 'success'])->name('success');
+});
+
 Route::prefix('auth')->name('auth.')->group(function () {
     Route::get('/login',    App\Livewire\Auth\Login::class)->name('login')->middleware('guest');
     Route::get('/register', App\Livewire\Auth\Register::class)->name('register')->middleware('guest');

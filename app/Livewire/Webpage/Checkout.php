@@ -211,6 +211,16 @@ class Checkout extends Component
             }
         });
 
+        // Redirect to payment gateway for online payments
+        if ($this->paymentMethod === 'payhere') {
+            $this->redirect(route('payment.payhere', $orderNumber));
+            return;
+        }
+        if ($this->paymentMethod === 'paypal') {
+            $this->redirect(route('payment.paypal', $orderNumber));
+            return;
+        }
+
         $this->orderNumber = $orderNumber;
         $this->step        = 4;
     }
