@@ -4,11 +4,13 @@ namespace App\Livewire\Staff;
 
 use Livewire\Component;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Layout;
 use App\Models\Order;
 use App\Models\OrderReturn;
 use Illuminate\Support\Facades\DB;
 
 #[Title('Staff Dashboard')]
+#[Layout('layouts.staff')]
 class Dashboard extends Component
 {
     public function render()

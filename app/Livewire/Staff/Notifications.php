@@ -4,11 +4,13 @@ namespace App\Livewire\Staff;
 
 use Livewire\Component;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
 use App\Models\Order;
 use App\Models\User;
 
 #[Title('Customer Notifications')]
+#[Layout('layouts.staff')]
 class Notifications extends Component
 {
     use WithPagination;

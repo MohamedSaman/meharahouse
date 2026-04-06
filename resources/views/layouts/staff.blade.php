@@ -22,14 +22,27 @@
     <aside :class="{ '-translate-x-full': !sidebarOpen }"
            class="fixed top-0 left-0 w-60 h-screen bg-[#134e4a] z-50 flex flex-col transition-transform duration-300 shadow-2xl lg:translate-x-0">
 
-        {{-- Header --}}
-        <div class="flex items-center gap-3 h-16 px-4 border-b border-[#0f3d3a] shrink-0">
-            <div class="bg-white rounded-lg p-1 shrink-0">
-                <img src="{{ asset('images/meharahouse-logo.png') }}" alt="Mehra House" class="h-8 w-auto">
-            </div>
-            <div>
-                <span class="block text-[#5eead4] text-[10px] font-bold tracking-widest uppercase">Staff Portal</span>
-            </div>
+  <div class="relative flex items-center h-16 px-4 border-b border-white/10 shrink-0">
+            <a href="{{ route('admin.dashboard') }}"
+               class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center gap-0.5">
+                <div class="rounded-xl px-2 py-1 ">
+                    <img src="{{ asset('images/meharahouse-logo.png') }}" alt="Mehra House" class="h-18 w-auto">
+                </div>            </a>
+            <button @click="sidebarCollapsed = !sidebarCollapsed"
+                    x-show="!sidebarCollapsed"
+                    class="absolute right-4 hidden lg:flex w-8 h-8 rounded-xl bg-white/5 items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                </svg>
+            </button>
+            <button @click="sidebarCollapsed = !sidebarCollapsed"
+                    x-show="sidebarCollapsed"
+                    class="absolute right-4 hidden lg:flex w-8 h-8 rounded-xl bg-white/5 items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all shrink-0"
+                    style="display:none;">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                </svg>
+            </button>
         </div>
 
         {{-- Staff Badge --}}
@@ -206,7 +219,6 @@
 </div>
 
 @livewireScripts
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 @stack('scripts')
 </body>
 </html>
