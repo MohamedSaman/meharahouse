@@ -24,7 +24,8 @@ class Checkout extends Component
     public string $fullName = '';
     public string $email = '';
     public string $country = 'LK'; // LK = Sri Lanka, AE = UAE
-    public string $phone = '';
+    public string $phone = '';        // full number e.g. +94761265772 (stored/sent)
+    public string $phoneNumber = '';  // local part typed by user e.g. 761265772
     public string $addressLine = '';
     public string $city = '';
     public string $region = '';
@@ -59,31 +60,37 @@ class Checkout extends Component
             $this->phone    = $user->phone ?? '';
         }
         // Set default phone prefix
-        if (empty($this->phone)) {
-            $this->phone = $this->countryConfig[$this->country]['code'];
+        // Pre-fill phone number from user profile (strip country code if present)
+        if (!empty($this->phone)) {
+            foreach ($this->countryConfig as $conf) {
+                if (str_starts_with($this->phone, $conf['code'])) {
+                    $this->phoneNumber = substr($this->phone, strlen($conf['code']));
+                    break;
+                }
+            }
         }
     }
 
-    public function updatedCountry(string $value): void
+    public function updatedCountry(): void
     {
-        $code = $this->countryConfig[$value]['code'] ?? '+94';
-        // Replace only the country code prefix, keep rest of number if already typed
-        $current = $this->phone;
-        foreach ($this->countryConfig as $conf) {
-            if (str_starts_with($current, $conf['code'])) {
-                $current = substr($current, strlen($conf['code']));
-                break;
-            }
-        }
-        $this->phone  = $code . $current;
         $this->region = ''; // reset region when country changes
     }
 
     protected function stepOneMessages(): array
     {
         return [
-            'phone.regex' => 'Phone must include country code and start with + (e.g. +94761265772)',
+            'phoneNumber.required' => 'Phone number is required.',
+            'phoneNumber.regex'    => 'Enter digits only, no spaces or dashes (e.g. 761265772).',
         ];
+    }
+
+    protected function buildFullPhone(): void
+    {
+        $code        = $this->countryConfig[$this->country]['code'] ?? '+94';
+        $local       = preg_replace('/[^0-9]/', '', $this->phoneNumber);
+        // Remove leading 0 if user typed it (e.g. 0761... → 761...)
+        $local       = ltrim($local, '0');
+        $this->phone = $code . $local;
     }
 
     protected function stepOneRules(): array
@@ -92,7 +99,7 @@ class Checkout extends Component
             'fullName'    => 'required|string|max:255',
             'email'       => 'required|email',
             'country'     => 'required|in:LK,AE',
-            'phone'       => ['required', 'string', 'max:20', 'regex:/^\+[1-9][0-9]{6,14}$/'],
+            'phoneNumber' => ['required', 'string', 'regex:/^[0-9]{7,12}$/'],
             'addressLine' => 'required|string|max:500',
             'city'        => 'required|string|max:100',
             'region'      => 'required|string|max:100',
@@ -103,6 +110,7 @@ class Checkout extends Component
     {
         if ($this->step === 1) {
             $this->validate($this->stepOneRules(), $this->stepOneMessages());
+            $this->buildFullPhone();
         }
         $this->step++;
     }
@@ -183,6 +191,7 @@ class Checkout extends Component
     public function placeOrder(): void
     {
         $this->validate($this->stepOneRules(), $this->stepOneMessages());
+        $this->buildFullPhone();
 
         if ($this->cartItems->isEmpty()) {
             session()->flash('error', 'Your cart is empty.');

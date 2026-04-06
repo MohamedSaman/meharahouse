@@ -82,11 +82,11 @@
                                     @elseif($country === 'AE') 🇦🇪 +971
                                     @endif
                                 </span>
-                                <input wire:model="phone" type="tel"
-                                       class="form-input flex-1 @error('phone') border-red-400 @enderror"
+                                <input wire:model="phoneNumber" type="tel"
+                                       class="form-input flex-1 @error('phoneNumber') border-red-400 @enderror"
                                        placeholder="{{ $country === 'LK' ? '761265772' : '501234567' }}">
                             </div>
-                            @error('phone')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                            @error('phoneNumber')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                         </div>
 
                         <div class="sm:col-span-2">
