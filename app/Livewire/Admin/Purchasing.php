@@ -397,7 +397,7 @@ class Purchasing extends Component
             $items[] = [
                 'product_id'   => null,
                 'product_name' => $item['product_name'],
-                'sku'          => '',
+                'sku'          => $item['sku'] ?? '',
                 'qty_ordered'  => $item['to_buy'],
                 'unit_cost'    => 0,
             ];
