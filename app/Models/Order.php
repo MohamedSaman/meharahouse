@@ -30,6 +30,10 @@ class Order extends Model
         'balance_amount',
         'supplier_status',
         'refund_option',
+        'shipment_batch_id',
+        'waybill_number',
+        'delivery_agent',
+        'delivery_notes',
     ];
 
     protected function casts(): array
@@ -73,6 +77,11 @@ class Order extends Model
     public function whatsappToken(): HasOne
     {
         return $this->hasOne(WhatsappOrderToken::class);
+    }
+
+    public function shipmentBatch(): BelongsTo
+    {
+        return $this->belongsTo(ShipmentBatch::class, 'shipment_batch_id');
     }
 
     public function refund(): HasOne

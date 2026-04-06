@@ -36,7 +36,7 @@
     <div class="card p-4 flex flex-col sm:flex-row gap-3 mb-5 shadow-sm hover:shadow-md transition-all duration-300">
         <div class="flex items-center gap-2 bg-[#F1F5F9] rounded-lg px-3 py-2 flex-1 max-w-sm">
             <svg class="w-4 h-4 text-[#64748B] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input wire:model.live.debounce.400ms="search" type="text" placeholder="Search products or SKU..." class="bg-transparent text-sm outline-none flex-1 placeholder-[#94A3B8]">
+            <input wire:model.live.debounce.400ms="search" type="text" placeholder="Search products or Code..." class="bg-transparent text-sm outline-none flex-1 placeholder-[#94A3B8]">
         </div>
         <select wire:model.live="filterCategory" class="form-input text-sm py-2 w-auto">
             <option value="">All Categories</option>
@@ -69,7 +69,7 @@
                             </button>
                         </th>
                         <th>Category</th>
-                        <th>SKU</th>
+                        <th>Code</th>
                         <th>
                             <button wire:click="sort('price')" class="flex items-center gap-1 hover:text-[#0F172A]">
                                 Price
@@ -201,7 +201,7 @@
                     @error('name')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
 
-                {{-- Category + SKU --}}
+                {{-- Category + Code --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-[#374151] mb-1.5">Category <span class="text-red-500">*</span></label>
@@ -215,7 +215,7 @@
                         @error('category_id')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-[#374151] mb-1.5">SKU <span class="text-xs font-normal text-[#94A3B8]">(optional)</span></label>
+                        <label class="block text-sm font-semibold text-[#374151] mb-1.5">Code <span class="text-xs font-normal text-[#94A3B8]">(optional)</span></label>
                         <input wire:model="sku" type="text"
                                class="form-input @error('sku') border-red-400 bg-red-50 @enderror"
                                placeholder="e.g. MH-ABY-001">

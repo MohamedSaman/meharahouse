@@ -8,6 +8,7 @@ use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
 use App\Models\Order as OrderModel;
 use App\Models\OrderPayment;
+use App\Models\Product;
 use App\Models\Refund;
 use App\Models\Setting;
 
@@ -22,12 +23,19 @@ class Order extends Component
     public string $filterStatus  = '';
     public string $filterSource  = '';
     public string $filterPayment = '';
+    public string $dateFrom      = '';
+    public string $dateTo        = '';
     public string $sortBy        = 'created_at';
     public string $sortDir       = 'desc';
 
     // ── Detail Slide-Over Panel ───────────────────────────────────────
     public bool         $showDetail    = false;
     public ?OrderModel  $selectedOrder = null;
+
+    // ── Stock Alert Modal ─────────────────────────────────────────────
+    public bool  $showStockAlert  = false;
+    public array $stockIssues     = []; // [{name, needed, available}]
+    public int   $stockAlertOrder = 0;
 
     // ── Refund Modal ──────────────────────────────────────────────────
     public bool   $showRefundModal  = false;
@@ -41,6 +49,16 @@ class Order extends Component
 
     public function updatingSearch(): void
     {
+        $this->resetPage();
+    }
+
+    public function updatedDateFrom(): void { $this->resetPage(); }
+    public function updatedDateTo(): void   { $this->resetPage(); }
+
+    public function clearDates(): void
+    {
+        $this->dateFrom = '';
+        $this->dateTo   = '';
         $this->resetPage();
     }
 
@@ -69,15 +87,75 @@ class Order extends Component
     // ── Status Transitions ────────────────────────────────────────────
 
     /**
-     * Move an order to 'confirmed' after payment has been received and verified.
+     * Move an order to 'confirmed' — checks stock first, then deducts it.
      */
     public function confirmOrder(int $orderId): void
     {
-        $order = OrderModel::findOrFail($orderId);
-        $order->logStatus('confirmed', 'Order confirmed by admin.', auth()->id());
+        $order = OrderModel::with('items.product')->findOrFail($orderId);
+
+        // ── Stock check ───────────────────────────────────────────────
+        $issues = [];
+        foreach ($order->items as $item) {
+            $product = $item->product;
+            if (!$product) continue;
+            if ($product->stock < $item->quantity) {
+                $issues[] = [
+                    'name'      => $item->product_name,
+                    'needed'    => $item->quantity,
+                    'available' => $product->stock,
+                ];
+            }
+        }
+
+        if (!empty($issues)) {
+            $this->stockIssues     = $issues;
+            $this->stockAlertOrder = $orderId;
+            $this->showStockAlert  = true;
+            return;
+        }
+
+        // ── Deduct stock & confirm ────────────────────────────────────
+        foreach ($order->items as $item) {
+            if ($item->product) {
+                $item->product->decrement('stock', $item->quantity);
+            }
+        }
+
+        $order->logStatus('confirmed', 'Order confirmed by admin. Stock deducted.', auth()->id());
         $order->update(['status' => 'confirmed']);
         $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Order confirmed.');
+        session()->flash('success', 'Order confirmed and stock updated.');
+    }
+
+    /**
+     * Force-confirm an order even if stock is insufficient (admin override).
+     */
+    public function forceConfirmOrder(): void
+    {
+        $order = OrderModel::with('items.product')->findOrFail($this->stockAlertOrder);
+
+        foreach ($order->items as $item) {
+            if ($item->product) {
+                // Allow negative stock (admin override)
+                $item->product->decrement('stock', $item->quantity);
+            }
+        }
+
+        $order->logStatus('confirmed', 'Order force-confirmed by admin (stock override).', auth()->id());
+        $order->update(['status' => 'confirmed']);
+
+        $this->showStockAlert  = false;
+        $this->stockIssues     = [];
+        $this->stockAlertOrder = 0;
+        $this->refreshSelectedOrder($order->id);
+        session()->flash('success', 'Order force-confirmed. Stock may be negative — please restock.');
+    }
+
+    public function closeStockAlert(): void
+    {
+        $this->showStockAlert  = false;
+        $this->stockIssues     = [];
+        $this->stockAlertOrder = 0;
     }
 
     /**
@@ -118,14 +196,44 @@ class Order extends Component
 
     /**
      * Record that the order was dispatched for delivery.
+     * If a payment balance is still outstanding, fires a payment-due warning event
+     * so the admin can decide whether to hold or force-dispatch.
      */
     public function markDispatched(int $orderId): void
     {
-        $order = OrderModel::findOrFail($orderId);
+        $order = OrderModel::with(['payments' => fn($q) => $q->where('status', 'confirmed')])->findOrFail($orderId);
+
+        // Payment gate — warn if balance is still due
+        $confirmedTotal = $order->payments->sum('amount');
+        $due = max(0, (float) $order->total - $confirmedTotal);
+
+        if ($due > 0) {
+            $this->dispatch('payment-due-on-dispatch', [
+                'orderId'  => $orderId,
+                'due'      => $due,
+                'total'    => (float) $order->total,
+                'paid'     => $confirmedTotal,
+                'orderNum' => $order->order_number,
+            ]);
+            return;
+        }
+
         $order->logStatus('dispatched', 'Order dispatched for delivery.', auth()->id());
         $order->update(['status' => 'dispatched']);
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order marked as dispatched.');
+    }
+
+    /**
+     * Force dispatch even if payment is incomplete (admin override).
+     */
+    public function forceDispatch(int $orderId): void
+    {
+        $order = OrderModel::findOrFail($orderId);
+        $order->logStatus('dispatched', 'Order dispatched — balance payment still outstanding (admin override).', auth()->id());
+        $order->update(['status' => 'dispatched']);
+        $this->refreshSelectedOrder($orderId);
+        session()->flash('success', 'Order dispatched (payment still pending — please follow up).');
     }
 
     /**
@@ -142,6 +250,7 @@ class Order extends Component
 
     /**
      * Mark the order as fully completed (balance paid and received).
+     * Stock is already deducted at confirmOrder — no double-deduction here.
      */
     public function markCompleted(int $orderId): void
     {
@@ -350,6 +459,8 @@ class Order extends Component
             ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterSource, fn($q) => $q->where('source', $this->filterSource))
             ->when($this->filterPayment, fn($q) => $q->where('payment_status', $this->filterPayment))
+            ->when($this->dateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo,   fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
             ->orderBy($this->sortBy, $this->sortDir)
             ->paginate(20);
 

@@ -11,13 +11,23 @@
                 <h2 class="font-[Poppins] font-bold text-2xl text-dark">Purchase Orders</h2>
                 <p class="text-sm text-slate-300 mt-1">Create and manage supplier purchase orders and stock intake</p>
             </div>
-            <button wire:click="openCreatePo"
-                    class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-900 hover:bg-amber-300 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-400/40 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                New Purchase Order
-            </button>
+            <div class="flex flex-wrap items-center gap-3 shrink-0">
+                <button wire:click="generatePurchasingPlan"
+                        wire:loading.attr="disabled"
+                        class="inline-flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-5 py-3 text-sm font-bold text-white hover:bg-white/20 transition-all duration-200 hover:-translate-y-0.5 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    Generate Purchasing Plan
+                </button>
+                <button wire:click="openCreatePo"
+                        class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-900 hover:bg-amber-300 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-400/40 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    New Purchase Order
+                </button>
+            </div>
         </div>
     </div>
 
@@ -397,7 +407,7 @@
                                 </svg>
                                 <input wire:model.live.debounce.300ms="itemProductSearch"
                                        type="text"
-                                       placeholder="Search products by name or SKU to add..."
+                                       placeholder="Search products by name or Code to add..."
                                        class="form-input pl-9 w-full"
                                        @focus="open = true"
                                        @click.outside="open = false"
@@ -414,7 +424,7 @@
                                         class="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-100 last:border-0">
                                     <div>
                                         <p class="text-sm font-semibold text-slate-900">{{ $product->name }}</p>
-                                        <p class="text-xs text-slate-500">SKU: {{ $product->sku ?? 'N/A' }}</p>
+                                        <p class="text-xs text-slate-500">Code: {{ $product->sku ?? 'N/A' }}</p>
                                     </div>
                                     <div class="text-right shrink-0 ml-4">
                                         <p class="text-xs text-slate-500">In stock: <span class="font-semibold text-slate-700">{{ $product->stock }}</span></p>
@@ -437,7 +447,7 @@
                                 <thead>
                                     <tr class="border-b border-slate-200">
                                         <th class="text-left pb-2 text-xs font-semibold text-slate-600 w-2/5">Product</th>
-                                        <th class="text-left pb-2 text-xs font-semibold text-slate-600">SKU</th>
+                                        <th class="text-left pb-2 text-xs font-semibold text-slate-600">Code</th>
                                         <th class="text-center pb-2 text-xs font-semibold text-slate-600 w-20">Qty</th>
                                         <th class="text-right pb-2 text-xs font-semibold text-slate-600 w-28">Unit Cost</th>
                                         <th class="text-right pb-2 text-xs font-semibold text-slate-600 w-28">Line Total</th>
@@ -458,7 +468,7 @@
                                             <input wire:model="poItems.{{ $idx }}.sku"
                                                    type="text"
                                                    class="form-input w-full text-sm py-1.5"
-                                                   placeholder="SKU">
+                                                   placeholder="Code">
                                         </td>
                                         <td class="py-2.5 pr-3">
                                             <input wire:model.live="poItems.{{ $idx }}.qty_ordered"
@@ -897,5 +907,126 @@
             @endif
         </div>
     </div>
+
+    {{-- ══ PURCHASING PLAN MODAL ══ --}}
+    @if($showPlanModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.6);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-900 to-slate-800">
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-lg text-white">Purchasing Plan</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Based on {{ count($planOrderIds) }} pending order(s)</p>
+                </div>
+                <button wire:click="$set('showPlanModal', false)" class="text-slate-400 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Table --}}
+            <div class="overflow-y-auto flex-1 px-6 py-4">
+                @if(empty($planItems))
+                    <p class="text-center text-slate-400 py-8">All pending orders have sufficient stock.</p>
+                @else
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-100">
+                            <th class="text-left py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</th>
+                            <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Orders</th>
+                            <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Needed</th>
+                            <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">In Stock</th>
+                            <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">To Buy</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        @foreach($planItems as $item)
+                        <tr class="{{ $item['to_buy'] > 0 ? 'bg-red-50/40' : '' }}">
+                            <td class="py-3 font-medium text-slate-800">{{ $item['product_name'] }}</td>
+                            <td class="py-3 text-center text-slate-500">{{ $item['order_count'] }}</td>
+                            <td class="py-3 text-center font-semibold text-slate-700">{{ $item['qty_needed'] }}</td>
+                            <td class="py-3 text-center">
+                                <span class="{{ $item['current_stock'] < $item['qty_needed'] ? 'text-red-600 font-bold' : 'text-green-600 font-semibold' }}">
+                                    {{ $item['current_stock'] }}
+                                </span>
+                            </td>
+                            <td class="py-3 text-center">
+                                @if($item['to_buy'] > 0)
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                                        Buy {{ $item['to_buy'] }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                        OK
+                                    </span>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                @endif
+            </div>
+
+            {{-- Footer --}}
+            <div class="px-6 py-4 border-t border-slate-100 flex items-center gap-3">
+                @php $hasShortage = collect($planItems)->where('to_buy', '>', 0)->count() > 0; @endphp
+                @if($hasShortage)
+                <button wire:click="loadPlanIntoPoModal"
+                        class="flex-1 py-2.5 rounded-xl bg-amber-400 text-slate-900 text-sm font-bold hover:bg-amber-300 transition-colors">
+                    Create Purchase Order from Plan
+                </button>
+                @else
+                <p class="flex-1 text-sm text-green-600 font-semibold">All products have sufficient stock. No purchasing needed.</p>
+                @endif
+                <button wire:click="$set('showPlanModal', false)"
+                        class="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══ READY ORDERS MODAL (after receiving goods) ══ --}}
+    @if($showReadyOrdersModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.6);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="px-6 py-5 bg-gradient-to-r from-green-600 to-emerald-600 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-white text-lg">Stock Updated!</h3>
+                    <p class="text-green-100 text-xs">Goods have been received and stock incremented</p>
+                </div>
+            </div>
+            <div class="px-6 py-5">
+                <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-4 text-center">
+                    <p class="text-3xl font-bold text-green-700 font-[Poppins]">{{ $readyOrdersCount }}</p>
+                    <p class="text-sm text-green-600 font-medium mt-1">{{ Str::plural('order', $readyOrdersCount) }} now ready to confirm</p>
+                    <p class="text-xs text-slate-400 mt-1">All items have sufficient stock</p>
+                </div>
+                <p class="text-sm text-slate-600 mb-4">Would you like to auto-confirm all ready orders, or handle them one by one from the Orders page?</p>
+                <div class="flex flex-col gap-2">
+                    <button wire:click="autoConfirmReadyOrders"
+                            wire:loading.attr="disabled"
+                            class="w-full py-3 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 transition-colors">
+                        <span wire:loading.remove wire:target="autoConfirmReadyOrders">Auto-Confirm All {{ $readyOrdersCount }} {{ Str::plural('Order', $readyOrdersCount) }}</span>
+                        <span wire:loading wire:target="autoConfirmReadyOrders">Confirming...</span>
+                    </button>
+                    <button wire:click="dismissReadyOrders"
+                            class="w-full py-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
+                        I'll Confirm Manually (Orders Page)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
 </div>

@@ -314,7 +314,7 @@
                     <div class="flex items-start justify-between gap-2 mb-2">
                         <div class="min-w-0">
                             <p class="text-sm font-semibold text-[#0F172A] truncate">{{ $item->name }}</p>
-                            <p class="text-xs text-[#94A3B8]">{{ $item->sku ?? 'No SKU' }}</p>
+                            <p class="text-xs text-[#94A3B8]">{{ $item->sku ?? 'No Code' }}</p>
                         </div>
                         <span class="badge {{ $item->stock === 0 ? 'badge-danger' : 'badge-warning' }} shrink-0">
                             {{ $item->stock === 0 ? 'Out' : $item->stock . ' left' }}

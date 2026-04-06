@@ -214,7 +214,7 @@
                         </svg>
                         <input wire:model.live.debounce.300ms="productSearch"
                                type="text"
-                               placeholder="Search product name or SKU..."
+                               placeholder="Search product name or Code..."
                                class="flex-1 text-sm outline-none bg-transparent placeholder-slate-400 min-w-0">
                         @if($productSearch)
                         <button wire:click="$set('productSearch', '')" class="text-slate-400 hover:text-slate-600">
@@ -244,7 +244,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-semibold text-[#0F172A] truncate group-hover:text-amber-700">{{ $product->name }}</p>
-                                    <p class="text-xs text-slate-500">SKU: {{ $product->sku ?? 'N/A' }} &bull; Stock: {{ $product->stock }}</p>
+                                    <p class="text-xs text-slate-500">Code: {{ $product->sku ?? 'N/A' }} &bull; Stock: {{ $product->stock }}</p>
                                 </div>
                                 <div class="text-right shrink-0">
                                     <p class="text-sm font-bold text-[#0F172A]">Rs. {{ number_format($product->effectivePrice(), 0) }}</p>
@@ -291,7 +291,7 @@
                                     <td class="px-4 py-3">
                                         <p class="font-semibold text-[#0F172A]">{{ $item['name'] }}</p>
                                         @if($item['sku'])
-                                        <p class="text-xs text-slate-400">SKU: {{ $item['sku'] }}</p>
+                                        <p class="text-xs text-slate-400">Code: {{ $item['sku'] }}</p>
                                         @endif
                                         @if($item['qty'] > $item['stock'])
                                         <p class="text-xs text-red-500 font-medium mt-0.5">Warning: only {{ $item['stock'] }} in stock</p>

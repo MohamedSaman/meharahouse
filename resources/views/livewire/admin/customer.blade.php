@@ -19,7 +19,7 @@
     </div>
 
     {{-- Filters --}}
-    <div class="card p-4 flex flex-col sm:flex-row gap-3">
+    <div class="card p-4 flex flex-col sm:flex-row gap-3 flex-wrap">
         <div class="flex items-center gap-2 bg-[#F1F5F9] rounded-lg px-3 py-2 flex-1 max-w-sm">
             <svg class="w-4 h-4 text-[#64748B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <input wire:model.live.debounce.400ms="search" type="text" placeholder="Search by name or email..." class="bg-transparent text-sm outline-none flex-1 placeholder-[#94A3B8]">
@@ -30,6 +30,58 @@
             <option value="admin">Admins</option>
             <option value="">All Roles</option>
         </select>
+        {{-- Date Range --}}
+        <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-2 py-1.5">
+                <svg class="w-4 h-4 text-[#94A3B8] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <input wire:model.live="dateFrom" type="date"
+                       class="text-xs text-[#475569] bg-transparent border-none outline-none w-32">
+                <span class="text-xs text-[#94A3B8]">—</span>
+                <input wire:model.live="dateTo" type="date"
+                       class="text-xs text-[#475569] bg-transparent border-none outline-none w-32">
+            </div>
+            {{-- Quick Presets --}}
+            <div class="flex gap-1" x-data="{
+                setRange(from, to) {
+                    $wire.set('dateFrom', from);
+                    $wire.set('dateTo', to);
+                },
+                today() {
+                    let d = new Date().toISOString().split('T')[0];
+                    this.setRange(d, d);
+                },
+                last7() {
+                    let to   = new Date();
+                    let from = new Date(); from.setDate(from.getDate() - 6);
+                    this.setRange(from.toISOString().split('T')[0], to.toISOString().split('T')[0]);
+                },
+                thisMonth() {
+                    let now  = new Date();
+                    let from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                    let to   = now.toISOString().split('T')[0];
+                    this.setRange(from, to);
+                },
+                lastMonth() {
+                    let now  = new Date();
+                    let from = new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().split('T')[0];
+                    let to   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+                    this.setRange(from, to);
+                }
+            }">
+                <button @click="today()"      class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">Today</button>
+                <button @click="last7()"      class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">7d</button>
+                <button @click="thisMonth()"  class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">Month</button>
+                <button @click="lastMonth()"  class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">Last Mo</button>
+                @if($dateFrom || $dateTo)
+                <button wire:click="clearDates"
+                        class="px-2 py-1 text-[10px] font-semibold rounded-md bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                    Clear
+                </button>
+                @endif
+            </div>
+        </div>
     </div>
 
     {{-- Table --}}

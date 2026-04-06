@@ -16,11 +16,23 @@ class Customer extends Component
 
     public string $search = '';
     public string $filterRole = 'customer';
+    public string $dateFrom   = '';
+    public string $dateTo     = '';
     public bool $showDetail = false;
     public ?User $selectedUser = null;
 
     public function updatingSearch(): void
     {
+        $this->resetPage();
+    }
+
+    public function updatedDateFrom(): void { $this->resetPage(); }
+    public function updatedDateTo(): void   { $this->resetPage(); }
+
+    public function clearDates(): void
+    {
+        $this->dateFrom = '';
+        $this->dateTo   = '';
         $this->resetPage();
     }
 
@@ -45,6 +57,8 @@ class Customer extends Component
             ->when($this->search, fn($q) => $q->where('name', 'like', "%{$this->search}%")
                 ->orWhere('email', 'like', "%{$this->search}%"))
             ->when($this->filterRole, fn($q) => $q->where('role', $this->filterRole))
+            ->when($this->dateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo,   fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
             ->latest()
             ->paginate(20);
 

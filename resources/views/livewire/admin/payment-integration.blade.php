@@ -6,7 +6,7 @@
         <div class="absolute -top-16 -right-12 h-44 w-44 rounded-full bg-amber-400/20 blur-3xl pointer-events-none"></div>
         <div class="relative">
             <p class="text-[11px] tracking-[0.16em] uppercase font-semibold text-amber-300 mb-1">Admin → Settings</p>
-            <h2 class="font-[Poppins] font-bold text-2xl text-white">Payment Integration</h2>
+            <h2 class="font-[Poppins] font-bold text-2xl text-dark">Payment Integration</h2>
             <p class="text-slate-400 text-sm mt-1">Enable a gateway, fill in your credentials, click Save — it instantly appears at checkout.</p>
         </div>
     </div>

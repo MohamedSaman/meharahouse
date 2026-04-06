@@ -7,6 +7,8 @@
         waPrompt: false,
         waLink: '',
         copyDone: false,
+        dispatchAlert: false,
+        dispatchData: {},
         copyText(text) {
             navigator.clipboard.writeText(text).then(() => {
                 this.copyDone = true;
@@ -18,6 +20,7 @@
         waLink = 'https://wa.me/' + $event.detail.phone + '?text=' + encodeURIComponent($event.detail.message);
         waPrompt = true;
     "
+    @payment-due-on-dispatch.window="dispatchAlert = true; dispatchData = $event.detail[0]"
 >
 
     {{-- ══════════════════════ FLASH MESSAGES ══════════════════════ --}}
@@ -97,7 +100,7 @@
 
     {{-- ══════════════════════ SEARCH & FILTERS ══════════════════════ --}}
     <div class="card p-4">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
             <div class="flex items-center gap-2 bg-[#F1F5F9] rounded-lg px-3 py-2 flex-1 max-w-sm">
                 <svg class="w-4 h-4 text-[#64748B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 <input wire:model.live.debounce.400ms="search" type="text" placeholder="Search by order# or customer..." class="bg-transparent text-sm outline-none flex-1 placeholder-[#94A3B8]">
@@ -117,6 +120,58 @@
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all {{ $filterSource === 'whatsapp' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                     WhatsApp
                 </button>
+            </div>
+            {{-- Date Range --}}
+            <div class="flex items-center gap-2 flex-wrap">
+                <div class="flex items-center gap-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-2 py-1.5">
+                    <svg class="w-4 h-4 text-[#94A3B8] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <input wire:model.live="dateFrom" type="date"
+                           class="text-xs text-[#475569] bg-transparent border-none outline-none w-32">
+                    <span class="text-xs text-[#94A3B8]">—</span>
+                    <input wire:model.live="dateTo" type="date"
+                           class="text-xs text-[#475569] bg-transparent border-none outline-none w-32">
+                </div>
+                {{-- Quick Presets --}}
+                <div class="flex gap-1" x-data="{
+                    setRange(from, to) {
+                        $wire.set('dateFrom', from);
+                        $wire.set('dateTo', to);
+                    },
+                    today() {
+                        let d = new Date().toISOString().split('T')[0];
+                        this.setRange(d, d);
+                    },
+                    last7() {
+                        let to   = new Date();
+                        let from = new Date(); from.setDate(from.getDate() - 6);
+                        this.setRange(from.toISOString().split('T')[0], to.toISOString().split('T')[0]);
+                    },
+                    thisMonth() {
+                        let now  = new Date();
+                        let from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                        let to   = now.toISOString().split('T')[0];
+                        this.setRange(from, to);
+                    },
+                    lastMonth() {
+                        let now  = new Date();
+                        let from = new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().split('T')[0];
+                        let to   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+                        this.setRange(from, to);
+                    }
+                }">
+                    <button @click="today()"      class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">Today</button>
+                    <button @click="last7()"      class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">7d</button>
+                    <button @click="thisMonth()"  class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">Month</button>
+                    <button @click="lastMonth()"  class="px-2 py-1 text-[10px] font-semibold rounded-md bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0] transition-colors">Last Mo</button>
+                    @if($dateFrom || $dateTo)
+                    <button wire:click="clearDates"
+                            class="px-2 py-1 text-[10px] font-semibold rounded-md bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                        Clear
+                    </button>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
@@ -762,6 +817,112 @@
                 <button @click="waPrompt = false"
                         class="px-3 py-2.5 rounded-xl border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition-colors">
                     Later
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Stock Alert Modal ─────────────────────────────────────────── --}}
+    @if($showStockAlert)
+    <div class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+         style="background:rgba(0,0,0,0.55);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+
+            {{-- Header --}}
+            <div class="flex items-center gap-3 px-6 py-4 bg-red-50 border-b border-red-100">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-base text-red-700">Insufficient Stock</h3>
+                    <p class="text-xs text-red-500">Cannot confirm order — some products are out of stock</p>
+                </div>
+            </div>
+
+            {{-- Stock Issues List --}}
+            <div class="px-6 py-5 space-y-3">
+                @foreach($stockIssues as $issue)
+                <div class="flex items-center justify-between bg-red-50 rounded-xl px-4 py-3">
+                    <div>
+                        <p class="text-sm font-semibold text-[#0F172A]">{{ $issue['name'] }}</p>
+                        <p class="text-xs text-[#64748B] mt-0.5">
+                            Needed: <span class="font-bold text-red-600">{{ $issue['needed'] }}</span>
+                            &nbsp;·&nbsp;
+                            In stock: <span class="font-bold text-[#0F172A]">{{ $issue['available'] }}</span>
+                        </p>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </div>
+                </div>
+                @endforeach
+
+                <p class="text-xs text-[#64748B] pt-1">
+                    You can <strong>restock the products</strong> first, or <strong>force-confirm</strong> to proceed anyway (stock will go negative).
+                </p>
+            </div>
+
+            {{-- Footer --}}
+            <div class="flex items-center gap-3 px-6 pb-5">
+                <button wire:click="closeStockAlert"
+                        class="flex-1 py-2.5 rounded-xl border border-[#E2E8F0] text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-colors">
+                    Cancel
+                </button>
+                <button wire:click="forceConfirmOrder"
+                        class="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors">
+                    Force Confirm Anyway
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══════════════════════ PAYMENT DUE ON DISPATCH WARNING ══════════════════════ --}}
+    <div x-show="dispatchAlert" x-cloak
+         class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+         style="background:rgba(0,0,0,0.55);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="flex items-center gap-3 px-6 py-4 bg-amber-50 border-b border-amber-100">
+                <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-base text-amber-800">Payment Outstanding</h3>
+                    <p class="text-xs text-amber-600" x-text="'Order ' + (dispatchData.orderNum || '')"></p>
+                </div>
+            </div>
+            <div class="px-6 py-5 space-y-3">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-[#F8FAFC] rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Order Total</p>
+                        <p class="font-bold text-sm text-[#0F172A]">Rs. <span x-text="dispatchData.total ? Number(dispatchData.total).toLocaleString() : '0'"></span></p>
+                    </div>
+                    <div class="bg-green-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Paid</p>
+                        <p class="font-bold text-sm text-green-600">Rs. <span x-text="dispatchData.paid ? Number(dispatchData.paid).toLocaleString() : '0'"></span></p>
+                    </div>
+                    <div class="bg-red-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Still Due</p>
+                        <p class="font-bold text-sm text-red-600">Rs. <span x-text="dispatchData.due ? Number(dispatchData.due).toLocaleString() : '0'"></span></p>
+                    </div>
+                </div>
+                <p class="text-sm text-[#64748B]">This customer has an outstanding balance. Are you sure you want to dispatch without full payment?</p>
+            </div>
+            <div class="flex items-center gap-3 px-6 pb-5">
+                <button @click="dispatchAlert = false"
+                        class="flex-1 py-2.5 rounded-xl border border-[#E2E8F0] text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-colors">
+                    Hold — Collect Payment First
+                </button>
+                <button @click="$wire.forceDispatch(dispatchData.orderId); dispatchAlert = false"
+                        class="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors">
+                    Dispatch Anyway
                 </button>
             </div>
         </div>

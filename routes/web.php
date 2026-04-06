@@ -75,6 +75,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/manual-order',         App\Livewire\Admin\ManualOrder::class)->name('manual-order');
     Route::get('/suppliers',            App\Livewire\Admin\Supplier::class)->name('suppliers');
     Route::get('/purchasing',           App\Livewire\Admin\Purchasing::class)->name('purchasing');
+    Route::get('/shipments',            App\Livewire\Admin\Shipment::class)->name('shipments');
     Route::get('/website-settings',     App\Livewire\Admin\WebsiteSettings::class)->name('website-settings');
     Route::get('/whatsapp-orders',      App\Livewire\Admin\WhatsappOrders::class)->name('whatsapp-orders');
 

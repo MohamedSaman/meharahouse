@@ -196,7 +196,7 @@ class Checkout extends Component
                     'subtotal'     => $item->product->effectivePrice() * $item->quantity,
                 ]);
 
-                $item->product->decrement('stock', $item->quantity);
+                // Stock is deducted when admin confirms the order — not at checkout (pre-order model)
             }
 
             if ($this->appliedCoupon) {

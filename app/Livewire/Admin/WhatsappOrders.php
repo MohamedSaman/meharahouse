@@ -19,6 +19,8 @@ class WhatsappOrders extends Component
 
     // ── Token List ────────────────────────────────────────────────────
     public string $filterStatus = 'all';
+    public string $dateFrom     = '';
+    public string $dateTo       = '';
 
     // ── Generate Modal ────────────────────────────────────────────────
     public bool   $showGenerateModal = false;
@@ -37,6 +39,16 @@ class WhatsappOrders extends Component
     public function closeModal(): void
     {
         $this->showGenerateModal = false;
+    }
+
+    public function updatedDateFrom(): void { $this->resetPage(); }
+    public function updatedDateTo(): void   { $this->resetPage(); }
+
+    public function clearDates(): void
+    {
+        $this->dateFrom = '';
+        $this->dateTo   = '';
+        $this->resetPage();
     }
 
     // ── Computed Properties ───────────────────────────────────────────
@@ -178,11 +190,10 @@ class WhatsappOrders extends Component
     public function render()
     {
         $tokensQuery = WhatsappOrderToken::with(['createdBy', 'order'])
+            ->when($this->filterStatus !== 'all', fn($q) => $q->where('status', $this->filterStatus))
+            ->when($this->dateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo,   fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
             ->orderByDesc('created_at');
-
-        if ($this->filterStatus !== 'all') {
-            $tokensQuery->where('status', $this->filterStatus);
-        }
 
         $tokens = $tokensQuery->paginate(20);
 

@@ -11,7 +11,8 @@
       "Bash(python3:*)",
       "Bash(php:*)",
       "Bash(grep -n '$product->' /c/Users/MY/Documents/ssh/meharahouse/resources/views/livewire/webpage/index.blade.php)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(sed:*)"
     ]
   }
 }
