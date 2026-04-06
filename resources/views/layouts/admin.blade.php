@@ -343,12 +343,159 @@
                 </div>
 
                 {{-- Notifications --}}
-                <button class="relative p-2 rounded-lg text-[#475569] hover:bg-[#F1F5F9] transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                    </svg>
-                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
+                @php
+                    $newOrders      = \App\Models\Order::where('status', 'new')->count();
+                    $pendingPayments = \App\Models\OrderPayment::where('status', 'pending')->count();
+                    $lowStock       = \App\Models\Product::where('stock', '<=', 5)->where('stock', '>', 0)->count();
+                    $outOfStock     = \App\Models\Product::where('stock', 0)->count();
+                    $totalAlerts    = $newOrders + $pendingPayments + $lowStock + $outOfStock;
+                    $recentOrders   = \App\Models\Order::where('status', 'new')->latest()->take(5)->get();
+                @endphp
+                <div x-data="{ open: false, cleared: false }" class="relative">
+                    <button @click="open = !open"
+                            class="relative p-2 rounded-lg text-[#475569] hover:bg-[#F1F5F9] transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        @if($totalAlerts > 0)
+                        <span x-show="!cleared"
+                              class="absolute top-1 right-1 min-w-[16px] h-4 px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                            {{ $totalAlerts > 99 ? '99+' : $totalAlerts }}
+                        </span>
+                        @endif
+                    </button>
+
+                    <div x-show="open" @click.outside="open = false"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         class="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl border border-[#E2E8F0] shadow-xl z-50"
+                         style="display:none;">
+
+                        {{-- Header --}}
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-[#F1F5F9]">
+                            <p class="text-sm font-bold text-[#0F172A]">Notifications</p>
+                            <div class="flex items-center gap-2">
+                                @if($totalAlerts > 0)
+                                <span x-show="!cleared" class="text-xs bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">{{ $totalAlerts }} alerts</span>
+                                <button x-show="!cleared"
+                                        @click="cleared = true; open = false"
+                                        class="text-xs text-[#64748B] hover:text-red-500 font-medium transition-colors flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                    Clear all
+                                </button>
+                                @else
+                                <span class="text-xs text-[#94A3B8]">All clear</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Alert rows --}}
+                        <div x-show="!cleared" class="divide-y divide-[#F1F5F9]">
+
+                            @if($newOrders > 0)
+                            <a href="{{ route('admin.orders') }}" @click="open = false"
+                               class="flex items-center gap-3 px-4 py-3 hover:bg-[#F8FAFC] transition-colors">
+                                <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-semibold text-[#0F172A]">{{ $newOrders }} New {{ Str::plural('Order', $newOrders) }}</p>
+                                    <p class="text-xs text-[#64748B]">Waiting for confirmation</p>
+                                </div>
+                                <span class="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">{{ $newOrders }}</span>
+                            </a>
+                            @endif
+
+                            @if($pendingPayments > 0)
+                            <a href="{{ route('admin.orders') }}" @click="open = false"
+                               class="flex items-center gap-3 px-4 py-3 hover:bg-[#F8FAFC] transition-colors">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-semibold text-[#0F172A]">{{ $pendingPayments }} Pending {{ Str::plural('Receipt', $pendingPayments) }}</p>
+                                    <p class="text-xs text-[#64748B]">Payment receipts to review</p>
+                                </div>
+                                <span class="text-xs bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">{{ $pendingPayments }}</span>
+                            </a>
+                            @endif
+
+                            @if($lowStock > 0)
+                            <a href="{{ route('admin.products') }}" @click="open = false"
+                               class="flex items-center gap-3 px-4 py-3 hover:bg-[#F8FAFC] transition-colors">
+                                <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-semibold text-[#0F172A]">{{ $lowStock }} Low Stock {{ Str::plural('Item', $lowStock) }}</p>
+                                    <p class="text-xs text-[#64748B]">Stock ≤ 5 units remaining</p>
+                                </div>
+                                <span class="text-xs bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full">{{ $lowStock }}</span>
+                            </a>
+                            @endif
+
+                            @if($outOfStock > 0)
+                            <a href="{{ route('admin.products') }}" @click="open = false"
+                               class="flex items-center gap-3 px-4 py-3 hover:bg-[#F8FAFC] transition-colors">
+                                <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-semibold text-[#0F172A]">{{ $outOfStock }} Out of Stock</p>
+                                    <p class="text-xs text-[#64748B]">Products with zero inventory</p>
+                                </div>
+                                <span class="text-xs bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">{{ $outOfStock }}</span>
+                            </a>
+                            @endif
+
+                            @if($totalAlerts === 0)
+                            <div class="px-4 py-6 text-center">
+                                <svg class="w-8 h-8 mx-auto mb-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p class="text-sm font-medium text-[#64748B]">Everything looks good!</p>
+                            </div>
+                            @endif
+                        </div>
+
+                        {{-- Cleared state --}}
+                        <div x-show="cleared" class="px-4 py-6 text-center">
+                            <svg class="w-8 h-8 mx-auto mb-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-sm font-medium text-[#64748B]">All notifications cleared!</p>
+                        </div>
+
+                        {{-- Recent new orders --}}
+                        @if($recentOrders->isNotEmpty())
+                        <div x-show="!cleared" class="border-t border-[#F1F5F9] px-4 py-3">
+                            <p class="text-[10px] uppercase tracking-widest font-semibold text-[#94A3B8] mb-2">Recent New Orders</p>
+                            <div class="space-y-1.5">
+                                @foreach($recentOrders as $ro)
+                                <a href="{{ route('admin.orders') }}" @click="open = false"
+                                   class="flex items-center justify-between text-xs hover:text-[#F59E0B] transition-colors">
+                                    <span class="font-mono font-semibold text-[#0F172A]">{{ $ro->order_number }}</span>
+                                    <span class="text-[#64748B]">Rs. {{ number_format($ro->total) }}</span>
+                                    <span class="text-[#94A3B8]">{{ $ro->created_at->diffForHumans() }}</span>
+                                </a>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+
+                    </div>
+                </div>
 
                 {{-- Admin Avatar --}}
                 <div x-data="{ open: false }" class="relative">

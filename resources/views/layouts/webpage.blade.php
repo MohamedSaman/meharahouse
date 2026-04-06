@@ -104,12 +104,21 @@
                     </button>
 
                     {{-- Cart --}}
+                    @php
+                        $cartCount = auth()->check()
+                            ? \App\Models\Cart::where('user_id', auth()->id())->sum('quantity')
+                            : collect(session()->get('cart', []))->sum('quantity');
+                    @endphp
                     <a href="{{ route('webpage.cart') }}"
                        class="relative p-2 rounded-lg text-[#475569] hover:text-[#D4A017] hover:bg-[#FFFDF5] transition-all duration-200" title="Cart">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                         </svg>
-                        <span class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#D4A017] text-white text-[9px] font-black rounded-full flex items-center justify-center leading-none">3</span>
+                        @if($cartCount > 0)
+                        <span class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#D4A017] text-white text-[9px] font-black rounded-full flex items-center justify-center leading-none">
+                            {{ $cartCount > 99 ? '99+' : $cartCount }}
+                        </span>
+                        @endif
                     </a>
 
                     {{-- Auth Button --}}
