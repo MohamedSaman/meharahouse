@@ -8,6 +8,7 @@ use Livewire\WithPagination;
 use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\Setting;
+use App\Services\WhatsappService;
 use Illuminate\Support\Facades\DB;
 
 #[Title('Payments')]
@@ -113,6 +114,8 @@ class Payment extends Component
                 'balance_amount' => $remaining,
             ]);
         }
+
+        try { WhatsappService::paymentReceived($order->fresh(), (float) $this->receiveAmount); } catch (\Throwable) {}
 
         $this->showReceiveModal = false;
         session()->flash('success', 'Payment of Rs. ' . number_format($this->receiveAmount, 2) . ' recorded for ' . $order->order_number . '.');

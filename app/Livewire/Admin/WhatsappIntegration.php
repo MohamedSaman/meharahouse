@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
 use App\Models\Setting;
+use App\Services\WhatsappService;
 
 #[Title('WhatsApp Integration')]
 #[Layout('layouts.admin')]
@@ -30,7 +31,10 @@ class WhatsappIntegration extends Component
 
     // ── UI state ──────────────────────────────────────────────────────────
     public string $activeProvider = ''; // which provider card is expanded
-    public string $savedProvider  = ''; // for success feedback (matches pattern of $savedGateway)
+    public string $savedProvider  = ''; // for success feedback
+    public string $testPhone      = ''; // test send phone number
+    public string $testResult     = ''; // result message
+    public bool   $testSuccess    = false;
 
     public function mount(): void
     {
@@ -139,6 +143,16 @@ class WhatsappIntegration extends Component
         }
 
         $this->savedProvider = 'meta';
+    }
+
+    public function sendTest(): void
+    {
+        $this->validate(['testPhone' => 'required|string']);
+
+        $result = WhatsappService::send($this->testPhone, 'This is a test message from Meharahouse. Your WhatsApp integration is working!');
+
+        $this->testSuccess = $result['success'];
+        $this->testResult  = $result['message'];
     }
 
     public function render()

@@ -6,7 +6,7 @@
         <div class="absolute -top-16 -right-12 h-44 w-44 rounded-full bg-green-400/20 blur-3xl pointer-events-none"></div>
         <div class="relative">
             <p class="text-[11px] tracking-[0.16em] uppercase font-semibold text-green-300 mb-1">Admin → Settings</p>
-            <h2 class="font-[Poppins] font-bold text-2xl text-white">WhatsApp Integration</h2>
+            <h2 class="font-[Poppins] font-bold text-2xl text-dark">WhatsApp Integration</h2>
             <p class="text-green-200/70 text-sm mt-1">Connect a WhatsApp provider to send order notifications, confirmations, and support messages to customers.</p>
         </div>
     </div>
@@ -343,6 +343,55 @@
                 <p class="text-xs font-medium" style="color:#166534">Meta Cloud API settings saved successfully.</p>
             @endif
         </div>
+    </div>
+
+    {{-- ═══════════════════════════════════════════════════════════════
+         TEST SEND
+    ═══════════════════════════════════════════════════════════════ --}}
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:#dcfce7">
+                <svg class="w-5 h-5" style="color:#16a34a" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 2C6.477 2 2 6.477 2 12c0 1.99.574 3.842 1.563 5.408L2 22l4.703-1.545A9.956 9.956 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+                </svg>
+            </div>
+            <div>
+                <p class="font-semibold text-slate-800 text-sm">Send Test Message</p>
+                <p class="text-xs text-slate-400">Verify your active provider works by sending a test message to a phone number.</p>
+            </div>
+        </div>
+
+        <div class="flex items-start gap-3">
+            <div class="flex-1">
+                <input type="text" wire:model="testPhone"
+                       placeholder="+251911234567 or +94761265772"
+                       class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-400/40 focus:border-green-400">
+                @error('testPhone')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <button type="button" wire:click="sendTest" wire:loading.attr="disabled" wire:target="sendTest"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition disabled:opacity-60 shrink-0"
+                    style="background:#25D366">
+                <svg wire:loading.remove wire:target="sendTest" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                <svg wire:loading wire:target="sendTest" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Send Test
+            </button>
+        </div>
+
+        @if($testResult)
+        <div class="mt-3 flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium
+                    {{ $testSuccess ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-700' }}">
+            @if($testSuccess)
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            @else
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            @endif
+            {{ $testResult }}
+        </div>
+        @endif
     </div>
 
 </div>

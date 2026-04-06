@@ -65,7 +65,8 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-[#374151] mb-1.5">Phone *</label>
-                            <input wire:model="phone" type="tel" class="form-input @error('phone') border-red-400 @enderror" placeholder="+251 911 000 000">
+                            <input wire:model="phone" type="tel" class="form-input @error('phone') border-red-400 @enderror" placeholder="+94 761 265 772">
+                            <p class="mt-1 text-xs text-slate-400">Include country code (e.g. +251, +94, +1)</p>
                             @error('phone')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                         </div>
                         <div class="sm:col-span-2">

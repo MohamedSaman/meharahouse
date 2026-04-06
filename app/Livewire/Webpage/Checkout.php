@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Coupon;
 use App\Models\Setting;
+use App\Services\WhatsappService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
@@ -53,12 +54,19 @@ class Checkout extends Component
         }
     }
 
+    protected function stepOneMessages(): array
+    {
+        return [
+            'phone.regex' => 'Phone must include country code and start with + (e.g. +94761265772)',
+        ];
+    }
+
     protected function stepOneRules(): array
     {
         return [
             'fullName'    => 'required|string|max:255',
             'email'       => 'required|email',
-            'phone'       => 'required|string|max:20',
+            'phone'       => ['required', 'string', 'max:20', 'regex:/^\+[1-9][0-9]{6,14}$/'],
             'addressLine' => 'required|string|max:500',
             'city'        => 'required|string|max:100',
             'region'      => 'required|string|max:100',
@@ -68,7 +76,7 @@ class Checkout extends Component
     public function nextStep(): void
     {
         if ($this->step === 1) {
-            $this->validate($this->stepOneRules());
+            $this->validate($this->stepOneRules(), $this->stepOneMessages());
         }
         $this->step++;
     }
@@ -148,7 +156,7 @@ class Checkout extends Component
 
     public function placeOrder(): void
     {
-        $this->validate($this->stepOneRules());
+        $this->validate($this->stepOneRules(), $this->stepOneMessages());
 
         if ($this->cartItems->isEmpty()) {
             session()->flash('error', 'Your cart is empty.');
@@ -210,6 +218,12 @@ class Checkout extends Component
                 session()->forget('cart');
             }
         });
+
+        // Send order placed WhatsApp message
+        try {
+            $placedOrder = Order::with('items')->where('order_number', $orderNumber)->first();
+            if ($placedOrder) WhatsappService::orderPlaced($placedOrder);
+        } catch (\Throwable) {}
 
         // Redirect to payment gateway for online payments
         if ($this->paymentMethod === 'payhere') {

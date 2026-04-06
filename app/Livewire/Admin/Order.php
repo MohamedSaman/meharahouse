@@ -10,6 +10,7 @@ use App\Models\OrderPayment;
 use App\Models\Product;
 use App\Models\Refund;
 use App\Models\Setting;
+use App\Services\WhatsappService;
 
 #[Title('Orders')]
 class Order extends Component
@@ -121,6 +122,7 @@ class Order extends Component
 
         $order->logStatus('confirmed', 'Order confirmed by admin. Stock deducted.', auth()->id());
         $order->update(['status' => 'confirmed']);
+        try { WhatsappService::orderConfirmed($order->fresh('items')); } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order confirmed and stock updated.');
     }
@@ -141,6 +143,7 @@ class Order extends Component
 
         $order->logStatus('confirmed', 'Order force-confirmed by admin (stock override).', auth()->id());
         $order->update(['status' => 'confirmed']);
+        try { WhatsappService::orderConfirmed($order->fresh('items')); } catch (\Throwable) {}
 
         $this->showStockAlert  = false;
         $this->stockIssues     = [];
@@ -218,6 +221,7 @@ class Order extends Component
 
         $order->logStatus('dispatched', 'Order dispatched for delivery.', auth()->id());
         $order->update(['status' => 'dispatched']);
+        try { WhatsappService::orderDispatched($order->fresh()); } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order marked as dispatched.');
     }
@@ -230,6 +234,7 @@ class Order extends Component
         $order = OrderModel::findOrFail($orderId);
         $order->logStatus('dispatched', 'Order dispatched — balance payment still outstanding (admin override).', auth()->id());
         $order->update(['status' => 'dispatched']);
+        try { WhatsappService::orderDispatched($order->fresh()); } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order dispatched (payment still pending — please follow up).');
     }
@@ -242,6 +247,7 @@ class Order extends Component
         $order = OrderModel::findOrFail($orderId);
         $order->logStatus('delivered', 'Order delivered to customer.', auth()->id());
         $order->update(['status' => 'delivered']);
+        try { WhatsappService::orderDelivered($order->fresh()); } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order marked as delivered.');
     }
@@ -255,6 +261,7 @@ class Order extends Component
         $order = OrderModel::findOrFail($orderId);
         $order->logStatus('completed', 'Order fully completed and balance paid.', auth()->id());
         $order->update(['status' => 'completed', 'payment_status' => 'paid']);
+        try { WhatsappService::orderCompleted($order->fresh()); } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order marked as completed.');
     }
@@ -300,6 +307,8 @@ class Order extends Component
             $order->logStatus('payment_received', 'Advance payment receipt confirmed by admin.', auth()->id());
             $order->update(['status' => 'payment_received', 'payment_status' => 'pending']);
         }
+
+        try { WhatsappService::paymentReceived($order->fresh(), (float) $payment->amount); } catch (\Throwable) {}
 
         // Build WhatsApp confirmation message for admin to send to customer
         $address  = $order->shipping_address ?? [];
