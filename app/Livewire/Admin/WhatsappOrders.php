@@ -4,7 +4,6 @@ namespace App\Livewire\Admin;
 
 use Livewire\Component;
 use Livewire\Attributes\Title;
-use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
 use Livewire\WithPagination;
 use App\Models\WhatsappOrderToken;
@@ -12,7 +11,6 @@ use App\Models\Product;
 use App\Models\Setting;
 
 #[Title('WhatsApp Orders')]
-#[Layout('layouts.admin')]
 class WhatsappOrders extends Component
 {
     use WithPagination;
@@ -217,11 +215,12 @@ class WhatsappOrders extends Component
         $totalPending   = WhatsappOrderToken::where('status', 'pending')->count();
         $totalUsed      = WhatsappOrderToken::where('status', 'used')->count();
 
+        $layout = auth()->user()?->isAdmin() ? 'layouts.admin' : 'layouts.staff';
         return view('livewire.admin.whatsapp-orders', compact(
             'tokens',
             'totalGenerated',
             'totalPending',
             'totalUsed'
-        ));
+        ))->layout($layout);
     }
 }

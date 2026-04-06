@@ -83,6 +83,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/supplier-payments', App\Livewire\Admin\SupplierPayments::class)->name('supplier-payments');
     Route::get('/customer-payments', App\Livewire\Admin\CustomerPayments::class)->name('customer-payments');
 
+    Route::get('/returns', App\Livewire\Admin\Returns::class)->name('returns');
+    Route::get('/profile', App\Livewire\Admin\Profile::class)->name('profile');
+
     // Waybill / Packing Slip — plain print view, not a Livewire component
     Route::get('/orders/{order}/waybill', function (App\Models\Order $order) {
         $order->load(['items', 'shipmentBatch']);
@@ -97,7 +100,23 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 |--------------------------------------------------------------------------
 */
 Route::prefix('staff')->name('staff.')->middleware(['auth', 'staff'])->group(function () {
-    Route::get('/',          App\Livewire\Staff\Order::class)->name('dashboard');
-    Route::get('/orders',    App\Livewire\Staff\Order::class)->name('orders');
-    Route::get('/customers', App\Livewire\Staff\Customer::class)->name('customers');
+    Route::get('/',                 App\Livewire\Staff\Dashboard::class)->name('dashboard');
+    Route::get('/orders',           App\Livewire\Admin\Order::class)->name('orders');
+    Route::get('/whatsapp-orders',  App\Livewire\Admin\WhatsappOrders::class)->name('whatsapp-orders');
+    Route::get('/payments',         App\Livewire\Admin\Payment::class)->name('payments');
+    Route::get('/returns',          App\Livewire\Admin\Returns::class)->name('returns');
+    Route::get('/notifications',    App\Livewire\Staff\Notifications::class)->name('notifications');
+    Route::get('/customers',        App\Livewire\Staff\Customer::class)->name('customers');
+    Route::get('/profile',          App\Livewire\Admin\Profile::class)->name('profile');
+});
+
+// Jetstream session-auth middleware group — kept for Jetstream's own routes.
+// The generic /dashboard route is intentionally removed; role-based redirects
+// are handled in FortifyServiceProvider::redirectUsersTo().
+Route::middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+    'verified',
+])->group(function () {
+    // Reserved for any future Jetstream-gated routes.
 });

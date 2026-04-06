@@ -16,6 +16,7 @@ class Product extends Model
         'sku',
         'price',
         'sale_price',
+        'cost_price',
         'stock',
         'images',
         'is_featured',
@@ -30,6 +31,7 @@ class Product extends Model
             'is_active'   => 'boolean',
             'price'       => 'decimal:2',
             'sale_price'  => 'decimal:2',
+            'cost_price'  => 'decimal:2',
         ];
     }
 
@@ -42,6 +44,11 @@ class Product extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function purchaseOrderItems(): HasMany
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
     }
 
     public function reviews(): HasMany

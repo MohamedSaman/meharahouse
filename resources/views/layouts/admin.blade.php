@@ -108,6 +108,19 @@
                 @endif
             </a>
 
+            <a href="{{ route('admin.returns') }}"
+               class="sidebar-nav-item {{ request()->routeIs('admin.returns*') ? 'active' : '' }}"
+               :title="sidebarCollapsed ? 'Returns' : ''">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                </svg>
+                <span x-show="!sidebarCollapsed" class="text-sm">Returns</span>
+                @php $openReturns = \App\Models\OrderReturn::whereIn('status',['requested','pickup_arranged','received'])->count(); @endphp
+                @if($openReturns > 0)
+                <span x-show="!sidebarCollapsed" class="ml-auto badge badge-gold text-[10px] py-0.5 px-2">{{ $openReturns }}</span>
+                @endif
+            </a>
+
             {{-- Catalog --}}
             <p x-show="!sidebarCollapsed" class="sidebar-section-label">Catalog</p>
 
@@ -352,6 +365,10 @@
                             <p class="text-sm font-semibold text-[#0F172A]">{{ auth()->user()?->name ?? 'Admin' }}</p>
                             <p class="text-xs text-[#64748B]">{{ auth()->user()?->email }}</p>
                         </div>
+                        <a href="{{ route('admin.profile') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            My Profile
+                        </a>
                         <a href="{{ route('webpage.home') }}" class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                             Visit Storefront

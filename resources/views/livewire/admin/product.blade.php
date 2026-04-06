@@ -135,6 +135,11 @@
                         </td>
                         <td>
                             <div class="flex items-center gap-1.5">
+                                {{-- History --}}
+                                <button wire:click="openHistory({{ $product->id }})"
+                                    class="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-indigo-100 hover:text-indigo-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" title="Product Activity History">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                                </button>
                                 {{-- Edit --}}
                                 <button wire:click="openEdit({{ $product->id }})"
                                     class="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm" title="Edit">
@@ -342,6 +347,237 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══════════════ PRODUCT HISTORY MODAL ══════════════ --}}
+    @if($showHistoryModal)
+    <div class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+         x-data @keydown.escape.window="$wire.set('showHistoryModal', false)" @click.self="$wire.set('showHistoryModal', false)">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" @click.stop>
+
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-900 to-slate-800 rounded-t-2xl">
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-lg text-white">Product Activity History</h3>
+                    <p class="text-sm text-slate-300 mt-0.5">{{ $historyProductName }}</p>
+                </div>
+                <button wire:click="$set('showHistoryModal', false)" class="p-2 rounded-lg text-slate-400 hover:bg-white/10 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            {{-- Summary Stats --}}
+            <div class="grid grid-cols-3 gap-0 border-b border-slate-100">
+                <div class="flex flex-col items-center py-4 border-r border-slate-100">
+                    <span class="text-2xl font-bold text-indigo-600">{{ count($historyPurchases) }}</span>
+                    <span class="text-xs text-slate-500 font-medium mt-0.5">Purchase Orders</span>
+                    @php $totalReceived = array_sum(array_column($historyPurchases, 'qty_received')); @endphp
+                    <span class="text-xs text-slate-400">{{ $totalReceived }} units received</span>
+                </div>
+                <div class="flex flex-col items-center py-4 border-r border-slate-100">
+                    <span class="text-2xl font-bold text-emerald-600">{{ count($historySales) }}</span>
+                    <span class="text-xs text-slate-500 font-medium mt-0.5">Sale Orders</span>
+                    @php $totalSold = array_sum(array_column($historySales, 'qty')); @endphp
+                    <span class="text-xs text-slate-400">{{ $totalSold }} units sold</span>
+                </div>
+                <div class="flex flex-col items-center py-4">
+                    <span class="text-2xl font-bold text-red-500">{{ count($historyReturns) }}</span>
+                    <span class="text-xs text-slate-500 font-medium mt-0.5">Returns</span>
+                    <span class="text-xs text-slate-400">associated orders</span>
+                </div>
+            </div>
+
+            {{-- Tabs --}}
+            <div class="flex border-b border-slate-100 px-6 pt-1 gap-1 bg-slate-50">
+                <button wire:click="$set('historyTab','purchases')"
+                        class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors
+                               {{ $historyTab === 'purchases' ? 'border-indigo-500 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-700' }}">
+                    Purchase Orders ({{ count($historyPurchases) }})
+                </button>
+                <button wire:click="$set('historyTab','sales')"
+                        class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors
+                               {{ $historyTab === 'sales' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700' }}">
+                    Sale Orders ({{ count($historySales) }})
+                </button>
+                <button wire:click="$set('historyTab','returns')"
+                        class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors
+                               {{ $historyTab === 'returns' ? 'border-red-500 text-red-700' : 'border-transparent text-slate-500 hover:text-slate-700' }}">
+                    Returns ({{ count($historyReturns) }})
+                </button>
+            </div>
+
+            {{-- Tab Content --}}
+            <div class="flex-1 overflow-y-auto">
+
+                {{-- Purchase Orders Tab --}}
+                @if($historyTab === 'purchases')
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-100 sticky top-0">
+                            <tr>
+                                <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">PO Number</th>
+                                <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Supplier</th>
+                                <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Date</th>
+                                <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Ordered</th>
+                                <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Received</th>
+                                <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Unit Cost</th>
+                                <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Subtotal</th>
+                                <th class="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            @forelse($historyPurchases as $p)
+                            @php
+                                $psc = ['draft'=>'bg-slate-100 text-slate-600','ordered'=>'bg-blue-100 text-blue-700','partial'=>'bg-amber-100 text-amber-700','received'=>'bg-emerald-100 text-emerald-700','cancelled'=>'bg-red-100 text-red-600'][$p['status']] ?? 'bg-slate-100 text-slate-600';
+                            @endphp
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-mono font-semibold text-slate-800">{{ $p['po_number'] }}</td>
+                                <td class="px-4 py-3 text-slate-600">{{ $p['supplier'] }}</td>
+                                <td class="px-4 py-3 text-slate-500 text-xs">{{ $p['date'] }}</td>
+                                <td class="px-4 py-3 text-right font-medium text-slate-700">{{ $p['qty_ordered'] }}</td>
+                                <td class="px-4 py-3 text-right font-semibold {{ $p['qty_received'] >= $p['qty_ordered'] ? 'text-emerald-600' : ($p['qty_received'] > 0 ? 'text-amber-600' : 'text-slate-400') }}">
+                                    {{ $p['qty_received'] }}
+                                </td>
+                                <td class="px-4 py-3 text-right text-slate-700">Rs. {{ number_format($p['unit_cost'], 2) }}</td>
+                                <td class="px-4 py-3 text-right font-semibold text-slate-800">Rs. {{ number_format($p['subtotal']) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $psc }}">
+                                        {{ ucfirst($p['status']) }}
+                                    </span>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="8" class="px-4 py-10 text-center text-slate-400">No purchase orders found for this product.</td></tr>
+                            @endforelse
+                        </tbody>
+                        @if(count($historyPurchases) > 0)
+                        <tfoot class="bg-slate-50 border-t border-slate-200">
+                            <tr>
+                                <td colspan="3" class="px-4 py-2 text-xs font-bold text-slate-600 uppercase">Totals</td>
+                                <td class="px-4 py-2 text-right font-bold text-slate-700">{{ array_sum(array_column($historyPurchases,'qty_ordered')) }}</td>
+                                <td class="px-4 py-2 text-right font-bold text-emerald-700">{{ array_sum(array_column($historyPurchases,'qty_received')) }}</td>
+                                <td class="px-4 py-2"></td>
+                                <td class="px-4 py-2 text-right font-bold text-slate-800">Rs. {{ number_format(array_sum(array_column($historyPurchases,'subtotal'))) }}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                        @endif
+                    </table>
+                </div>
+                @endif
+
+                {{-- Sales Orders Tab --}}
+                @if($historyTab === 'sales')
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-100 sticky top-0">
+                            <tr>
+                                <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Order #</th>
+                                <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Customer</th>
+                                <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Date</th>
+                                <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Qty</th>
+                                <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Unit Price</th>
+                                <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Subtotal</th>
+                                <th class="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            @forelse($historySales as $s)
+                            @php
+                                $ssc = ['new'=>'bg-slate-100 text-slate-600','payment_received'=>'bg-blue-100 text-blue-700','confirmed'=>'bg-indigo-100 text-indigo-700','sourcing'=>'bg-yellow-100 text-yellow-700','dispatched'=>'bg-orange-100 text-orange-700','delivered'=>'bg-teal-100 text-teal-700','completed'=>'bg-emerald-100 text-emerald-700','cancelled'=>'bg-red-100 text-red-600'][$s['order_status']] ?? 'bg-slate-100 text-slate-600';
+                            @endphp
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-semibold text-slate-800">{{ $s['order_number'] }}</td>
+                                <td class="px-4 py-3 text-slate-600">{{ $s['customer'] }}</td>
+                                <td class="px-4 py-3 text-slate-500 text-xs">{{ $s['date'] }}</td>
+                                <td class="px-4 py-3 text-right font-semibold text-slate-700">{{ $s['qty'] }}</td>
+                                <td class="px-4 py-3 text-right text-slate-700">Rs. {{ number_format($s['unit_price']) }}</td>
+                                <td class="px-4 py-3 text-right font-semibold text-slate-800">Rs. {{ number_format($s['subtotal']) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $ssc }}">
+                                        {{ str_replace('_',' ',ucfirst($s['order_status'])) }}
+                                    </span>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">No sales orders found for this product.</td></tr>
+                            @endforelse
+                        </tbody>
+                        @if(count($historySales) > 0)
+                        <tfoot class="bg-slate-50 border-t border-slate-200">
+                            <tr>
+                                <td colspan="3" class="px-4 py-2 text-xs font-bold text-slate-600 uppercase">Totals</td>
+                                <td class="px-4 py-2 text-right font-bold text-slate-700">{{ array_sum(array_column($historySales,'qty')) }}</td>
+                                <td class="px-4 py-2"></td>
+                                <td class="px-4 py-2 text-right font-bold text-emerald-700">Rs. {{ number_format(array_sum(array_column($historySales,'subtotal'))) }}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                        @endif
+                    </table>
+                </div>
+                @endif
+
+                {{-- Returns Tab --}}
+                @if($historyTab === 'returns')
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-100 sticky top-0">
+                            <tr>
+                                <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Order #</th>
+                                <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Date</th>
+                                <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Reason</th>
+                                <th class="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Condition</th>
+                                <th class="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                                <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Resolved</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            @forelse($historyReturns as $r)
+                            @php
+                                $rsc = ['requested'=>'bg-amber-100 text-amber-700','pickup_arranged'=>'bg-blue-100 text-blue-700','received'=>'bg-indigo-100 text-indigo-700','resold'=>'bg-emerald-100 text-emerald-700','sent_back_dubai'=>'bg-purple-100 text-purple-700','closed'=>'bg-slate-100 text-slate-600'][$r['status']] ?? 'bg-slate-100 text-slate-600';
+                            @endphp
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 font-semibold text-slate-800">{{ $r['order_number'] }}</td>
+                                <td class="px-4 py-3 text-slate-500 text-xs">{{ $r['date'] }}</td>
+                                <td class="px-4 py-3 text-slate-600 max-w-xs">
+                                    <span class="truncate block">{{ Str::limit($r['reason'], 60) }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    @if($r['condition'])
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $r['condition'] === 'good' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                        {{ ucfirst($r['condition']) }}
+                                    </span>
+                                    @else
+                                    <span class="text-slate-400 text-xs">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $rsc }}">
+                                        {{ str_replace('_',' ',ucfirst($r['status'])) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-slate-500 text-xs">{{ $r['resolved_at'] ?? '—' }}</td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">No returns found for this product.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                @endif
+
+            </div>
+
+            {{-- Footer --}}
+            <div class="border-t border-slate-100 px-6 py-3 bg-slate-50 rounded-b-2xl flex justify-end">
+                <button wire:click="$set('showHistoryModal', false)"
+                        class="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors">
+                    Close
+                </button>
+            </div>
         </div>
     </div>
     @endif

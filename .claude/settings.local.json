@@ -12,7 +12,11 @@
       "Bash(php:*)",
       "Bash(grep -n '$product->' /c/Users/MY/Documents/ssh/meharahouse/resources/views/livewire/webpage/index.blade.php)",
       "Bash(grep:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(composer require:*)",
+      "Bash(composer dump-autoload:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

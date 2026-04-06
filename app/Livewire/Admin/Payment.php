@@ -4,7 +4,6 @@ namespace App\Livewire\Admin;
 
 use Livewire\Component;
 use Livewire\Attributes\Title;
-use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
 use App\Models\Order;
 use App\Models\OrderPayment;
@@ -12,7 +11,6 @@ use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 
 #[Title('Payments')]
-#[Layout('layouts.admin')]
 class Payment extends Component
 {
     use WithPagination;
@@ -191,6 +189,7 @@ class Payment extends Component
             'count_refunded'         => Order::where('payment_status', 'refunded')->count(),
         ];
 
-        return view('livewire.admin.payment', compact('payments', 'summary'));
+        $layout = auth()->user()?->isAdmin() ? 'layouts.admin' : 'layouts.staff';
+        return view('livewire.admin.payment', compact('payments', 'summary'))->layout($layout);
     }
 }

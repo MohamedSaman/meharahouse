@@ -4,13 +4,11 @@ namespace App\Livewire\Admin;
 
 use Livewire\Component;
 use Livewire\Attributes\Title;
-use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
 use App\Models\OrderReturn;
 use App\Models\Order;
 
 #[Title('Returns Management')]
-#[Layout('layouts.admin')]
 class Returns extends Component
 {
     use WithPagination;
@@ -186,6 +184,7 @@ class Returns extends Component
             'resolved'        => OrderReturn::whereIn('status', ['resold', 'sent_back_dubai', 'closed'])->count(),
         ];
 
-        return view('livewire.admin.returns', compact('returns', 'stats'));
+        $layout = auth()->user()?->isAdmin() ? 'layouts.admin' : 'layouts.staff';
+        return view('livewire.admin.returns', compact('returns', 'stats'))->layout($layout);
     }
 }

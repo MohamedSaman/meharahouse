@@ -119,12 +119,20 @@ class Purchasing extends Component
             }
         }
 
+        // Use last received cost price, fallback to product cost_price, then sale_price, then price
+        $lastCost = PurchaseOrderItem::where('product_id', $productId)
+            ->whereHas('purchaseOrder', fn($q) => $q->whereIn('status', ['received', 'partial']))
+            ->latest()
+            ->value('unit_cost');
+
+        $unitCost = $lastCost ?? $product->cost_price ?? $product->sale_price ?? $product->price ?? 0;
+
         $this->poItems[] = [
             'product_id'   => $productId,
             'product_name' => $product->name,
             'sku'          => $product->sku ?? '',
             'qty_ordered'  => 1,
-            'unit_cost'    => (float) ($product->sale_price ?? $product->price ?? 0),
+            'unit_cost'    => (float) $unitCost,
         ];
 
         $this->itemProductSearch = '';
@@ -256,9 +264,11 @@ class Purchasing extends Component
             $item->increment('quantity_received', $qty);
             $item->refresh();
 
-            // Update stock
+            // Update stock and cost price
             if ($item->product) {
                 $item->product->increment('stock', $qty);
+                // Track latest cost price on the product for future PO pre-fill
+                $item->product->update(['cost_price' => $item->unit_cost]);
             }
 
             $anyReceived = true;
@@ -367,6 +377,7 @@ class Purchasing extends Component
                 if (!$pid) continue;
                 if (!isset($needed[$pid])) {
                     $needed[$pid] = [
+                        'product_id'    => $pid,   // ← store product_id so it carries through to the PO
                         'product_name'  => $item->product_name,
                         'sku'           => $item->product?->sku ?? '',
                         'qty_needed'    => 0,
@@ -394,12 +405,25 @@ class Purchasing extends Component
         $items = [];
         foreach ($this->planItems as $item) {
             if ($item['to_buy'] <= 0) continue;
+
+            $pid = $item['product_id'] ?? null;
+
+            // Auto-fill last cost price from previous received POs
+            $lastCost = 0;
+            if ($pid) {
+                $lastPoi = PurchaseOrderItem::where('product_id', $pid)
+                    ->whereHas('purchaseOrder', fn($q) => $q->whereIn('status', ['received', 'partial']))
+                    ->latest()
+                    ->first();
+                $lastCost = $lastPoi?->unit_cost ?? Product::find($pid)?->cost_price ?? 0;
+            }
+
             $items[] = [
-                'product_id'   => null,
+                'product_id'   => $pid,
                 'product_name' => $item['product_name'],
                 'sku'          => $item['sku'] ?? '',
                 'qty_ordered'  => $item['to_buy'],
-                'unit_cost'    => 0,
+                'unit_cost'    => (float) $lastCost,
             ];
         }
 

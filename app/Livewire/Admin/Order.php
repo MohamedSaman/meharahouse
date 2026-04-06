@@ -4,7 +4,6 @@ namespace App\Livewire\Admin;
 
 use Livewire\Component;
 use Livewire\Attributes\Title;
-use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
 use App\Models\Order as OrderModel;
 use App\Models\OrderPayment;
@@ -13,7 +12,6 @@ use App\Models\Refund;
 use App\Models\Setting;
 
 #[Title('Orders')]
-#[Layout('layouts.admin')]
 class Order extends Component
 {
     use WithPagination;
@@ -545,6 +543,7 @@ class Order extends Component
             ->whereNotNull('receipt_path')
             ->count();
 
-        return view('livewire.admin.order', compact('orders', 'statusCounts', 'pendingReceiptCount'));
+        $layout = auth()->user()?->isAdmin() ? 'layouts.admin' : 'layouts.staff';
+        return view('livewire.admin.order', compact('orders', 'statusCounts', 'pendingReceiptCount'))->layout($layout);
     }
 }

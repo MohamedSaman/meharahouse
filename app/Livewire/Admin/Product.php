@@ -9,6 +9,7 @@ use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use App\Models\Product as ProductModel;
 use App\Models\Category;
+use App\Models\OrderReturn;
 use Illuminate\Support\Str;
 
 #[Title('Products')]
@@ -41,6 +42,15 @@ class Product extends Component
     public bool $is_active = true;
     public array $uploadedImages = [];
     public $newImages = [];
+
+    // ── Product History ───────────────────────────────────────────────
+    public bool   $showHistoryModal    = false;
+    public ?int   $historyProductId    = null;
+    public string $historyProductName  = '';
+    public string $historyTab          = 'purchases';
+    public array  $historyPurchases    = [];
+    public array  $historySales        = [];
+    public array  $historyReturns      = [];
 
     protected function rules(): array
     {
@@ -98,6 +108,72 @@ class Product extends Component
         $this->showModal       = true;
     }
 
+    // ── Product History ───────────────────────────────────────────────
+
+    public function openHistory(int $id): void
+    {
+        $product = ProductModel::with([
+            'purchaseOrderItems.purchaseOrder.supplier',
+            'orderItems.order',
+        ])->findOrFail($id);
+
+        $this->historyProductId   = $id;
+        $this->historyProductName = $product->name;
+        $this->historyTab         = 'purchases';
+
+        // Purchase history — all PO items for this product
+        $this->historyPurchases = $product->purchaseOrderItems
+            ->sortByDesc('created_at')
+            ->map(fn($poi) => [
+                'po_number'     => $poi->purchaseOrder->po_number,
+                'supplier'      => $poi->purchaseOrder->supplier?->name ?? '—',
+                'date'          => $poi->purchaseOrder->created_at->format('d M Y'),
+                'qty_ordered'   => $poi->quantity_ordered,
+                'qty_received'  => $poi->quantity_received,
+                'unit_cost'     => $poi->unit_cost,
+                'subtotal'      => $poi->subtotal,
+                'status'        => $poi->purchaseOrder->status,
+                'po_id'         => $poi->purchase_order_id,
+            ])
+            ->values()
+            ->toArray();
+
+        // Sales history — all order items for this product
+        $this->historySales = $product->orderItems
+            ->sortByDesc('created_at')
+            ->map(fn($oi) => [
+                'order_number' => $oi->order->order_number,
+                'customer'     => $oi->order->shipping_address['full_name'] ?? '—',
+                'date'         => $oi->order->created_at->format('d M Y'),
+                'qty'          => $oi->quantity,
+                'unit_price'   => $oi->price,
+                'subtotal'     => $oi->quantity * $oi->price,
+                'order_status' => $oi->order->status,
+                'order_id'     => $oi->order_id,
+            ])
+            ->values()
+            ->toArray();
+
+        // Returns — order returns where the order contains this product
+        $this->historyReturns = OrderReturn::whereHas('order.items', fn($q) => $q->where('product_id', $id))
+            ->with('order')
+            ->latest()
+            ->get()
+            ->map(fn($ret) => [
+                'order_number' => $ret->order->order_number,
+                'date'         => $ret->created_at->format('d M Y'),
+                'reason'       => $ret->reason,
+                'status'       => $ret->status,
+                'condition'    => $ret->condition,
+                'resolved_at'  => $ret->resolved_at?->format('d M Y'),
+            ])
+            ->toArray();
+
+        $this->showHistoryModal = true;
+    }
+
+    // ── Save / Delete ─────────────────────────────────────────────────
+
     public function save(): void
     {
         $this->validate();
@@ -111,7 +187,6 @@ class Product extends Component
 
         $slug = Str::slug($this->name);
         if (!$this->editMode) {
-            // Ensure unique slug
             $baseSlug = $slug;
             $counter  = 1;
             while (ProductModel::where('slug', $slug)->exists()) {
