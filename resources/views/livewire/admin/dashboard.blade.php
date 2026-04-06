@@ -4,17 +4,17 @@
     {{-- ══════════════════════════════════════════════════════
          PAGE HEADER
     ══════════════════════════════════════════════════════ --}}
-    <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 sm:p-6 shadow-xl">
+    <div class="relative overflow-hidden rounded-2xl border border-slate-200  from-slate-900 via-slate-800 to-slate-900 p-5 sm:p-6 shadow-xl">
         <div class="absolute -top-16 -right-12 h-44 w-44 rounded-full bg-amber-400/20 blur-3xl"></div>
         <div class="absolute -bottom-16 -left-12 h-44 w-44 rounded-full bg-blue-400/20 blur-3xl"></div>
         <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <p class="text-[11px] tracking-[0.18em] uppercase font-semibold text-amber-300">Meharahouse Admin</p>
-                <h2 class="font-[Poppins] font-bold text-2xl text-dark">Dashboard Overview</h2>
-                <p class="text-sm text-slate-300 mt-1">{{ now()->format('l, d F Y') }}</p>
+                <p class="text-[11px] tracking-[0.18em] uppercase font-semibold text-dark-300">Meharahouse Admin</p>
+                <h2 class="font-[Poppins] font-bold text-2xl text-slate-800">Dashboard Overview</h2>
+                <p class="text-sm text-slate-600 mt-1">{{ now()->format('l, d F Y') }}</p>
             </div>
             <div class="flex items-center gap-3">
-                <button class="inline-flex items-center gap-2 rounded-xl border border-slate-600/80 bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-700/70 transition-all duration-200">
+                <button class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all duration-200">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>

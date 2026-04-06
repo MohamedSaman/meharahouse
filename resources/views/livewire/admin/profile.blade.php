@@ -2,7 +2,7 @@
 @section('page_title', 'My Profile')
 @section('page_subtitle', 'Manage your account information and security settings')
 
-<div class="max-w-5xl mx-auto space-y-6">
+<div class="w-full space-y-6">
 
     {{-- ── Profile Header Banner ──────────────────────────────────────── --}}
     <div class="relative rounded-2xl overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-white/10 shadow-xl">
