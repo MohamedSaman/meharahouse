@@ -582,9 +582,13 @@
                     </div>
                     <div>
                         <p class="text-xs text-slate-400">Balance Due</p>
+                        @if(in_array($selectedOrder->status, ['refunded','cancelled']))
+                        <p class="font-bold text-slate-400 text-sm mt-0.5">— Refunded —</p>
+                        @else
                         <p class="font-bold text-{{ $selectedOrder->balanceDue() > 0 ? 'red' : 'emerald' }}-400 text-sm mt-0.5">
                             Rs. {{ number_format($selectedOrder->balanceDue(), 0) }}
                         </p>
+                        @endif
                     </div>
                 </div>
 
@@ -636,7 +640,7 @@
                                     <img src="{{ $payment->receiptUrl() }}" alt="Payment Receipt"
                                          class="w-full h-full object-cover">
                                 </a>
-                                @if($payment->status === 'pending')
+                                @if($payment->status === 'pending' && !in_array($selectedOrder->status, ['refunded','cancelled','completed']))
                                 <div class="flex gap-1">
                                     <button wire:click="confirmPayment({{ $payment->id }})"
                                             class="px-2.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold transition-colors">

@@ -170,6 +170,7 @@ class Payment extends Component
     public function render()
     {
         $payments = Order::with(['user', 'payments' => fn($q) => $q->where('status', 'confirmed')])
+            ->whereNotIn('status', ['refunded', 'cancelled'])
             ->when($this->search, fn($q) => $q
                 ->where('order_number', 'like', "%{$this->search}%")
                 ->orWhere(DB::raw("JSON_UNQUOTE(JSON_EXTRACT(shipping_address, '$.full_name'))"), 'like', "%{$this->search}%")
