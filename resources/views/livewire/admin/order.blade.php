@@ -962,7 +962,7 @@
     @if($showStockAlert)
     <div class="fixed inset-0 z-[70] flex items-center justify-center p-4"
          style="background:rgba(0,0,0,0.55);">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
 
             {{-- Header --}}
             <div class="flex items-center gap-3 px-6 py-4 bg-red-50 border-b border-red-100">
@@ -974,12 +974,12 @@
                 </div>
                 <div>
                     <h3 class="font-[Poppins] font-bold text-base text-red-700">Insufficient Stock</h3>
-                    <p class="text-xs text-red-500">Cannot confirm order — some products are out of stock</p>
+                    <p class="text-xs text-red-500">Cannot confirm — some products are out of stock. Choose how to proceed.</p>
                 </div>
             </div>
 
             {{-- Stock Issues List --}}
-            <div class="px-6 py-5 space-y-3">
+            <div class="px-6 pt-5 pb-3 space-y-3">
                 @foreach($stockIssues as $issue)
                 <div class="flex items-center justify-between bg-red-50 rounded-xl px-4 py-3">
                     <div>
@@ -988,30 +988,71 @@
                             Needed: <span class="font-bold text-red-600">{{ $issue['needed'] }}</span>
                             &nbsp;·&nbsp;
                             In stock: <span class="font-bold text-[#0F172A]">{{ $issue['available'] }}</span>
+                            &nbsp;·&nbsp;
+                            Short: <span class="font-bold text-red-600">{{ $issue['needed'] - $issue['available'] }}</span>
                         </p>
                     </div>
-                    <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                    <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
                         <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </div>
                 </div>
                 @endforeach
-
-                <p class="text-xs text-[#64748B] pt-1">
-                    You can <strong>restock the products</strong> first, or <strong>force-confirm</strong> to proceed anyway (stock will go negative).
-                </p>
             </div>
 
-            {{-- Footer --}}
-            <div class="flex items-center gap-3 px-6 pb-5">
-                <button wire:click="closeStockAlert"
-                        class="flex-1 py-2.5 rounded-xl border border-[#E2E8F0] text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-colors">
-                    Cancel
+            {{-- 3 Action Options --}}
+            <div class="px-6 pb-6 space-y-3 mt-1">
+                <p class="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-2">Choose an action</p>
+
+                {{-- Option 1: Refund --}}
+                <button wire:click="stockAlertRefund"
+                        class="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 border-red-200 hover:border-red-400 hover:bg-red-50 transition-all text-left group">
+                    <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0 group-hover:bg-red-200">
+                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-red-700">Refund Customer</p>
+                        <p class="text-xs text-[#64748B]">Cancel this order and process a refund to the customer</p>
+                    </div>
                 </button>
-                <button wire:click="forceConfirmOrder"
-                        class="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors">
-                    Force Confirm Anyway
+
+                {{-- Option 2: Repurchase --}}
+                <button wire:click="stockAlertRepurchase"
+                        class="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-left group">
+                    <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0 group-hover:bg-blue-200">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-blue-700">Replace Product</p>
+                        <p class="text-xs text-[#64748B]">Mark order as sourcing &amp; go to Purchasing to create a purchase order</p>
+                    </div>
+                </button>
+
+                {{-- Option 3: Add Stock (just go to purchasing) --}}
+                <a href="{{ route('admin.purchasing') }}" wire:navigate
+                   class="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-all text-left group">
+                    <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0 group-hover:bg-amber-200">
+                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 4v16m8-8H4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-amber-700">Add Stock</p>
+                        <p class="text-xs text-[#64748B]">Go to Purchasing, use the purchasing plan &amp; buy the needed stock</p>
+                    </div>
+                </a>
+
+                <button wire:click="closeStockAlert"
+                        class="w-full py-2.5 rounded-xl border border-[#E2E8F0] text-sm font-semibold text-[#94A3B8] hover:bg-[#F8FAFC] transition-colors mt-1">
+                    Cancel
                 </button>
             </div>
         </div>

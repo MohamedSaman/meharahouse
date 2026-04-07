@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
             BannerSeeder::class,
             SettingSeeder::class,
             CouponSeeder::class,
-            OrderSeeder::class,
         ]);
     }
 }

@@ -137,41 +137,37 @@ class Order extends Component
         session()->flash('success', 'Order confirmed and stock updated.');
     }
 
-    /**
-     * Force-confirm an order even if stock is insufficient (admin override).
-     */
-    public function forceConfirmOrder(): void
-    {
-        $order = OrderModel::with('items.product')->findOrFail($this->stockAlertOrder);
-
-        foreach ($order->items as $item) {
-            if ($item->product) {
-                // Allow negative stock (admin override)
-                $item->product->decrement('stock', $item->quantity);
-            }
-        }
-
-        $order->logStatus('confirmed', 'Order force-confirmed by admin (stock override).', auth()->id());
-        $order->update(['status' => 'confirmed']);
-        $fresh = $order->fresh(['items']);
-        try { WhatsappService::orderConfirmed($fresh); } catch (\Throwable) {}
-        try {
-            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
-            if ($email) Mail::to($email)->send(new OrderConfirmed($fresh));
-        } catch (\Throwable) {}
-
-        $this->showStockAlert  = false;
-        $this->stockIssues     = [];
-        $this->stockAlertOrder = 0;
-        $this->refreshSelectedOrder($order->id);
-        session()->flash('success', 'Order force-confirmed. Stock may be negative — please restock.');
-    }
-
     public function closeStockAlert(): void
     {
         $this->showStockAlert  = false;
         $this->stockIssues     = [];
         $this->stockAlertOrder = 0;
+    }
+
+    /**
+     * Stock alert → Refund: close alert, open refund modal for this order.
+     */
+    public function stockAlertRefund(): void
+    {
+        $orderId = $this->stockAlertOrder;
+        $this->closeStockAlert();
+        $this->openRefundModal($orderId);
+    }
+
+    /**
+     * Stock alert → Repurchase: mark order as 'sourcing', redirect to purchasing.
+     * The purchasing module will auto-prompt "confirm pending orders" once stock arrives.
+     */
+    public function stockAlertRepurchase(): void
+    {
+        $orderId = $this->stockAlertOrder;
+        $this->closeStockAlert();
+
+        $order = OrderModel::findOrFail($orderId);
+        $order->logStatus('sourcing', 'Marked for repurchase — awaiting stock from supplier.', auth()->id());
+        $order->update(['status' => 'sourcing', 'supplier_status' => 'ordered']);
+
+        $this->redirect(route('admin.purchasing'));
     }
 
     /**
