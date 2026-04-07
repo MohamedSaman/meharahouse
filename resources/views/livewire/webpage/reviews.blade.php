@@ -123,10 +123,9 @@
     </div>{{-- close container-page --}}
 
     {{-- ══════════════════════ WRITE REVIEW MODAL ══════════════════════ --}}
-    {{-- Always in DOM, shown/hidden via Alpine x-show for instant response --}}
     <div x-show="showForm"
          x-on:keydown.escape.window="showForm = false"
-         wire:ignore.self
+         wire:ignore
          style="display:none;"
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
          x-transition:enter="transition ease-out duration-200"
@@ -135,13 +134,53 @@
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         @click.self="showForm = false">
+         @click.self="showForm = false"
+         x-data="{
+            name: '', email: '', titleVal: '', descVal: '', productId: 0,
+            starRating: 5, hovered: 0, charCount: 0, submitting: false,
+            errors: {},
+            starLabels: ['','Poor','Fair','Good','Very Good','Excellent'],
+            reset() {
+                this.name = ''; this.email = ''; this.titleVal = '';
+                this.descVal = ''; this.productId = 0; this.starRating = 5;
+                this.hovered = 0; this.charCount = 0; this.errors = {};
+                this.submitting = false;
+            },
+            validate() {
+                this.errors = {};
+                if (!this.name.trim())                         this.errors.name = 'Name is required.';
+                if (this.descVal.trim().length < 10)           this.errors.desc = 'Review must be at least 10 characters.';
+                if (this.descVal.trim().length > 1000)         this.errors.desc = 'Review must not exceed 1000 characters.';
+                if (this.starRating < 1 || this.starRating > 5) this.errors.rating = 'Please select a rating.';
+                return Object.keys(this.errors).length === 0;
+            },
+            async submit() {
+                if (!this.validate()) return;
+                this.submitting = true;
+                try {
+                    await $wire.call(
+                        'submitReview',
+                        this.name.trim(),
+                        this.email.trim(),
+                        this.starRating,
+                        this.titleVal.trim(),
+                        this.descVal.trim(),
+                        parseInt(this.productId) || 0
+                    );
+                } catch(e) {
+                    console.error('Review submit error:', e);
+                } finally {
+                    this.submitting = false;
+                }
+            }
+         }"
+         @review-submitted.window="showForm = false; reset()">
 
-           {{-- Modal panel --}}
-           <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
-               wire:click.stop>
+        {{-- Modal panel --}}
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+             @click.stop>
 
-            {{-- Modal header --}}
+            {{-- Header --}}
             <div class="flex items-center justify-between px-6 py-4 border-b border-[#F0EDE8] bg-gradient-to-r from-[#FFFDF5] to-white shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-[#D4A017]/10 flex items-center justify-center">
@@ -154,7 +193,7 @@
                         <p class="text-xs text-slate-500">Your review will appear after approval</p>
                     </div>
                 </div>
-                <button @click="showForm = false"
+                <button @click="showForm = false" type="button"
                         class="w-9 h-9 rounded-xl bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 flex items-center justify-center transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -162,24 +201,23 @@
                 </button>
             </div>
 
-            {{-- Modal body (scrollable) --}}
+            {{-- Body --}}
             <div class="overflow-y-auto flex-1 px-6 py-6 space-y-5">
 
                 {{-- Row 1: Name + Email --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1.5">Your Name <span class="text-red-500">*</span></label>
-                        <input wire:model="customerName" type="text" placeholder="e.g. Fatima Ahmed"
-                               class="form-input w-full @error('customerName') border-red-400 bg-red-50 @enderror">
-                        @error('customerName') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        <input type="text" x-model="name" placeholder="e.g. Fatima Ahmed"
+                               :class="errors.name ? 'border-red-400 bg-red-50' : ''"
+                               class="form-input w-full">
+                        <p x-show="errors.name" x-text="errors.name" class="text-red-500 text-xs mt-1"></p>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                            Email <span class="text-slate-400 font-normal">(optional, not published)</span>
+                            Email <span class="text-slate-400 font-normal">(optional)</span>
                         </label>
-                        <input wire:model="customerEmail" type="email" placeholder="your@email.com"
-                               class="form-input w-full @error('customerEmail') border-red-400 bg-red-50 @enderror">
-                        @error('customerEmail') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        <input type="email" x-model="email" placeholder="your@email.com" class="form-input w-full">
                     </div>
                 </div>
 
@@ -187,7 +225,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1.5">Product <span class="text-slate-400 font-normal">(optional)</span></label>
-                        <select wire:model="selectedProductId" class="form-input w-full">
+                        <select x-model="productId" class="form-input w-full">
                             <option value="0">— Select a product —</option>
                             @foreach($products as $product)
                             <option value="{{ $product->id }}">{{ $product->name }}</option>
@@ -196,37 +234,34 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1.5">Your Rating <span class="text-red-500">*</span></label>
-                        <div x-data="{ hovered: 0 }" class="flex items-center gap-1 mt-1">
+                        <div class="flex items-center gap-1 mt-1">
                             @for($i = 1; $i <= 5; $i++)
                             <button type="button"
                                     @mouseenter="hovered = {{ $i }}"
                                     @mouseleave="hovered = 0"
-                                    wire:click="$set('rating', {{ $i }})"
+                                    @click="starRating = {{ $i }}"
                                     class="transition-transform hover:scale-125 focus:outline-none">
                                 <svg class="w-9 h-9 transition-colors duration-100"
-                                     :class="(hovered >= {{ $i }} || ($wire.rating >= {{ $i }} && hovered === 0)) ? 'text-[#D4A017]' : 'text-slate-200'"
+                                     :class="(hovered >= {{ $i }} || (starRating >= {{ $i }} && hovered === 0)) ? 'text-[#D4A017]' : 'text-slate-200'"
                                      fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                                 </svg>
                             </button>
                             @endfor
                             <span class="ml-2 text-sm font-bold"
-                                  :class="$wire.rating >= 4 ? 'text-emerald-600' : $wire.rating >= 3 ? 'text-amber-500' : 'text-red-500'">
-                                {{ ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][$rating] }}
-                            </span>
+                                  :class="starRating >= 4 ? 'text-emerald-600' : starRating >= 3 ? 'text-amber-500' : 'text-red-500'"
+                                  x-text="starLabels[starRating]"></span>
                         </div>
-                        @error('rating') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        <p x-show="errors.rating" x-text="errors.rating" class="text-red-500 text-xs mt-1"></p>
                     </div>
                 </div>
 
-                {{-- Review Title --}}
+                {{-- Review Headline --}}
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">
                         Review Headline <span class="text-slate-400 font-normal">(optional)</span>
                     </label>
-                    <input wire:model="title" type="text" placeholder="e.g. Beautiful quality abaya!"
-                           class="form-input w-full @error('title') border-red-400 bg-red-50 @enderror">
-                    @error('title') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    <input type="text" x-model="titleVal" placeholder="e.g. Beautiful quality abaya!" class="form-input w-full">
                 </div>
 
                 {{-- Description --}}
@@ -234,23 +269,23 @@
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">
                         Your Review <span class="text-red-500">*</span>
                     </label>
-                    <textarea wire:model.live="description" rows="5"
+                    <textarea x-model="descVal"
+                              @input="charCount = $el.value.length"
+                              rows="5"
                               placeholder="Tell us about your experience — the quality, fit, delivery, and anything else you'd like to share..."
-                              class="form-input w-full resize-none @error('description') border-red-400 bg-red-50 @enderror"></textarea>
+                              :class="errors.desc ? 'border-red-400 bg-red-50' : ''"
+                              class="form-input w-full resize-none"></textarea>
                     <div class="flex items-center justify-between mt-1">
-                        @error('description')
-                        <p class="text-red-500 text-xs">{{ $message }}</p>
-                        @else
-                        <span class="text-xs text-slate-400">Minimum 10 characters</span>
-                        @enderror
-                        <span class="text-xs {{ strlen($description) > 900 ? 'text-red-400' : 'text-slate-400' }}">
-                            {{ strlen($description) }}/1000
-                        </span>
+                        <p x-show="errors.desc" x-text="errors.desc" class="text-red-500 text-xs"></p>
+                        <span x-show="!errors.desc" class="text-xs text-slate-400">Minimum 10 characters</span>
+                        <span class="text-xs ml-auto"
+                              :class="charCount > 900 ? 'text-red-400 font-semibold' : 'text-slate-400'"
+                              x-text="charCount + '/1000'"></span>
                     </div>
                 </div>
             </div>
 
-            {{-- Modal footer --}}
+            {{-- Footer --}}
             <div class="flex items-center justify-between px-6 py-4 border-t border-[#F0EDE8] bg-slate-50 rounded-b-2xl shrink-0">
                 <p class="text-xs text-slate-400 flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,26 +294,24 @@
                     Moderated before publishing
                 </p>
                 <div class="flex items-center gap-3">
-                    <button @click="showForm = false" class="btn-secondary text-sm">
-                        Cancel
-                    </button>
-                    <button wire:click="submitReview"
-                            wire:loading.attr="disabled"
-                            wire:loading.class="opacity-75 cursor-not-allowed"
+                    <button type="button" @click="showForm = false" class="btn-secondary text-sm">Cancel</button>
+                    <button type="button"
+                            @click="submit()"
+                            :disabled="submitting"
+                            :class="submitting ? 'opacity-75 cursor-not-allowed' : ''"
                             class="btn-primary inline-flex items-center gap-2 text-sm">
-                        <span wire:loading.remove wire:target="submitReview">
+                        <template x-if="!submitting">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                        </span>
-                        <span wire:loading wire:target="submitReview">
+                        </template>
+                        <template x-if="submitting">
                             <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                             </svg>
-                        </span>
-                        <span wire:loading.remove wire:target="submitReview">Submit Review</span>
-                        <span wire:loading wire:target="submitReview">Submitting...</span>
+                        </template>
+                        <span x-text="submitting ? 'Submitting...' : 'Submit Review'"></span>
                     </button>
                 </div>
             </div>

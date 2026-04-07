@@ -136,7 +136,7 @@
                 {{-- Name --}}
                 <div>
                     <label class="block text-sm font-semibold text-[#374151] mb-1.5">Category Name *</label>
-                    <input wire:model="name" type="text" class="form-input @error('name') border-red-400 @enderror" placeholder="e.g. Electronics">
+                    <input wire:model="name" type="text" class="form-input @error('name') border-red-400 @enderror" placeholder="e.g. Casual Abaya">
                     @error('name')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
 

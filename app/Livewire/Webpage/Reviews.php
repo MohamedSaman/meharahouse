@@ -15,14 +15,6 @@ class Reviews extends Component
 {
     use WithPagination;
 
-    // ── Submit form ───────────────────────────────────────────────
-    public string $customerName      = '';
-    public string $customerEmail     = '';
-    public string $title             = '';
-    public int    $rating            = 5;
-    public string $description       = '';
-    public int    $selectedProductId = 0;
-
     // ── UI state ──────────────────────────────────────────────────
     public bool $showForm  = false;
     public bool $submitted = false;
@@ -34,39 +26,41 @@ class Reviews extends Component
     public function updatedFilterRating(): void { $this->resetPage(); }
     public function updatedSortBy(): void       { $this->resetPage(); }
 
-    public function submitReview(): void
-    {
-        $this->validate([
-            'customerName'      => 'required|string|max:100',
-            'customerEmail'     => 'nullable|email|max:255',
-            'rating'            => 'required|integer|min:1|max:5',
-            'title'             => 'nullable|string|max:150',
-            'description'       => 'required|string|min:10|max:1000',
-            'selectedProductId' => 'nullable|integer|min:0',
-        ]);
+    public function submitReview(
+        string $customerName,
+        string $customerEmail,
+        int    $rating,
+        string $title,
+        string $description,
+        int    $productId
+    ): void {
+        $validated = validator([
+            'customerName'  => $customerName,
+            'customerEmail' => $customerEmail,
+            'rating'        => $rating,
+            'title'         => $title,
+            'description'   => $description,
+            'productId'     => $productId,
+        ], [
+            'customerName'  => 'required|string|max:100',
+            'customerEmail' => 'nullable|email|max:255',
+            'rating'        => 'required|integer|min:1|max:5',
+            'title'         => 'nullable|string|max:150',
+            'description'   => 'required|string|min:10|max:1000',
+            'productId'     => 'nullable|integer|min:0',
+        ])->validate();
 
         Review::create([
-            'customer_name'  => trim($this->customerName),
-            'customer_email' => $this->customerEmail ?: null,
-            'product_id'     => $this->selectedProductId ?: null,
-            'rating'         => $this->rating,
-            'title'          => $this->title ?: null,
-            'description'    => trim($this->description),
+            'customer_name'  => trim($customerName),
+            'customer_email' => $customerEmail ?: null,
+            'product_id'     => $productId ?: null,
+            'rating'         => $rating,
+            'title'          => $title ?: null,
+            'description'    => trim($description),
             'status'         => 'pending',
         ]);
 
-        $this->reset(['customerName', 'customerEmail', 'title', 'description', 'selectedProductId']);
-        $this->rating    = 5;
-        $this->submitted = true;
-
-        // Dispatch browser event — Alpine listens to close modal and show toast
         $this->dispatch('review-submitted');
-    }
-
-    public function openForm(): void
-    {
-        $this->submitted = false;
-        $this->showForm  = true;
     }
 
     public function render()
