@@ -332,10 +332,25 @@ class Order extends Component
             'confirmed_at' => now(),
         ]);
 
-        // Only advance order status if order is still 'new'
-        if ($order->status === 'new' && $payment->type === 'advance') {
-            $order->logStatus('payment_received', 'Advance payment receipt confirmed by admin.', auth()->id());
-            $order->update(['status' => 'payment_received', 'payment_status' => 'pending']);
+        // Advance order status / payment_status based on payment type
+        if (in_array($order->status, ['new', 'payment_received'])) {
+            if ($payment->type === 'full') {
+                // Full payment confirmed — mark paid immediately
+                $order->logStatus('payment_received', 'Full payment confirmed by admin.', auth()->id());
+                $order->update(['status' => 'payment_received', 'payment_status' => 'paid']);
+            } elseif ($payment->type === 'advance' && $order->status === 'new') {
+                // Advance deposit confirmed — order moves to payment_received, balance still outstanding
+                $order->logStatus('payment_received', 'Advance payment confirmed by admin.', auth()->id());
+                $order->update(['status' => 'payment_received', 'payment_status' => 'partial']);
+            } elseif ($payment->type === 'balance') {
+                // Balance payment confirmed — recalculate total paid
+                $totalConfirmed = $order->payments()->where('status', 'confirmed')->sum('amount');
+                $paymentStatus  = $totalConfirmed >= $order->total ? 'paid' : 'partial';
+                $order->update(['payment_status' => $paymentStatus]);
+                if ($paymentStatus === 'paid') {
+                    $order->logStatus($order->status, 'Balance payment confirmed. Order fully paid.', auth()->id());
+                }
+            }
         }
 
         try { WhatsappService::paymentReceived($order->fresh(), (float) $payment->amount); } catch (\Throwable) {}

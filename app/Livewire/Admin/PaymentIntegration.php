@@ -51,6 +51,7 @@ class PaymentIntegration extends Component
     public string $bank_name             = '';
     public string $bank_branch           = '';
     public string $bank_instructions     = '';
+    public int    $bank_advance_pct      = 50;
 
     public string $activeGateway = ''; // which gateway's form is expanded
     public string $savedGateway  = ''; // for success feedback
@@ -90,6 +91,7 @@ class PaymentIntegration extends Component
         $this->bank_name             = Setting::get('payment_bank_name', '');
         $this->bank_branch           = Setting::get('payment_bank_branch', '');
         $this->bank_instructions     = Setting::get('payment_bank_instructions', '');
+        $this->bank_advance_pct      = (int) Setting::get('payment_advance_percentage', '50');
     }
 
     public function toggleGateway(string $gateway): void
@@ -186,6 +188,7 @@ class PaymentIntegration extends Component
             'bank_name'           => $this->bank_enabled ? 'required|string' : 'nullable',
             'bank_branch'         => 'nullable|string',
             'bank_instructions'   => 'nullable|string|max:500',
+            'bank_advance_pct'    => 'required|integer|min:10|max:90',
         ]);
 
         Setting::set('payment_bank_enabled',          $this->bank_enabled ? '1' : '0');
@@ -194,6 +197,7 @@ class PaymentIntegration extends Component
         Setting::set('payment_bank_name',             $this->bank_name);
         Setting::set('payment_bank_branch',           $this->bank_branch);
         Setting::set('payment_bank_instructions',     $this->bank_instructions);
+        Setting::set('payment_advance_percentage',    (string) $this->bank_advance_pct);
         $this->savedGateway = 'bank';
     }
 

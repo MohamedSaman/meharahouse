@@ -42,7 +42,8 @@ class Checkout extends Component
     ];
 
     // Step 2 — Payment
-    public string $paymentMethod = 'cash_on_delivery';
+    public string $paymentMethod  = 'cash_on_delivery';
+    public string $advanceOption  = 'full'; // 'full' or 'advance'
 
     // Applied coupon
     public string $couponCode = '';
@@ -239,6 +240,29 @@ class Checkout extends Component
                 'notes'            => $this->notes,
             ]);
 
+            // Set advance / balance amounts for bank transfer orders
+            if ($this->paymentMethod === 'bank_transfer') {
+                if ($this->advanceOption === 'advance') {
+                    $advPct    = (float) Setting::get('payment_advance_percentage', '50');
+                    $advAmount = round($total * ($advPct / 100), 2);
+                    $balAmount = round($total - $advAmount, 2);
+                    $order->update([
+                        'advance_percentage' => $advPct,
+                        'advance_amount'     => $advAmount,
+                        'balance_amount'     => $balAmount,
+                        'payment_status'     => 'pending',
+                    ]);
+                } else {
+                    // Full payment up front
+                    $order->update([
+                        'advance_percentage' => 100,
+                        'advance_amount'     => $total,
+                        'balance_amount'     => 0,
+                        'payment_status'     => 'pending',
+                    ]);
+                }
+            }
+
             foreach ($this->cartItems as $item) {
                 OrderItem::create([
                     'order_id'     => $order->id,
@@ -300,7 +324,19 @@ class Checkout extends Component
         if (!$order) return;
 
         $path = $this->paymentProofFile->store('payment-proofs', 'public');
-        $order->update(['payment_proof' => $path]);
+
+        // Determine payment type and amount from the advance option chosen at checkout
+        $type   = $this->advanceOption === 'advance' ? 'advance' : 'full';
+        $amount = $this->advanceOption === 'advance' ? $order->advance_amount : $order->total;
+
+        \App\Models\OrderPayment::create([
+            'order_id'     => $order->id,
+            'type'         => $type,
+            'amount'       => $amount,
+            'method'       => 'bank_transfer',
+            'receipt_path' => $path,
+            'status'       => 'pending',
+        ]);
 
         $this->proofUploaded    = true;
         $this->paymentProofFile = null;
@@ -338,6 +374,8 @@ class Checkout extends Component
             'instructions'   => Setting::get('payment_bank_instructions', ''),
         ];
 
-        return view('livewire.webpage.checkout', compact('subtotal', 'shipping', 'tax', 'total', 'paymentMethods', 'bankDetails'));
+        $advancePct = (float) Setting::get('payment_advance_percentage', '50');
+
+        return view('livewire.webpage.checkout', compact('subtotal', 'shipping', 'tax', 'total', 'paymentMethods', 'bankDetails', 'advancePct'));
     }
 }

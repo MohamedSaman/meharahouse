@@ -216,9 +216,9 @@
                     ];
                     $statusColor = $statusColors[$order->status] ?? 'bg-slate-100 text-slate-600 border-slate-200';
 
-                    // Check for pending receipt
-                    $pendingReceipt = $order->payments()->where('status', 'pending')->whereNotNull('receipt_path')->first();
-                    $hasConfirmedAdvance = $order->payments()->where('type', 'advance')->where('status', 'confirmed')->exists();
+                    // Use already-loaded payments relation (no extra queries)
+                    $pendingReceipt      = $order->payments->where('status', 'pending')->whereNotNull('receipt_path')->first();
+                    $hasConfirmedAdvance = $order->payments->where('type', 'advance')->where('status', 'confirmed')->isNotEmpty();
                     @endphp
                     <tr wire:key="order-{{ $order->id }}" class="{{ $pendingReceipt ? 'bg-amber-50/30' : '' }}">
                         <td>
@@ -297,63 +297,81 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                 </button>
 
-                                {{-- Status-based quick actions --}}
-                                @if($order->status === 'new' && $pendingReceipt)
+                                        {{-- ── Status-based quick actions ── --}}
+
+                                {{-- Confirm Receipt: any pending receipt on any non-terminal status --}}
+                                @if($pendingReceipt && !in_array($order->status, ['completed','cancelled','refunded']))
                                 <button wire:click="confirmPayment({{ $pendingReceipt->id }})"
-                                        class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-all hover:-translate-y-0.5">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-amber-500 text-white hover:bg-amber-600 border border-amber-500 transition-all hover:-translate-y-0.5 shadow-sm">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                     Confirm Receipt
                                 </button>
                                 @endif
 
-                                @if($order->status === 'payment_received')
+                                {{-- Confirm Order:
+                                     - Bank transfer: after payment_received (receipt confirmed)
+                                     - COD/others: directly from new --}}
+                                @if($order->status === 'payment_received' ||
+                                    ($order->status === 'new' && $order->payment_method !== 'bank_transfer'))
                                 <button wire:click="confirmOrder({{ $order->id }})"
-                                        class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-all hover:-translate-y-0.5">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-blue-600 text-white hover:bg-blue-700 border border-blue-600 transition-all hover:-translate-y-0.5 shadow-sm">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     Confirm Order
                                 </button>
                                 @endif
 
+                                {{-- Start Sourcing (from confirmed, not yet ordered) --}}
                                 @if($order->status === 'confirmed' && $order->supplier_status === 'none')
                                 <button wire:click="markSourcing({{ $order->id }})"
-                                        class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 transition-all hover:-translate-y-0.5">
-                                    Start Sourcing
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-orange-500 text-white hover:bg-orange-600 border border-orange-500 transition-all hover:-translate-y-0.5 shadow-sm">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                    Sourcing
                                 </button>
                                 @endif
 
-                                @if($order->status === 'confirmed' || ($order->status === 'sourcing' && $order->supplier_status === 'received'))
+                                {{-- Dispatch: from confirmed (skip sourcing) or sourcing+received --}}
+                                @if(in_array($order->status, ['confirmed']) && $order->supplier_status !== 'ordered' ||
+                                    ($order->status === 'sourcing' && $order->supplier_status === 'received'))
                                 <button wire:click="markDispatched({{ $order->id }})"
-                                        class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-all hover:-translate-y-0.5">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 border border-indigo-600 transition-all hover:-translate-y-0.5 shadow-sm">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
                                     Dispatch
                                 </button>
                                 @endif
 
+                                {{-- Sourcing sub-actions --}}
                                 @if($order->status === 'sourcing' && $order->supplier_status === 'ordered')
                                 <button wire:click="markSupplierReceived({{ $order->id }})"
-                                        class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-all hover:-translate-y-0.5">
-                                    Stock Received
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-teal-600 text-white hover:bg-teal-700 border border-teal-600 transition-all hover:-translate-y-0.5 shadow-sm">
+                                    Stock In
                                 </button>
                                 <button wire:click="markSupplierUnavailable({{ $order->id }})"
-                                        class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-all hover:-translate-y-0.5">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-all hover:-translate-y-0.5">
                                     Unavailable
                                 </button>
                                 @endif
 
+                                {{-- Mark Delivered --}}
                                 @if($order->status === 'dispatched')
                                 <button wire:click="markDelivered({{ $order->id }})"
-                                        class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-all hover:-translate-y-0.5">
-                                    Mark Delivered
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-teal-600 text-white hover:bg-teal-700 border border-teal-600 transition-all hover:-translate-y-0.5 shadow-sm">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                                    Delivered
                                 </button>
                                 @endif
 
+                                {{-- Complete --}}
                                 @if($order->status === 'delivered')
-                                    @if($order->isWhatsapp())
+                                    @if($order->isWhatsapp() && $order->balanceDue() > 0)
                                     <button wire:click="sendBalanceReminder({{ $order->id }})"
-                                            class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all hover:-translate-y-0.5">
-                                        Balance Reminder
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all hover:-translate-y-0.5">
+                                        Reminder
                                     </button>
                                     @endif
                                     <button wire:click="markCompleted({{ $order->id }})"
-                                            class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition-all hover:-translate-y-0.5">
-                                        Mark Completed
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-green-600 text-white hover:bg-green-700 border border-green-600 transition-all hover:-translate-y-0.5 shadow-sm">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                        Complete
                                     </button>
                                 @endif
                             </div>

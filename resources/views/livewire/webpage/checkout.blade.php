@@ -52,7 +52,14 @@
                     </svg>
                     <h3 class="font-[Poppins] font-bold text-base text-amber-900">Bank Transfer Instructions</h3>
                 </div>
-                <p class="text-sm text-amber-800">Please transfer the exact order amount to the bank account below, then upload your payment receipt.</p>
+                @if($advanceOption === 'advance')
+                <p class="text-sm text-amber-800">
+                    Please transfer the <strong>advance amount</strong> to the bank account below, then upload your payment receipt.
+                    The remaining balance will be collected on delivery.
+                </p>
+                @else
+                <p class="text-sm text-amber-800">Please transfer the full order amount to the bank account below, then upload your payment receipt.</p>
+                @endif
 
                 {{-- Bank details card --}}
                 <div class="bg-white rounded-xl border border-amber-200 divide-y divide-amber-100">
@@ -81,6 +88,18 @@
                         </div>
                     </div>
                     @endif
+                    {{-- Amount to transfer — dynamically reflects advance or full choice --}}
+                    <div class="flex items-center justify-between px-4 py-3 bg-amber-50">
+                        <span class="text-xs font-semibold text-amber-700 uppercase tracking-wide">Amount to Transfer</span>
+                        <span class="font-bold text-amber-700 text-base">
+                            @php
+                                $order = \App\Models\Order::where('order_number', $orderNumber)->first();
+                            @endphp
+                            Rs. {{ $advanceOption === 'advance'
+                                    ? number_format($order?->advance_amount ?? 0, 0)
+                                    : number_format($order?->total ?? 0, 0) }}
+                        </span>
+                    </div>
                 </div>
 
                 @if($bankDetails['instructions'])
@@ -274,6 +293,37 @@
                         @endforeach
                     </div>
 
+                    {{-- Advance / Full payment selector (bank transfer only) --}}
+                    @if($paymentMethod === 'bank_transfer')
+                    <div class="rounded-xl border border-slate-200 overflow-hidden">
+                        <label class="flex items-center gap-4 p-4 cursor-pointer transition-colors {{ $advanceOption === 'full' ? 'bg-amber-50 border-l-4 border-l-amber-400' : 'hover:bg-slate-50' }}"
+                               wire:click="$set('advanceOption', 'full')">
+                            <input type="radio" wire:model="advanceOption" value="full"
+                                   class="text-amber-500 focus:ring-amber-400 shrink-0">
+                            <div class="flex-1">
+                                <p class="font-semibold text-sm text-[#0F172A]">Full Payment</p>
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    Pay the complete amount now:
+                                    <strong class="text-[#0F172A]">Rs. {{ number_format($total, 0) }}</strong>
+                                </p>
+                            </div>
+                        </label>
+                        <div class="border-t border-slate-100"></div>
+                        <label class="flex items-center gap-4 p-4 cursor-pointer transition-colors {{ $advanceOption === 'advance' ? 'bg-amber-50 border-l-4 border-l-amber-400' : 'hover:bg-slate-50' }}"
+                               wire:click="$set('advanceOption', 'advance')">
+                            <input type="radio" wire:model="advanceOption" value="advance"
+                                   class="text-amber-500 focus:ring-amber-400 shrink-0">
+                            <div class="flex-1">
+                                <p class="font-semibold text-sm text-[#0F172A]">Advance Payment ({{ $advancePct }}%)</p>
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    Pay now: <strong class="text-amber-600">Rs. {{ number_format($total * $advancePct / 100, 0) }}</strong>
+                                    &bull; Balance on delivery: <strong class="text-[#0F172A]">Rs. {{ number_format($total - ($total * $advancePct / 100), 0) }}</strong>
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+                    @endif
+
                     {{-- Bank Transfer Details (shown when bank_transfer selected) --}}
                     @if($paymentMethod === 'bank_transfer' && !empty($bankDetails['account_number']))
                     <div class="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3">
@@ -300,6 +350,13 @@
                                 <span class="text-slate-500">Account Number</span>
                                 <span class="font-bold text-[#0F172A] font-mono tracking-wider">{{ $bankDetails['account_number'] }}</span>
                             </div>
+                        </div>
+                        {{-- Dynamic amount to transfer based on advance/full selection --}}
+                        <div class="flex items-center justify-between px-3 py-2.5 bg-amber-100 rounded-lg">
+                            <span class="text-xs font-semibold text-amber-700 uppercase tracking-wide">Amount to Transfer</span>
+                            <span class="font-bold text-amber-700 text-base">
+                                Rs. {{ $advanceOption === 'advance' ? number_format($total * $advancePct / 100, 0) : number_format($total, 0) }}
+                            </span>
                         </div>
                         @if($bankDetails['instructions'])
                         <p class="text-xs text-amber-700 border-t border-amber-200 pt-2">{{ $bankDetails['instructions'] }}</p>

@@ -575,6 +575,18 @@
                            placeholder="e.g. Bole Branch">
                     @error('bank_branch') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                 </div>
+                {{-- Advance Payment Percentage --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Advance Payment % <span class="text-red-400">*</span></label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" wire:model="bank_advance_pct" min="10" max="90"
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                               placeholder="50">
+                        <span class="text-sm font-bold text-slate-500 shrink-0">%</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1">Customers can pay this % as advance and the rest on delivery (10–90%)</p>
+                    @error('bank_advance_pct') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
                 {{-- Instructions --}}
                 <div class="md:col-span-2">
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Payment Instructions <span class="text-slate-400 font-normal">(shown to customer at checkout)</span></label>
