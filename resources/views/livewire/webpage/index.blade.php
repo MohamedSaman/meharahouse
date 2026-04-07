@@ -790,24 +790,44 @@
                     Subscribe to our newsletter and be the first to know about new collections, exclusive offers, and style inspiration delivered straight to your inbox.
                 </p>
 
+                {{-- Success state --}}
+                @if($subscribed)
+                <div class="flex items-center justify-center gap-3 max-w-md mx-auto px-5 py-4 rounded-full mb-4"
+                     style="background-color: #D4A017/10; border: 1px solid #D4A017;">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #D4A017;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="text-sm font-semibold font-[Inter]" style="color: #0F172A;">Thank you for subscribing!</span>
+                </div>
+                @else
                 {{-- Form --}}
-                <form action="#" method="POST" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                    @csrf
+                <div class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
                     <input
+                        wire:model="subscribeEmail"
                         type="email"
-                        name="email"
                         placeholder="Your email address"
-                        required
                         class="flex-1 px-5 py-3.5 rounded-full border font-[Inter] text-sm outline-none focus:ring-2 focus:ring-[#D4A017]/40 transition-all"
                         style="border-color: #D4A017; background-color: white; color: #0F172A;"
                     >
                     <button
-                        type="submit"
-                        class="px-7 py-3.5 rounded-full text-sm font-semibold font-[Inter] transition-all duration-200 hover:opacity-90 hover:shadow-md whitespace-nowrap"
+                        wire:click="subscribe"
+                        wire:loading.attr="disabled"
+                        class="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold font-[Inter] transition-all duration-200 hover:opacity-90 hover:shadow-md whitespace-nowrap"
                         style="background-color: #D4A017; color: #0F172A;">
-                        Subscribe
+                        <span wire:loading.remove wire:target="subscribe">Subscribe</span>
+                        <span wire:loading wire:target="subscribe">Subscribing...</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" wire:loading.remove wire:target="subscribe">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
                     </button>
-                </form>
+                </div>
+                @if($subscribeError)
+                <p class="mt-2 text-sm font-medium font-[Inter]" style="color: #EF4444;">{{ $subscribeError }}</p>
+                @endif
+                @error('subscribeEmail')
+                <p class="mt-2 text-sm font-medium font-[Inter]" style="color: #EF4444;">{{ $message }}</p>
+                @enderror
+                @endif
 
                 {{-- Privacy note --}}
                 <p class="mt-4 text-xs font-[Inter]" style="color: #94A3B8;">

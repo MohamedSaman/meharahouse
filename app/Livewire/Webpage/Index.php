@@ -9,6 +9,29 @@ use App\Models\Product;
 
 class Index extends Component
 {
+    public string $subscribeEmail = '';
+    public bool   $subscribed     = false;
+    public string $subscribeError = '';
+
+    public function subscribe(): void
+    {
+        $this->subscribeError = '';
+        $this->validate(['subscribeEmail' => 'required|email|max:255']);
+
+        if (\App\Models\NewsletterSubscriber::where('email', $this->subscribeEmail)->exists()) {
+            $this->subscribeError = 'You are already subscribed!';
+            return;
+        }
+
+        \App\Models\NewsletterSubscriber::create([
+            'email'  => $this->subscribeEmail,
+            'source' => 'website',
+        ]);
+
+        $this->subscribeEmail = '';
+        $this->subscribed     = true;
+    }
+
     public function render()
     {
         $banners = Banner::active()->take(5)->get();

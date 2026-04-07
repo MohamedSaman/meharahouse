@@ -118,6 +118,27 @@ Route::prefix('staff')->name('staff.')->middleware(['auth', 'staff'])->group(fun
     })->name('order.waybill');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Newsletter Subscription (footer form — non-Livewire POST)
+|--------------------------------------------------------------------------
+*/
+Route::post('/newsletter/subscribe', function (\Illuminate\Http\Request $request) {
+    $request->validate(['email' => 'required|email|max:255']);
+
+    $exists = \App\Models\NewsletterSubscriber::where('email', $request->email)->exists();
+
+    if (!$exists) {
+        \App\Models\NewsletterSubscriber::create([
+            'email'  => $request->email,
+            'source' => 'footer',
+        ]);
+        return back()->with('newsletter_success', 'Thank you for subscribing! You\'re now on our list.');
+    }
+
+    return back()->with('newsletter_success', 'You are already subscribed — thank you!');
+})->name('newsletter.subscribe')->middleware('website.live');
+
 // Jetstream session-auth middleware group — kept for Jetstream's own routes.
 // The generic /dashboard route is intentionally removed; role-based redirects
 // are handled in FortifyServiceProvider::redirectUsersTo().

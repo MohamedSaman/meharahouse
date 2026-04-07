@@ -234,7 +234,7 @@
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">
                         Your Review <span class="text-red-500">*</span>
                     </label>
-                    <textarea wire:model="description" rows="5"
+                    <textarea wire:model.live="description" rows="5"
                               placeholder="Tell us about your experience — the quality, fit, delivery, and anything else you'd like to share..."
                               class="form-input w-full resize-none @error('description') border-red-400 bg-red-50 @enderror"></textarea>
                     <div class="flex items-center justify-between mt-1">
@@ -268,7 +268,7 @@
                             class="btn-primary inline-flex items-center gap-2 text-sm">
                         <span wire:loading.remove wire:target="submitReview">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </span>
                         <span wire:loading wire:target="submitReview">

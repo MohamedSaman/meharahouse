@@ -56,7 +56,8 @@ class Reviews extends Component
         ]);
 
         $this->reset(['customerName', 'customerEmail', 'title', 'description', 'selectedProductId']);
-        $this->rating = 5;
+        $this->rating    = 5;
+        $this->submitted = true;
 
         // Dispatch browser event — Alpine listens to close modal and show toast
         $this->dispatch('review-submitted');

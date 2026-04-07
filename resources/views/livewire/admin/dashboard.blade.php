@@ -97,55 +97,63 @@
     ══════════════════════════════════════════════════════ --}}
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
-        {{-- Revenue Chart (Placeholder) --}}
+        {{-- Revenue Chart --}}
         <div class="card xl:col-span-2 p-6 shadow-sm hover:shadow-md transition-all duration-300">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                 <div>
                     <h3 class="font-[Poppins] font-bold text-[#0F172A]">Revenue Overview</h3>
-                    <p class="text-xs text-[#64748B] mt-0.5">Monthly revenue for 2024</p>
+                    <p class="text-xs text-[#64748B] mt-0.5">
+                        @if($chartPeriod === 'daily') Last 14 days
+                        @elseif($chartPeriod === 'weekly') Last 8 weeks
+                        @else Last 6 months
+                        @endif
+                    </p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button class="px-3 py-1.5 text-xs font-semibold bg-[#0F172A] text-white rounded-lg">Monthly</button>
-                    <button class="px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:bg-[#F1F5F9] rounded-lg transition-colors">Weekly</button>
-                    <button class="px-3 py-1.5 text-xs font-semibold text-[#64748B] hover:bg-[#F1F5F9] rounded-lg transition-colors">Daily</button>
+                    <button wire:click="$set('chartPeriod', 'monthly')"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {{ $chartPeriod === 'monthly' ? 'bg-[#0F172A] text-white' : 'text-[#64748B] hover:bg-[#F1F5F9]' }}">
+                        Monthly
+                    </button>
+                    <button wire:click="$set('chartPeriod', 'weekly')"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {{ $chartPeriod === 'weekly' ? 'bg-[#0F172A] text-white' : 'text-[#64748B] hover:bg-[#F1F5F9]' }}">
+                        Weekly
+                    </button>
+                    <button wire:click="$set('chartPeriod', 'daily')"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {{ $chartPeriod === 'daily' ? 'bg-[#0F172A] text-white' : 'text-[#64748B] hover:bg-[#F1F5F9]' }}">
+                        Daily
+                    </button>
                 </div>
             </div>
 
-            {{-- Chart Visualization (CSS bars) --}}
+            {{-- Chart Visualization (CSS bars, real data) --}}
+            @php
+                $maxRevenue = collect($chartData)->max('revenue') ?: 1;
+                $totalRevenue = collect($chartData)->sum('revenue');
+                $lastIndex = count($chartData) - 1;
+            @endphp
             <div class="flex items-end gap-2 h-40 mb-3">
-                @php
-                $bars = [
-                    ['h' => 45, 'label' => 'Jan', 'val' => '18.2K'],
-                    ['h' => 62, 'label' => 'Feb', 'val' => '24.8K'],
-                    ['h' => 55, 'label' => 'Mar', 'val' => '21.5K'],
-                    ['h' => 78, 'label' => 'Apr', 'val' => '31.2K'],
-                    ['h' => 68, 'label' => 'May', 'val' => '27.1K'],
-                    ['h' => 88, 'label' => 'Jun', 'val' => '35.6K'],
-                    ['h' => 72, 'label' => 'Jul', 'val' => '28.8K'],
-                    ['h' => 95, 'label' => 'Aug', 'val' => '38.2K'],
-                    ['h' => 83, 'label' => 'Sep', 'val' => '33.4K'],
-                    ['h' => 76, 'label' => 'Oct', 'val' => '30.5K'],
-                    ['h' => 90, 'label' => 'Nov', 'val' => '36.1K'],
-                    ['h' => 100, 'label' => 'Dec', 'val' => '40.2K'],
-                ];
-                @endphp
-                @foreach($bars as $i => $bar)
-                <div class="flex-1 flex flex-col items-center gap-1 group relative" x-data>
+                @foreach($chartData as $i => $bar)
+                <div class="flex-1 flex flex-col items-center gap-1 group relative">
                     <div class="w-full relative">
                         {{-- Tooltip --}}
-                        <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#0F172A] text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            Rs. {{ $bar['val'] }}
+                        <div class="absolute -top-9 left-1/2 -translate-x-1/2 bg-[#0F172A] text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                            Rs. {{ number_format($bar['revenue']) }}
+                            <span class="text-slate-400 font-normal"> ({{ $bar['count'] }})</span>
                         </div>
                         {{-- Bar --}}
-                            <div class="w-full rounded-t-md {{ $i === 11 ? 'bg-[#F59E0B]' : 'bg-[#CBD5E1] group-hover:bg-[#0F172A]' }} transition-all duration-300 hover:shadow-sm"
-                             style="height: {{ $bar['h'] * 1.4 }}px;">
+                        @php
+                            $heightPx = $maxRevenue > 0 ? max(2, round(($bar['revenue'] / $maxRevenue) * 160)) : 2;
+                            $isLast   = $i === $lastIndex;
+                        @endphp
+                        <div class="w-full rounded-t-md {{ $isLast ? 'bg-[#F59E0B]' : 'bg-[#CBD5E1] group-hover:bg-[#0F172A]' }} transition-all duration-300"
+                             style="height: {{ $heightPx }}px;">
                         </div>
                     </div>
                 </div>
                 @endforeach
             </div>
             <div class="flex items-center gap-2">
-                @foreach($bars as $bar)
+                @foreach($chartData as $bar)
                 <span class="flex-1 text-center text-[10px] text-[#94A3B8]">{{ $bar['label'] }}</span>
                 @endforeach
             </div>
@@ -154,15 +162,15 @@
             <div class="flex items-center gap-5 mt-5 pt-5 border-t border-[#F1F5F9]">
                 <div class="flex items-center gap-2">
                     <span class="w-3 h-3 rounded-sm bg-[#F59E0B]"></span>
-                    <span class="text-xs text-[#64748B]">Current Month</span>
+                    <span class="text-xs text-[#64748B]">Latest Period</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="w-3 h-3 rounded-sm bg-[#CBD5E1]"></span>
-                    <span class="text-xs text-[#64748B]">Previous Months</span>
+                    <span class="text-xs text-[#64748B]">Previous Periods</span>
                 </div>
                 <div class="ml-auto text-right">
-                    <p class="text-xs text-[#64748B]">Year Total</p>
-                    <p class="font-[Poppins] font-bold text-sm text-[#0F172A]">Rs. 365,600</p>
+                    <p class="text-xs text-[#64748B]">Period Total</p>
+                    <p class="font-[Poppins] font-bold text-sm text-[#0F172A]">Rs. {{ number_format($totalRevenue) }}</p>
                 </div>
             </div>
         </div>
