@@ -3,6 +3,7 @@
 namespace App\Livewire\Webpage;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use App\Models\Cart as CartModel;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -13,11 +14,14 @@ use App\Services\WhatsappService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Validate;
 
 #[Title('Checkout')]
 #[Layout('layouts.webpage')]
 class Checkout extends Component
 {
+    use WithFileUploads;
+
     public int $step = 1; // 1=address, 2=payment, 3=review, 4=success
 
     // Step 1 — Customer Details & Shipping Address
@@ -49,6 +53,11 @@ class Checkout extends Component
 
     // Success
     public ?string $orderNumber = null;
+
+    // Bank transfer proof upload
+    public $paymentProofFile = null;
+    public bool $proofUploaded = false;
+    public string $proofError = '';
 
     public function mount(): void
     {
@@ -275,6 +284,28 @@ class Checkout extends Component
         $this->step        = 4;
     }
 
+    public function uploadProof(): void
+    {
+        $this->proofError = '';
+
+        $this->validate([
+            'paymentProofFile' => 'required|file|image|max:5120', // 5MB max
+        ], [
+            'paymentProofFile.required' => 'Please select an image to upload.',
+            'paymentProofFile.image'    => 'Only image files (JPG, PNG, etc.) are allowed.',
+            'paymentProofFile.max'      => 'Image must be under 5MB.',
+        ]);
+
+        $order = Order::where('order_number', $this->orderNumber)->first();
+        if (!$order) return;
+
+        $path = $this->paymentProofFile->store('payment-proofs', 'public');
+        $order->update(['payment_proof' => $path]);
+
+        $this->proofUploaded    = true;
+        $this->paymentProofFile = null;
+    }
+
     public function render()
     {
         $subtotal = $this->getSubtotal();
@@ -300,6 +331,13 @@ class Checkout extends Component
             $this->paymentMethod = array_key_first($paymentMethods);
         }
 
-        return view('livewire.webpage.checkout', compact('subtotal', 'shipping', 'tax', 'total', 'paymentMethods'));
+        $bankDetails = [
+            'account_name'   => Setting::get('payment_bank_account_name', ''),
+            'account_number' => Setting::get('payment_bank_account_number', ''),
+            'bank_name'      => Setting::get('payment_bank_name', ''),
+            'instructions'   => Setting::get('payment_bank_instructions', ''),
+        ];
+
+        return view('livewire.webpage.checkout', compact('subtotal', 'shipping', 'tax', 'total', 'paymentMethods', 'bankDetails'));
     }
 }
