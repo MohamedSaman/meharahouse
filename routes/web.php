@@ -133,10 +133,13 @@ Route::post('/newsletter/subscribe', function (\Illuminate\Http\Request $request
             'email'  => $request->email,
             'source' => 'footer',
         ]);
-        return back()->with('newsletter_success', 'Thank you for subscribing! You\'re now on our list.');
     }
 
-    return back()->with('newsletter_success', 'You are already subscribed — thank you!');
+    $referer = $request->headers->get('referer');
+    $home    = route('webpage.home');
+    $target  = $referer && str_starts_with($referer, config('app.url')) ? $referer : $home;
+
+    return redirect($target)->with('newsletter_success', 'Thank you for subscribing!');
 })->name('newsletter.subscribe')->middleware('website.live');
 
 // Jetstream session-auth middleware group — kept for Jetstream's own routes.
