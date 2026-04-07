@@ -108,7 +108,7 @@
                         $cartCount = auth()->check()
                             ? \App\Models\Cart::where('user_id', auth()->id())->sum('quantity')
                             : collect(session()->get('cart', []))->sum('quantity');
-                    @endphpincrese <i class="fa fa-text-width" aria-hidden="true"></i>
+                    @endphp <i class="fa fa-text-width" aria-hidden="true"></i>
                     <a href="{{ route('webpage.cart') }}"
                        class="relative p-2 rounded-lg text-[#475569] hover:text-[#D4A017] hover:bg-[#FFFDF5] transition-all duration-200" title="Cart">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
