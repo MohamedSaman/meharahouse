@@ -9,7 +9,9 @@ use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\Setting;
 use App\Services\WhatsappService;
+use App\Mail\PaymentReceived as PaymentReceivedMail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 #[Title('Payments')]
 class Payment extends Component
@@ -115,7 +117,13 @@ class Payment extends Component
             ]);
         }
 
-        try { WhatsappService::paymentReceived($order->fresh(), (float) $this->receiveAmount); } catch (\Throwable) {}
+        $fresh = $order->fresh();
+        $amt   = (float) $this->receiveAmount;
+        try { WhatsappService::paymentReceived($fresh, $amt); } catch (\Throwable) {}
+        try {
+            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
+            if ($email) Mail::to($email)->send(new PaymentReceivedMail($fresh, $amt));
+        } catch (\Throwable) {}
 
         $this->showReceiveModal = false;
         session()->flash('success', 'Payment of Rs. ' . number_format($this->receiveAmount, 2) . ' recorded for ' . $order->order_number . '.');

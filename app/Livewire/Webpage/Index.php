@@ -6,6 +6,8 @@ use Livewire\Component;
 use App\Models\Banner;
 use App\Models\Category;
 use App\Models\Product;
+use App\Mail\NewsletterWelcome;
+use Illuminate\Support\Facades\Mail;
 
 class Index extends Component
 {
@@ -23,10 +25,14 @@ class Index extends Component
             return;
         }
 
+        $email = $this->subscribeEmail;
+
         \App\Models\NewsletterSubscriber::create([
-            'email'  => $this->subscribeEmail,
+            'email'  => $email,
             'source' => 'website',
         ]);
+
+        try { Mail::to($email)->send(new NewsletterWelcome($email)); } catch (\Throwable) {}
 
         $this->subscribeEmail = '';
         $this->subscribed     = true;

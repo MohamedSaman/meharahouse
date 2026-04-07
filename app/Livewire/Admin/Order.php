@@ -11,6 +11,11 @@ use App\Models\Product;
 use App\Models\Refund;
 use App\Models\Setting;
 use App\Services\WhatsappService;
+use App\Mail\OrderConfirmed;
+use App\Mail\OrderDispatched;
+use App\Mail\OrderDelivered;
+use App\Mail\PaymentReceived as PaymentReceivedMail;
+use Illuminate\Support\Facades\Mail;
 
 #[Title('Orders')]
 class Order extends Component
@@ -122,7 +127,12 @@ class Order extends Component
 
         $order->logStatus('confirmed', 'Order confirmed by admin. Stock deducted.', auth()->id());
         $order->update(['status' => 'confirmed']);
-        try { WhatsappService::orderConfirmed($order->fresh('items')); } catch (\Throwable) {}
+        $fresh = $order->fresh(['items']);
+        try { WhatsappService::orderConfirmed($fresh); } catch (\Throwable) {}
+        try {
+            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
+            if ($email) Mail::to($email)->send(new OrderConfirmed($fresh));
+        } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order confirmed and stock updated.');
     }
@@ -143,7 +153,12 @@ class Order extends Component
 
         $order->logStatus('confirmed', 'Order force-confirmed by admin (stock override).', auth()->id());
         $order->update(['status' => 'confirmed']);
-        try { WhatsappService::orderConfirmed($order->fresh('items')); } catch (\Throwable) {}
+        $fresh = $order->fresh(['items']);
+        try { WhatsappService::orderConfirmed($fresh); } catch (\Throwable) {}
+        try {
+            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
+            if ($email) Mail::to($email)->send(new OrderConfirmed($fresh));
+        } catch (\Throwable) {}
 
         $this->showStockAlert  = false;
         $this->stockIssues     = [];
@@ -221,7 +236,12 @@ class Order extends Component
 
         $order->logStatus('dispatched', 'Order dispatched for delivery.', auth()->id());
         $order->update(['status' => 'dispatched']);
-        try { WhatsappService::orderDispatched($order->fresh()); } catch (\Throwable) {}
+        $fresh = $order->fresh(['shipmentBatch']);
+        try { WhatsappService::orderDispatched($fresh); } catch (\Throwable) {}
+        try {
+            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
+            if ($email) Mail::to($email)->send(new OrderDispatched($fresh));
+        } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order marked as dispatched.');
     }
@@ -234,7 +254,12 @@ class Order extends Component
         $order = OrderModel::findOrFail($orderId);
         $order->logStatus('dispatched', 'Order dispatched — balance payment still outstanding (admin override).', auth()->id());
         $order->update(['status' => 'dispatched']);
-        try { WhatsappService::orderDispatched($order->fresh()); } catch (\Throwable) {}
+        $fresh = $order->fresh(['shipmentBatch']);
+        try { WhatsappService::orderDispatched($fresh); } catch (\Throwable) {}
+        try {
+            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
+            if ($email) Mail::to($email)->send(new OrderDispatched($fresh));
+        } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order dispatched (payment still pending — please follow up).');
     }
@@ -247,7 +272,12 @@ class Order extends Component
         $order = OrderModel::findOrFail($orderId);
         $order->logStatus('delivered', 'Order delivered to customer.', auth()->id());
         $order->update(['status' => 'delivered']);
-        try { WhatsappService::orderDelivered($order->fresh()); } catch (\Throwable) {}
+        $fresh = $order->fresh();
+        try { WhatsappService::orderDelivered($fresh); } catch (\Throwable) {}
+        try {
+            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
+            if ($email) Mail::to($email)->send(new OrderDelivered($fresh));
+        } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order marked as delivered.');
     }
