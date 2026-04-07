@@ -2,11 +2,11 @@
 <div class="space-y-5">
 
     {{-- Page Header --}}
-    <div class="relative overflow-hidden rounded-2xl border border-green-900/40 bg-gradient-to-br from-green-900 via-green-800 to-slate-900 p-6">
+    <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
         <div class="absolute -top-16 -right-12 h-44 w-44 rounded-full bg-green-400/20 blur-3xl pointer-events-none"></div>
         <div class="relative">
             <p class="text-[11px] tracking-[0.16em] uppercase font-semibold text-green-300 mb-1">Admin → Settings</p>
-            <h2 class="font-[Poppins] font-bold text-2xl text-dark">WhatsApp Integration</h2>
+            <h2 class="font-[Poppins] font-bold text-2xl text-white">WhatsApp Integration</h2>
             <p class="text-green-200/70 text-sm mt-1">Connect a WhatsApp provider to send order notifications, confirmations, and support messages to customers.</p>
         </div>
     </div>
