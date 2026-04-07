@@ -22,7 +22,7 @@
         <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <p class="text-[11px] tracking-[0.16em] uppercase font-semibold text-amber-300">Catalog Manager</p>
-            <h2 class="font-[Poppins] font-bold text-2xl text-dark">Products</h2>
+            <h2 class="font-[Poppins] font-bold text-2xl text-white">Products</h2>
             <p class="text-sm text-slate-300">{{ $products->total() }} products in your catalog</p>
         </div>
         <button wire:click.prevent="openCreate" wire:loading.attr="disabled" wire:target="openCreate" class="btn-primary btn-sm shadow-sm hover:shadow-md transition-all duration-200">
