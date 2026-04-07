@@ -72,7 +72,7 @@
                         <input wire:model="remember" type="checkbox" class="w-4 h-4 rounded border-[#CBD5E1] text-[#F59E0B] focus:ring-[#F59E0B]">
                         <span class="text-sm text-[#475569]">Remember me</span>
                     </label>
-                    <a href="#" class="text-sm text-[#F59E0B] font-semibold hover:text-[#D97706]">Forgot password?</a>
+                    <a href="/forgot-password" class="text-sm text-[#F59E0B] font-semibold hover:text-[#D97706]">Forgot password?</a>
                 </div>
 
                 {{-- Submit --}}
