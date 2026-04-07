@@ -52,7 +52,7 @@
         @endif
 
         <div class="flex items-center mt-5">
-            <x-button wire:click="confirmLogout" wire:loading.attr="disabled">
+            <x-button class="bg-black hover:bg-black focus:bg-black text-white" style="background-color: #000000;" wire:click="confirmLogout" wire:loading.attr="disabled">
                 {{ __('Log Out Other Browser Sessions') }}
             </x-button>
 
@@ -87,7 +87,8 @@
                     {{ __('Cancel') }}
                 </x-secondary-button>
 
-                <x-button class="ms-3"
+                <x-button class="ms-3 bg-black hover:bg-black focus:bg-black text-white"
+                            style="background-color: #000000;"
                             wire:click="logoutOtherBrowserSessions"
                             wire:loading.attr="disabled">
                     {{ __('Log Out Other Browser Sessions') }}
