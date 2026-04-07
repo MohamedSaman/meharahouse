@@ -16,7 +16,9 @@
       "Bash(composer require:*)",
       "Bash(composer dump-autoload:*)",
       "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(sed -i 's/background-color: #ffffff;/background-color: #F8FAFC;/' resources/views/vendor/mail/html/themes/default.css)",
+      "Bash(sed -i 's/\\\\.button-blue,\\\\n\\\\.button-primary {//' resources/views/vendor/mail/html/themes/default.css)"
     ]
   }
 }
