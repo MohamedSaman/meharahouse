@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Queue\SerializesModels;
 
 class OrderDelivered extends Mailable
@@ -17,7 +18,18 @@ class OrderDelivered extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Order Delivered — ' . $this->order->order_number);
+        return new Envelope(
+            subject: 'Order Delivered — ' . $this->order->order_number);
+    }
+
+    public function headers(): Headers
+    {
+        return new Headers(
+            text: [
+                'X-Mailer'   => 'Meharahouse Mailer',
+                'X-Priority' => '3',
+            ],
+        );
     }
 
     public function content(): Content

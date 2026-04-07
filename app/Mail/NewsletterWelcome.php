@@ -6,6 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Queue\SerializesModels;
 
 class NewsletterWelcome extends Mailable
@@ -16,7 +17,18 @@ class NewsletterWelcome extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Welcome to Meharahouse — You\'re Subscribed! 🎉');
+        return new Envelope(
+            subject: 'Welcome to Meharahouse — You\'re Subscribed! 🎉');
+    }
+
+    public function headers(): Headers
+    {
+        return new Headers(
+            text: [
+                'X-Mailer'   => 'Meharahouse Mailer',
+                'X-Priority' => '3',
+            ],
+        );
     }
 
     public function content(): Content

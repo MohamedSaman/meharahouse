@@ -178,45 +178,70 @@
         {{-- Order Status Donut --}}
         <div class="card p-6 shadow-sm hover:shadow-md transition-all duration-300">
             <h3 class="font-[Poppins] font-bold text-[#0F172A] mb-1">Order Status</h3>
-            <p class="text-xs text-[#64748B] mb-6">This month's breakdown</p>
+            <p class="text-xs text-[#64748B] mb-6">All-time breakdown</p>
 
-            {{-- Donut Chart (SVG) --}}
+            @php
+            $donutStatuses = [
+                'new'        => ['color' => '#F59E0B', 'stroke' => 'bg-amber-400',  'label' => 'New'],
+                'confirmed'  => ['color' => '#3B82F6', 'stroke' => 'bg-blue-500',   'label' => 'Confirmed'],
+                'dispatched' => ['color' => '#8B5CF6', 'stroke' => 'bg-purple-500', 'label' => 'Dispatched'],
+                'delivered'  => ['color' => '#22C55E', 'stroke' => 'bg-green-500',  'label' => 'Delivered'],
+                'completed'  => ['color' => '#10B981', 'stroke' => 'bg-emerald-500','label' => 'Completed'],
+                'cancelled'  => ['color' => '#EF4444', 'stroke' => 'bg-red-500',    'label' => 'Cancelled'],
+            ];
+            $donutTotal = $orderStatuses->sum() ?: 1;
+            // circumference ≈ 2 * π * 15.9 ≈ 99.9
+            $circ = 99.9;
+            $offset = 0;
+            $segments = [];
+            foreach ($donutStatuses as $key => $meta) {
+                $count = (int)($orderStatuses[$key] ?? 0);
+                $arc   = round(($count / $donutTotal) * $circ, 2);
+                $segments[$key] = [
+                    'color'  => $meta['color'],
+                    'stroke' => $meta['stroke'],
+                    'label'  => $meta['label'],
+                    'count'  => $count,
+                    'pct'    => $donutTotal > 0 ? round(($count / $donutTotal) * 100) : 0,
+                    'dash'   => $arc . ' ' . ($circ - $arc),
+                    'offset' => -$offset,
+                ];
+                $offset += $arc;
+            }
+            @endphp
+
+            {{-- Donut SVG with real data --}}
             <div class="flex justify-center mb-6">
                 <div class="relative w-36 h-36">
                     <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
                         <circle cx="18" cy="18" r="15.9" fill="none" stroke="#F1F5F9" stroke-width="3"/>
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#F59E0B" stroke-width="3"
-                                stroke-dasharray="42 58" stroke-dashoffset="0"/>
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#3B82F6" stroke-width="3"
-                                stroke-dasharray="28 72" stroke-dashoffset="-42"/>
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
-                                stroke-dasharray="20 80" stroke-dashoffset="-70"/>
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#EF4444" stroke-width="3"
-                                stroke-dasharray="10 90" stroke-dashoffset="-90"/>
+                        @foreach($segments as $seg)
+                        @if($seg['count'] > 0)
+                        <circle cx="18" cy="18" r="15.9" fill="none"
+                                stroke="{{ $seg['color'] }}" stroke-width="3"
+                                stroke-dasharray="{{ $seg['dash'] }}"
+                                stroke-dashoffset="{{ $seg['offset'] }}"/>
+                        @endif
+                        @endforeach
                     </svg>
                     <div class="absolute inset-0 flex flex-col items-center justify-center">
-                        <span class="font-[Poppins] font-bold text-xl text-[#0F172A]">1,248</span>
+                        <span class="font-[Poppins] font-bold text-xl text-[#0F172A]">{{ number_format($orderStatuses->sum()) }}</span>
                         <span class="text-xs text-[#64748B]">Total</span>
                     </div>
                 </div>
             </div>
 
-            {{-- Legend — real data --}}
-            @php
-            $statusColors = ['pending' => 'bg-[#F59E0B]', 'processing' => 'bg-blue-500', 'shipped' => 'bg-purple-500', 'delivered' => 'bg-green-500', 'cancelled' => 'bg-red-500'];
-            $totalOrders  = $orderStatuses->sum() ?: 1;
-            @endphp
-            <div class="space-y-3">
-                @foreach(['pending','processing','shipped','delivered','cancelled'] as $status)
-                @php $count = $orderStatuses[$status] ?? 0; $pct = round(($count / $totalOrders) * 100); @endphp
+            {{-- Legend --}}
+            <div class="space-y-2.5">
+                @foreach($segments as $seg)
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full {{ $statusColors[$status] }}"></span>
-                        <span class="text-xs text-[#475569] font-medium">{{ ucfirst($status) }}</span>
+                        <span class="w-2.5 h-2.5 rounded-full {{ $seg['stroke'] }}"></span>
+                        <span class="text-xs text-[#475569] font-medium">{{ $seg['label'] }}</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-[#0F172A]">{{ $count }}</span>
-                        <span class="text-xs text-[#94A3B8]">{{ $pct }}%</span>
+                        <span class="text-xs font-bold text-[#0F172A]">{{ $seg['count'] }}</span>
+                        <span class="text-xs text-[#94A3B8]">{{ $seg['pct'] }}%</span>
                     </div>
                 </div>
                 @endforeach
@@ -230,24 +255,85 @@
     <div class="card p-5 shadow-sm hover:shadow-md transition-all duration-300">
         <h3 class="font-[Poppins] font-bold text-[#0F172A] mb-4 text-sm">Quick Actions</h3>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            @php
-            $actions = [
-                ['label' => 'Add Product',   'icon' => 'M12 4v16m8-8H4',         'color' => 'bg-[#FFFBEB] text-[#D97706] hover:bg-[#FEF3C7]'],
-                ['label' => 'New Order',     'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'color' => 'bg-[#EFF6FF] text-blue-600 hover:bg-blue-100'],
-                ['label' => 'Add Customer',  'icon' => 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z', 'color' => 'bg-[#F0FDF4] text-green-600 hover:bg-green-100'],
-                ['label' => 'View Reports',  'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', 'color' => 'bg-[#F5F3FF] text-purple-600 hover:bg-purple-100'],
-            ];
-            @endphp
-            @foreach($actions as $action)
-            <button class="flex items-center gap-3 p-3.5 rounded-xl {{ $action['color'] }} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm text-left font-semibold text-sm">
+            <a href="{{ route('admin.products') }}"
+               class="flex items-center gap-3 p-3.5 rounded-xl bg-[#FFFBEB] text-[#D97706] hover:bg-[#FEF3C7] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm font-semibold text-sm">
                 <div class="w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center shrink-0">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $action['icon'] }}"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
                 </div>
-                {{ $action['label'] }}
-            </button>
-            @endforeach
+                Add Product
+            </a>
+
+            <a href="{{ route('admin.manual-order') }}"
+               class="flex items-center gap-3 p-3.5 rounded-xl bg-[#EFF6FF] text-blue-600 hover:bg-blue-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm font-semibold text-sm">
+                <div class="w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                </div>
+                New Order
+            </a>
+
+            <a href="{{ route('admin.customers') }}"
+               class="flex items-center gap-3 p-3.5 rounded-xl bg-[#F0FDF4] text-green-600 hover:bg-green-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm font-semibold text-sm">
+                <div class="w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                    </svg>
+                </div>
+                Customers
+            </a>
+
+            <a href="{{ route('admin.reports') }}"
+               class="flex items-center gap-3 p-3.5 rounded-xl bg-[#F5F3FF] text-purple-600 hover:bg-purple-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm font-semibold text-sm">
+                <div class="w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+                View Reports
+            </a>
+
+            <a href="{{ route('admin.payments') }}"
+               class="flex items-center gap-3 p-3.5 rounded-xl bg-[#FFF1F2] text-rose-600 hover:bg-rose-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm font-semibold text-sm">
+                <div class="w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                </div>
+                Payments
+            </a>
+
+            <a href="{{ route('admin.purchasing') }}"
+               class="flex items-center gap-3 p-3.5 rounded-xl bg-[#FFF7ED] text-orange-600 hover:bg-orange-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm font-semibold text-sm">
+                <div class="w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                </div>
+                Purchasing
+            </a>
+
+            <a href="{{ route('admin.shipments') }}"
+               class="flex items-center gap-3 p-3.5 rounded-xl bg-[#F0F9FF] text-sky-600 hover:bg-sky-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm font-semibold text-sm">
+                <div class="w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                    </svg>
+                </div>
+                Shipments
+            </a>
+
+            <a href="{{ route('admin.whatsapp-orders') }}"
+               class="flex items-center gap-3 p-3.5 rounded-xl bg-[#F0FDF4] text-emerald-600 hover:bg-emerald-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm font-semibold text-sm">
+                <div class="w-8 h-8 rounded-lg bg-white/60 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                </div>
+                WA Orders
+            </a>
         </div>
     </div>
 
