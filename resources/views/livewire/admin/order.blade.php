@@ -471,33 +471,66 @@
 
             {{-- ── Status Timeline ── --}}
             <div>
-                <h4 class="font-semibold text-sm text-[#0F172A] mb-3 flex items-center gap-2">
+                <h4 class="font-semibold text-sm text-[#0F172A] mb-4 flex items-center gap-2">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Status History
                 </h4>
                 @if($selectedOrder->statusLogs->isNotEmpty())
-                <div class="relative pl-5 space-y-4">
-                    <div class="absolute top-0 bottom-0 left-2 w-0.5 bg-slate-100"></div>
-                    @foreach($selectedOrder->statusLogs as $log)
-                    <div class="relative">
-                        <div class="absolute -left-3 top-1 w-4 h-4 rounded-full bg-white border-2 border-amber-400 flex items-center justify-center">
-                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                        </div>
-                        <div class="pl-3">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                @if($log->from_status)
-                                <span class="text-xs text-slate-400">{{ ucfirst(str_replace('_', ' ', $log->from_status)) }}</span>
-                                <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                                @endif
-                                <span class="text-xs font-bold text-[#0F172A]">{{ ucfirst(str_replace('_', ' ', $log->to_status)) }}</span>
-                            </div>
-                            @if($log->notes)
-                            <p class="text-xs text-slate-500 mt-0.5">{{ $log->notes }}</p>
+                @php
+                $statusColors = [
+                    'new'              => ['dot' => 'bg-amber-400',  'badge' => 'bg-amber-50 text-amber-700 border-amber-200'],
+                    'confirmed'        => ['dot' => 'bg-blue-500',   'badge' => 'bg-blue-50 text-blue-700 border-blue-200'],
+                    'processing'       => ['dot' => 'bg-indigo-500', 'badge' => 'bg-indigo-50 text-indigo-700 border-indigo-200'],
+                    'sourcing'         => ['dot' => 'bg-purple-500', 'badge' => 'bg-purple-50 text-purple-700 border-purple-200'],
+                    'dispatched'       => ['dot' => 'bg-sky-500',    'badge' => 'bg-sky-50 text-sky-700 border-sky-200'],
+                    'delivered'        => ['dot' => 'bg-green-500',  'badge' => 'bg-green-50 text-green-700 border-green-200'],
+                    'completed'        => ['dot' => 'bg-emerald-500','badge' => 'bg-emerald-50 text-emerald-700 border-emerald-200'],
+                    'cancelled'        => ['dot' => 'bg-red-400',    'badge' => 'bg-red-50 text-red-600 border-red-200'],
+                    'payment_received' => ['dot' => 'bg-teal-500',   'badge' => 'bg-teal-50 text-teal-700 border-teal-200'],
+                ];
+                @endphp
+                <div class="space-y-0">
+                    @foreach($selectedOrder->statusLogs as $i => $log)
+                    @php
+                        $isLast  = $loop->last;
+                        $colors  = $statusColors[$log->to_status] ?? ['dot' => 'bg-slate-400', 'badge' => 'bg-slate-50 text-slate-600 border-slate-200'];
+                    @endphp
+                    <div class="flex gap-4">
+                        {{-- Timeline spine --}}
+                        <div class="flex flex-col items-center">
+                            <div class="w-3 h-3 rounded-full {{ $colors['dot'] }} ring-2 ring-white shadow-sm mt-1 shrink-0"></div>
+                            @if(!$isLast)
+                            <div class="w-px flex-1 bg-slate-200 my-1"></div>
                             @endif
-                            <div class="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                        </div>
+                        {{-- Content --}}
+                        <div class="pb-5 flex-1 min-w-0">
+                            {{-- Status transition badges --}}
+                            <div class="flex items-center gap-2 flex-wrap mb-1">
+                                @if($log->from_status)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                    {{ ucwords(str_replace('_', ' ', $log->from_status)) }}
+                                </span>
+                                <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                </svg>
+                                @endif
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border {{ $colors['badge'] }}">
+                                    {{ ucwords(str_replace('_', ' ', $log->to_status)) }}
+                                </span>
+                            </div>
+                            {{-- Notes --}}
+                            @if($log->notes)
+                            <p class="text-xs text-slate-500 leading-relaxed mb-1">{{ $log->notes }}</p>
+                            @endif
+                            {{-- Meta --}}
+                            <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 <span>{{ $log->created_at->format('d M Y, h:i A') }}</span>
                                 @if($log->createdBy)
-                                <span>&middot; {{ $log->createdBy->name }}</span>
+                                <span class="text-slate-300">·</span>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                <span>{{ $log->createdBy->name }}</span>
                                 @endif
                             </div>
                         </div>
@@ -505,7 +538,10 @@
                     @endforeach
                 </div>
                 @else
-                <p class="text-xs text-slate-400 italic">No status history recorded.</p>
+                <div class="flex items-center gap-2 text-xs text-slate-400 italic py-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    No status history recorded.
+                </div>
                 @endif
             </div>
 
