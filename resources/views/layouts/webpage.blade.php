@@ -10,7 +10,36 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('images/meharahouse-logo.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/meharahouse-logo.png') }}">
+
+    <!-- PWA — Manifest & Icons -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#D4A017">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Meharahouse">
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Meharahouse">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/apple-icon-180.png') }}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{{ asset('icons/icon-192.png') }}">
+    <link rel="apple-touch-icon" sizes="512x512" href="{{ asset('icons/icon-512.png') }}">
+
+    <!-- Apple Splash Screens -->
+    <link rel="apple-touch-startup-image" href="{{ asset('icons/apple-splash-2048-2732.jpg') }}" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="{{ asset('icons/apple-splash-1668-2388.jpg') }}" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="{{ asset('icons/apple-splash-1320-2868.jpg') }}" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="{{ asset('icons/apple-splash-1290-2796.jpg') }}" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="{{ asset('icons/apple-splash-1179-2556.jpg') }}" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="{{ asset('icons/apple-splash-1170-2532.jpg') }}" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="{{ asset('icons/apple-splash-1125-2436.jpg') }}" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="{{ asset('icons/apple-splash-750-1334.jpg') }}" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="{{ asset('icons/apple-splash-640-1136.jpg') }}" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#0F172A">
+    <meta name="msapplication-TileImage" content="{{ asset('icons/icon-144.png') }}">
+    <meta name="msapplication-tap-highlight" content="no">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -434,5 +463,198 @@
     @livewireScripts
 
     @stack('scripts')
+
+    {{-- ══════════════════════════ PWA INSTALL BANNER ══════════════════════════ --}}
+
+    {{-- Android / Chrome install banner --}}
+    <div id="pwa-install-banner"
+         style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;
+                background:#0F172A;border-top:2px solid #D4A017;
+                padding:14px 20px;box-shadow:0 -4px 24px rgba(0,0,0,0.35);"
+         role="banner" aria-label="Install Meharahouse app">
+        <div style="max-width:960px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <img src="{{ asset('icons/icon-72.png') }}" alt="" width="44" height="44"
+                 style="border-radius:10px;flex-shrink:0;">
+            <div style="flex:1;min-width:180px;">
+                <p style="margin:0;font-weight:700;color:#fff;font-size:14px;line-height:1.3;">Install Meharahouse App</p>
+                <p style="margin:2px 0 0;color:#94A3B8;font-size:12px;">Shop faster — works offline, no App Store needed</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0;">
+                <button id="pwa-install-btn"
+                        style="background:#D4A017;color:#0F172A;border:none;border-radius:8px;
+                               padding:9px 20px;font-weight:700;font-size:13px;cursor:pointer;
+                               white-space:nowrap;">
+                    Install
+                </button>
+                <button id="pwa-dismiss-btn"
+                        aria-label="Dismiss"
+                        style="background:#1E293B;color:#94A3B8;border:1px solid #334155;
+                               border-radius:8px;padding:9px 12px;font-size:13px;cursor:pointer;">
+                    ✕
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- iOS Safari install guide --}}
+    <div id="pwa-ios-banner"
+         style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;
+                background:#0F172A;border-top:2px solid #D4A017;
+                padding:14px 20px;box-shadow:0 -4px 24px rgba(0,0,0,0.35);"
+         role="banner" aria-label="Add Meharahouse to home screen">
+        <div style="max-width:960px;margin:0 auto;">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+                <img src="{{ asset('icons/icon-72.png') }}" alt="" width="44" height="44"
+                     style="border-radius:10px;flex-shrink:0;">
+                <div style="flex:1;">
+                    <p style="margin:0;font-weight:700;color:#fff;font-size:14px;">Add to Home Screen</p>
+                    <p style="margin:2px 0 0;color:#94A3B8;font-size:12px;">Install Meharahouse like a native app — free &amp; instant</p>
+                </div>
+                <button id="pwa-ios-dismiss"
+                        aria-label="Dismiss"
+                        style="background:#1E293B;color:#94A3B8;border:1px solid #334155;
+                               border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;flex-shrink:0;">
+                    ✕
+                </button>
+            </div>
+            <div style="background:#1E293B;border-radius:10px;padding:10px 14px;
+                        display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span style="color:#94A3B8;font-size:12px;">
+                    Tap
+                    <svg style="display:inline;vertical-align:middle;margin:0 3px;" width="16" height="16"
+                         viewBox="0 0 24 24" fill="none" stroke="#D4A017" stroke-width="2.5"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/>
+                        <polyline points="16 6 12 2 8 6"/>
+                        <line x1="12" y1="2" x2="12" y2="15"/>
+                    </svg>
+                    <strong style="color:#D4A017;">Share</strong>
+                    &nbsp;then&nbsp;
+                    <strong style="color:#D4A017;">Add to Home Screen</strong>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    {{-- ══════════════════════════ PWA SERVICE WORKER ══════════════════════════ --}}
+    <script>
+        (function () {
+            'use strict';
+
+            // Only register on the public storefront — never on admin or staff sub-paths
+            var pathname = window.location.pathname;
+            var isAdminOrStaff = /^\/(admin|staff)(\/|$)/.test(pathname);
+
+            if ('serviceWorker' in navigator && !isAdminOrStaff) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker
+                        .register('/sw.js', { scope: '/' })
+                        .then(function (registration) {
+                            // Check for updates every 30 minutes while the page is open
+                            setInterval(function () {
+                                registration.update();
+                            }, 30 * 60 * 1000);
+                        })
+                        .catch(function (error) {
+                            // Fail silently — PWA is an enhancement, not a requirement
+                            console.warn('[Meharahouse SW] Registration failed:', error);
+                        });
+                });
+
+                // When a new SW version is waiting, reload automatically so users
+                // always get the freshest assets without a manual hard-refresh.
+                navigator.serviceWorker.addEventListener('controllerchange', function () {
+                    window.location.reload();
+                });
+            }
+        })();
+    </script>
+
+    {{-- PWA Install Prompt Logic --}}
+    <script>
+        (function () {
+            'use strict';
+
+            var DISMISS_KEY = 'mh_pwa_dismiss';
+            var DISMISS_DAYS = 7;
+
+            // Don't show on admin/staff, or if already running as installed PWA
+            var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                || window.navigator.standalone === true;
+            var isAdminOrStaff = /^\/(admin|staff)(\/|$)/.test(window.location.pathname);
+
+            if (isStandalone || isAdminOrStaff) return;
+
+            // Check if dismissed recently
+            function isDismissed() {
+                var ts = localStorage.getItem(DISMISS_KEY);
+                if (!ts) return false;
+                return (Date.now() - parseInt(ts, 10)) < DISMISS_DAYS * 24 * 60 * 60 * 1000;
+            }
+
+            function dismiss(key) {
+                localStorage.setItem(DISMISS_KEY, Date.now().toString());
+                var el = document.getElementById(key);
+                if (el) { el.style.transition = 'transform 0.3s ease'; el.style.transform = 'translateY(100%)'; setTimeout(function(){ el.style.display = 'none'; }, 320); }
+            }
+
+            function slideUp(el) {
+                el.style.display = 'block';
+                el.style.transform = 'translateY(100%)';
+                el.style.transition = 'transform 0.4s cubic-bezier(0.22,1,0.36,1)';
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() { el.style.transform = 'translateY(0)'; });
+                });
+            }
+
+            if (isDismissed()) return;
+
+            // ── Android / Chrome ───────────────────────────────────────────────
+            var deferredPrompt = null;
+
+            window.addEventListener('beforeinstallprompt', function (e) {
+                e.preventDefault();
+                deferredPrompt = e;
+
+                setTimeout(function () {
+                    if (isDismissed()) return;
+                    var banner = document.getElementById('pwa-install-banner');
+                    if (banner) slideUp(banner);
+                }, 4000);
+            });
+
+            document.addEventListener('click', function (e) {
+                if (e.target && e.target.id === 'pwa-install-btn' && deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(function (choice) {
+                        if (choice.outcome === 'accepted') {
+                            localStorage.setItem(DISMISS_KEY, Date.now().toString());
+                        }
+                        deferredPrompt = null;
+                        var banner = document.getElementById('pwa-install-banner');
+                        if (banner) { banner.style.display = 'none'; }
+                    });
+                }
+                if (e.target && e.target.id === 'pwa-dismiss-btn') {
+                    dismiss('pwa-install-banner');
+                }
+                if (e.target && e.target.id === 'pwa-ios-dismiss') {
+                    dismiss('pwa-ios-banner');
+                }
+            });
+
+            // ── iOS Safari ────────────────────────────────────────────────────
+            var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+            var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+            if (isIos && isSafari) {
+                setTimeout(function () {
+                    if (isDismissed()) return;
+                    var banner = document.getElementById('pwa-ios-banner');
+                    if (banner) slideUp(banner);
+                }, 4000);
+            }
+        })();
+    </script>
 </body>
 </html>
