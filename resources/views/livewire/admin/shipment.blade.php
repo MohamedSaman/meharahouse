@@ -1,5 +1,19 @@
 {{-- resources/views/livewire/admin/shipment.blade.php --}}
-<div class="space-y-6">
+<div class="space-y-6"
+     x-data="{
+         advanceConfirm: false,
+         advanceBatchId: null,
+         advanceBatchName: '',
+         advanceFrom: '',
+         advanceTo: '',
+         openAdvance(id, name, from, to) {
+             this.advanceBatchId  = id;
+             this.advanceBatchName = name;
+             this.advanceFrom = from;
+             this.advanceTo   = to;
+             this.advanceConfirm = true;
+         }
+     }">
 
     {{-- ══════════════════════ PAGE HEADER ══════════════════════ --}}
     <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 sm:p-6 shadow-xl">
@@ -298,8 +312,14 @@
 
                                 {{-- Advance Status --}}
                                 @if($batch->status !== 'completed')
-                                <button wire:click="advanceStatus({{ $batch->id }})"
-                                        wire:confirm="Advance '{{ $batch->name }}' to the next stage?"
+                                @php
+                                    $statusLabels = ['collecting'=>'Collecting Orders','purchased'=>'Purchased','packed'=>'Packed in Dubai','shipped'=>'Shipped from Dubai','in_transit'=>'In Transit','arrived'=>'Arrived in Sri Lanka','distributing'=>'Distributing Locally','completed'=>'Completed'];
+                                    $allStatuses  = array_keys($statusLabels);
+                                    $nextIdx      = array_search($batch->status, $allStatuses) + 1;
+                                    $nextStatus   = $allStatuses[$nextIdx] ?? null;
+                                    $nextLabel    = $nextStatus ? $statusLabels[$nextStatus] : '';
+                                @endphp
+                                <button @click="openAdvance({{ $batch->id }}, '{{ addslashes($batch->name) }}', '{{ $batch->statusLabel() }}', '{{ $nextLabel }}')"
                                         title="Advance to next stage"
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -839,5 +859,74 @@
         </div>
     </div>
     @endif
+
+    {{-- ══ ADVANCE STAGE CONFIRM MODAL ══ --}}
+    <div x-show="advanceConfirm"
+         x-cloak
+         style="display:none;background:rgba(15,23,42,0.7);"
+         class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+             @click.outside="advanceConfirm = false">
+
+            {{-- Header --}}
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-[Poppins] font-bold text-white text-base">Advance Shipment Batch</h3>
+                        <p class="text-amber-100 text-xs mt-0.5">This action will update the batch stage</p>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Body --}}
+            <div class="px-6 py-5 space-y-4">
+
+                {{-- Batch name --}}
+                <div class="text-center">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Batch</p>
+                    <p class="font-[Poppins] font-bold text-slate-800 text-base" x-text="advanceBatchName"></p>
+                </div>
+
+                {{-- Stage transition --}}
+                <div class="flex items-center justify-center gap-3 bg-slate-50 rounded-xl px-4 py-4 border border-slate-100">
+                    <div class="text-center flex-1">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-1.5">Current Stage</p>
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold"
+                              x-text="advanceFrom"></span>
+                    </div>
+                    <div class="shrink-0">
+                        <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                        </svg>
+                    </div>
+                    <div class="text-center flex-1">
+                        <p class="text-[10px] text-amber-600 uppercase tracking-wider font-semibold mb-1.5">Next Stage</p>
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-lg bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200"
+                              x-text="advanceTo"></span>
+                    </div>
+                </div>
+
+                <p class="text-xs text-slate-400 text-center">Are you sure you want to advance this batch to the next stage?</p>
+            </div>
+
+            {{-- Footer --}}
+            <div class="px-6 pb-5 flex gap-2">
+                <button @click="advanceConfirm = false"
+                        class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
+                    Cancel
+                </button>
+                <button @click="$wire.advanceStatus(advanceBatchId); advanceConfirm = false"
+                        class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold hover:from-amber-600 hover:to-orange-600 transition-all shadow-md shadow-amber-500/30">
+                    Advance Stage
+                </button>
+            </div>
+        </div>
+    </div>
 
 </div>
