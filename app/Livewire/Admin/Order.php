@@ -845,10 +845,19 @@ class Order extends Component
 
         // Reduce balance_amount by the refund amount so balanceDue() reflects the refund
         $newBalance = max(0, (float) $order->balance_amount - (float) $this->refundAmount);
-        $order->logStatus('refunded', 'Refund of Rs. ' . number_format($this->refundAmount, 0) . ' processed.', auth()->id());
+
+        // Only mark the entire order as 'refunded' if ALL items are refunded.
+        // If just some items are refunded the order stays 'confirmed' so delivery can continue.
+        $order->load('items');
+        $allItemsRefunded = $order->items->isNotEmpty()
+            && $order->items->every(fn($i) => $i->status === 'refunded');
+        $newOrderStatus   = $allItemsRefunded ? 'refunded' : $order->status;
+        $newPaymentStatus = $allItemsRefunded ? 'refunded' : $order->payment_status;
+
+        $order->logStatus($newOrderStatus, 'Refund of Rs. ' . number_format($this->refundAmount, 0) . ' processed.', auth()->id());
         $order->update([
-            'status'         => 'refunded',
-            'payment_status' => 'refunded',
+            'status'         => $newOrderStatus,
+            'payment_status' => $newPaymentStatus,
             'balance_amount' => $newBalance,
         ]);
 
