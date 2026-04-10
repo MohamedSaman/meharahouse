@@ -199,12 +199,47 @@
                         <h4 class="font-semibold text-sm text-[#0F172A] mb-3">Items</h4>
                         <div class="space-y-2">
                             @foreach($selOrder->items as $item)
-                            <div class="flex justify-between text-sm py-2 border-b border-[#F1F5F9] last:border-0">
-                                <div>
-                                    <p class="font-medium text-[#0F172A]">{{ $item->product_name }}</p>
-                                    <p class="text-xs text-[#64748B]">Rs. {{ number_format($item->price, 0) }} x {{ $item->quantity }}</p>
+                            @php $itemStatus = $item->status ?? 'active'; @endphp
+                            <div class="py-2 border-b border-[#F1F5F9] last:border-0">
+                                <div class="flex justify-between text-sm">
+                                    <div class="flex-1 min-w-0 pr-3">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <p class="font-medium text-[#0F172A]">{{ $item->product_name }}</p>
+                                            @if($itemStatus === 'refunded')
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">Refunded</span>
+                                            @elseif($itemStatus === 'replaced')
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700">Replaced</span>
+                                            @elseif($itemStatus === 'backordered')
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">Coming Soon</span>
+                                            @endif
+                                        </div>
+                                        @if($itemStatus === 'refunded')
+                                            <p class="text-xs text-red-500 mt-0.5">Out of stock &mdash; Rs. {{ number_format($item->refund_amount, 0) }} refunded</p>
+                                        @elseif($item->original_qty && $item->original_qty != $item->quantity)
+                                            <p class="text-xs text-[#64748B] mt-0.5">Ordered: {{ $item->original_qty }} &middot; Fulfilled: {{ $item->quantity }}</p>
+                                        @else
+                                            <p class="text-xs text-[#64748B] mt-0.5">Rs. {{ number_format($item->price, 0) }} &times; {{ $item->quantity }}</p>
+                                        @endif
+                                    </div>
+                                    <span class="font-semibold shrink-0 {{ $itemStatus === 'refunded' ? 'text-red-500 line-through' : 'text-[#0F172A]' }}">
+                                        Rs. {{ number_format($item->original_ordered_subtotal ?? $item->subtotal, 0) }}
+                                    </span>
                                 </div>
-                                <span class="font-semibold">Rs. {{ number_format($item->subtotal, 0) }}</span>
+                                {{-- Status-specific notes for the customer --}}
+                                @if($itemStatus === 'replaced' && $item->is_replaced)
+                                <p class="mt-1 text-[11px] text-orange-600">
+                                    Originally ordered: <span class="font-medium">{{ $item->original_product_name }}</span>
+                                    &mdash; Replaced with: <span class="font-medium">{{ $item->product_name }}</span>
+                                </p>
+                                @elseif($itemStatus === 'backordered')
+                                <p class="mt-1 text-[11px] text-blue-600">
+                                    This item will be dispatched separately once stock is available.
+                                </p>
+                                @elseif($item->refund_amount > 0 && $itemStatus === 'active')
+                                <p class="mt-1 text-[11px] text-red-500">
+                                    {{ $item->original_qty - $item->quantity }} unit(s) out of stock &mdash; Rs. {{ number_format($item->refund_amount, 0) }} refunded for the shortage.
+                                </p>
+                                @endif
                             </div>
                             @endforeach
                         </div>

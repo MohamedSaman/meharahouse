@@ -675,6 +675,60 @@
                     <p class="text-center py-5 text-xs text-slate-400">Type at least 2 characters to search</p>
                     @endif
                 </div>
+                {{-- ── Live price difference alert ───────────────────── --}}
+                @if($selectedReplacementId && $selectedReplacementPrice > 0 && $originalItemPrice > 0)
+                @php
+                    $totalOrig    = round($originalItemPrice * $replacingQty, 2);
+                    $totalNew     = round($selectedReplacementPrice * $replacingQty, 2);
+                    $diffAmount   = round($totalNew - $totalOrig, 2);
+                @endphp
+                @if($diffAmount > 0)
+                <div class="flex items-start gap-3 p-3.5 bg-orange-50 border border-orange-300 rounded-xl">
+                    <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-orange-800">Replacement is more expensive</p>
+                        <p class="text-xs text-orange-700 mt-0.5">
+                            Original: <strong>LKR {{ number_format($totalOrig, 2) }}</strong>
+                            &rarr; Replacement: <strong>LKR {{ number_format($totalNew, 2) }}</strong>
+                        </p>
+                        <p class="text-xs font-bold text-orange-800 mt-1">
+                            +LKR {{ number_format($diffAmount, 2) }} will be added to the customer's balance due.
+                        </p>
+                    </div>
+                </div>
+                @elseif($diffAmount < 0)
+                <div class="flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-300 rounded-xl">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-blue-800">Replacement is cheaper</p>
+                        <p class="text-xs text-blue-700 mt-0.5">
+                            Original: <strong>LKR {{ number_format($totalOrig, 2) }}</strong>
+                            &rarr; Replacement: <strong>LKR {{ number_format($totalNew, 2) }}</strong>
+                        </p>
+                        <p class="text-xs font-bold text-blue-800 mt-1">
+                            LKR {{ number_format(abs($diffAmount), 2) }} will be deducted from order total.
+                            If customer already paid in full, a refund will be required.
+                        </p>
+                    </div>
+                </div>
+                @else
+                <div class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl">
+                    <svg class="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <p class="text-xs font-semibold text-green-700">Same price — no adjustment needed.</p>
+                </div>
+                @endif
+                @endif
+
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Notes <span class="text-slate-400 font-normal">(optional)</span></label>
                     <textarea wire:model="replaceNotes" rows="2"

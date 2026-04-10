@@ -882,12 +882,109 @@
                 </h4>
                 <div class="space-y-2">
                     @foreach($selectedOrder->items as $item)
-                    <div class="flex items-center justify-between py-2.5 border-b border-[#F1F5F9] last:border-0">
-                        <div>
-                            <p class="text-sm font-medium text-[#0F172A]">{{ $item->product_name }}</p>
-                            <p class="text-xs text-[#64748B]">Rs. {{ number_format($item->price, 0) }} &times; {{ $item->quantity }}</p>
+                    @php
+                        $statusConfig = match($item->status ?? 'active') {
+                            'refunded'    => ['label' => 'Refunded',  'bg' => 'bg-red-50',    'border' => 'border-red-200',    'badge' => 'bg-red-100 text-red-700',      'icon_color' => 'text-red-500'],
+                            'replaced'    => ['label' => 'Replaced',  'bg' => 'bg-orange-50', 'border' => 'border-orange-200', 'badge' => 'bg-orange-100 text-orange-700','icon_color' => 'text-orange-500'],
+                            'backordered' => ['label' => 'Backorder', 'bg' => 'bg-blue-50',   'border' => 'border-blue-200',   'badge' => 'bg-blue-100 text-blue-700',   'icon_color' => 'text-blue-500'],
+                            default       => ['label' => 'Confirmed', 'bg' => 'bg-white',     'border' => 'border-slate-100',  'badge' => 'bg-green-100 text-green-700', 'icon_color' => 'text-green-500'],
+                        };
+                        $priceDiffAmt = $item->is_replaced
+                            ? round(((float)$item->price - (float)$item->original_price) * $item->quantity, 2)
+                            : 0;
+                        // Find the backorder record linked to this item (if backordered)
+                        $itemBackorder = ($item->status === 'backordered')
+                            ? $selectedOrder->backorders->where('order_item_id', $item->id)->first()
+                            : null;
+                    @endphp
+                    <div class="rounded-xl border {{ $statusConfig['border'] }} {{ $statusConfig['bg'] }} p-3">
+                        {{-- Item header --}}
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <p class="text-sm font-semibold text-[#0F172A]">{{ $item->product_name }}</p>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $statusConfig['badge'] }}">
+                                        {{ $statusConfig['label'] }}
+                                    </span>
+                                </div>
+                                {{-- Show original qty if it differs from fulfilled qty --}}
+                                @if($item->original_qty && $item->original_qty != $item->quantity)
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    Ordered: {{ $item->original_qty }} unit(s)
+                                    @if($item->quantity > 0) &middot; Fulfilled: {{ $item->quantity }} unit(s) @endif
+                                </p>
+                                @else
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    Rs. {{ number_format($item->price, 0) }} &times; {{ $item->quantity }}
+                                </p>
+                                @endif
+                            </div>
+                            {{-- Amount column --}}
+                            <div class="text-right shrink-0">
+                                @if($item->status === 'refunded')
+                                    <p class="text-sm font-bold text-red-600">Rs. {{ number_format($item->original_ordered_subtotal ?? $item->refund_amount, 0) }}</p>
+                                    <p class="text-[10px] text-red-500">refunded</p>
+                                @elseif($item->status === 'backordered')
+                                    <p class="text-sm font-semibold text-blue-700">Rs. {{ number_format($item->subtotal, 0) }}</p>
+                                    <p class="text-[10px] text-blue-500">pending dispatch</p>
+                                @else
+                                    <p class="text-sm font-semibold text-[#0F172A]">Rs. {{ number_format($item->subtotal, 0) }}</p>
+                                @endif
+                            </div>
                         </div>
-                        <span class="font-semibold text-sm text-[#0F172A]">Rs. {{ number_format($item->subtotal, 0) }}</span>
+
+                        {{-- Refund detail line --}}
+                        @if($item->status === 'refunded' || ($item->refund_amount !== null && $item->refund_amount > 0))
+                        <div class="mt-2 flex items-center gap-2 text-[11px] text-red-700">
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                            @if($item->status === 'refunded')
+                                <span>Product out of stock &mdash; <strong>Rs. {{ number_format($item->refund_amount, 0) }} refunded</strong> to customer</span>
+                            @else
+                                <span>Short by {{ $item->original_qty - $item->quantity }} unit(s) &mdash; <strong>Rs. {{ number_format($item->refund_amount, 0) }} refunded</strong> for the shortage</span>
+                            @endif
+                        </div>
+                        @endif
+
+                        {{-- Replacement detail line --}}
+                        @if($item->is_replaced)
+                        <div class="mt-2 flex items-start gap-2 text-[11px] text-orange-700">
+                            <svg class="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                            <div>
+                                <span class="font-semibold">{{ $item->original_product_name }}</span>
+                                <span class="mx-1">&rarr;</span>
+                                <span class="font-semibold">{{ $item->product_name }}</span>
+                                @if($item->replacement_notes)
+                                    <span class="text-orange-500"> &middot; {{ $item->replacement_notes }}</span>
+                                @endif
+                                <span class="text-[10px] text-orange-400 ml-1">&middot; replaced {{ $item->replaced_at?->diffForHumans() }}</span>
+                                @if(abs($priceDiffAmt) > 0.01)
+                                <br>
+                                <span class="font-bold {{ $priceDiffAmt > 0 ? 'text-red-600' : 'text-blue-600' }}">
+                                    Price diff: {{ $priceDiffAmt > 0 ? '+' : '' }}Rs. {{ number_format(abs($priceDiffAmt), 0) }}
+                                    ({{ $priceDiffAmt > 0 ? 'extra charged to customer' : 'refund owed to customer' }})
+                                </span>
+                                @endif
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Backorder detail line --}}
+                        @if($item->status === 'backordered' && $itemBackorder)
+                        <div class="mt-2 flex items-center gap-2 text-[11px] text-blue-700">
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                            </svg>
+                            <span>
+                                Backorder <strong>{{ $itemBackorder->backorder_number }}</strong> &mdash;
+                                status: <strong>{{ ucfirst($itemBackorder->status) }}</strong>
+                                &middot; will be dispatched separately
+                            </span>
+                        </div>
+                        @endif
                     </div>
                     @endforeach
                 </div>

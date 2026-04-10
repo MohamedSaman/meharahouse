@@ -101,7 +101,8 @@ class Order extends Component
             'statusLogs.createdBy',
             'refund',
             'whatsappToken',
-            'backorders',
+            'backorders.replacementProduct',
+            'backorders.orderItem',
         ])->findOrFail($id);
 
         $this->showDetail = true;
@@ -287,49 +288,89 @@ class Order extends Component
                     'created_by'    => auth()->id(),
                 ]);
 
+                // Mark the order item as backordered so its history is preserved
+                $orderItem = $order->items->firstWhere('id', $issue['item_id']);
+                if ($orderItem) {
+                    $orderItem->update([
+                        'status'                    => 'backordered',
+                        'original_qty'              => $orderItem->original_qty ?? $issue['needed'],
+                        'original_ordered_subtotal' => $orderItem->original_ordered_subtotal
+                                                        ?? round($issue['unit_price'] * $issue['needed'], 2),
+                    ]);
+                }
+
             } elseif ($decision === 'replace') {
                 $replacementProductId = $this->stockReplaceChoices[$index] ?? null;
                 $replacementProduct   = $replacementProductId ? \App\Models\Product::find($replacementProductId) : null;
 
-                OrderBackorder::create([
-                    'order_id'               => $order->id,
-                    'order_item_id'          => $issue['item_id'],
-                    'product_id'             => $issue['product_id'],
-                    'replacement_product_id' => $replacementProduct?->id,
-                    'replacement_price'      => $replacementProduct?->price,
-                    'product_name'           => $issue['name'],
-                    'ordered_qty'            => $issue['needed'],
-                    'available_qty'          => $issue['available'],
-                    'short_qty'              => $issue['short'],
-                    'decision'               => 'replace',
-                    'status'                 => $replacementProduct ? 'ready' : 'pending',
-                    'created_by'             => auth()->id(),
-                    'replacement_notes'      => $replacementProduct
-                        ? "Replacement: {$replacementProduct->name}"
-                        : 'Replacement product to be decided',
-                ]);
+                if (!$replacementProduct) {
+                    // No replacement chosen yet — skip, leave item as-is
+                    continue;
+                }
+
+                $orderItem = $order->items->firstWhere('id', $issue['item_id']);
+                if ($orderItem) {
+                    $newQty      = $issue['short']; // the short quantity being replaced
+                    $newPrice    = (float) $replacementProduct->price;
+                    $newSubtotal = round($newPrice * $newQty, 2);
+
+                    $orderItem->update([
+                        'product_id'                => $replacementProduct->id,
+                        'product_name'              => $replacementProduct->name,
+                        'price'                     => $newPrice,
+                        'quantity'                  => $newQty,
+                        'subtotal'                  => $newSubtotal,
+                        'status'                    => 'replaced',
+                        'original_qty'              => $issue['needed'],
+                        'original_ordered_subtotal' => round($issue['unit_price'] * $issue['needed'], 2),
+                        'is_replaced'               => true,
+                        'original_product_id'       => $issue['product_id'],
+                        'original_product_name'     => $issue['name'],
+                        'original_price'            => $issue['unit_price'],
+                        'original_subtotal'         => round($issue['unit_price'] * $newQty, 2),
+                        'replacement_notes'         => null,
+                        'replaced_at'               => now(),
+                        'replaced_by'               => auth()->id(),
+                    ]);
+                }
 
             } elseif ($decision === 'refund') {
-                $partialRefundAmount += $issue['short_amount'];
+                $shortAmount          = round($issue['unit_price'] * $issue['short'], 2);
+                $partialRefundAmount += $shortAmount;
 
-                // Reduce the order item quantity to what's actually available
                 $orderItem = $order->items->firstWhere('id', $issue['item_id']);
-                if ($orderItem && $issue['available'] > 0) {
-                    $orderItem->update([
-                        'quantity' => $issue['available'],
-                        'subtotal' => round($issue['unit_price'] * $issue['available'], 2),
-                    ]);
-                } elseif ($orderItem && $issue['available'] === 0) {
-                    // Nothing available — remove item from order
-                    $orderItem->delete();
+                if ($orderItem) {
+                    if ($issue['available'] > 0) {
+                        // Partial refund: reduce quantity to what is actually available,
+                        // keep the item active for the fulfilled portion
+                        $orderItem->update([
+                            'status'                    => 'active',
+                            'quantity'                  => $issue['available'],
+                            'subtotal'                  => round($issue['unit_price'] * $issue['available'], 2),
+                            'original_qty'              => $issue['needed'],
+                            'original_ordered_subtotal' => round($issue['unit_price'] * $issue['needed'], 2),
+                            'refund_amount'             => $shortAmount,
+                        ]);
+                    } else {
+                        // Full refund: keep the record but mark as refunded — do NOT delete
+                        $orderItem->update([
+                            'status'                    => 'refunded',
+                            'quantity'                  => 0,
+                            'subtotal'                  => 0,
+                            'original_qty'              => $issue['needed'],
+                            'original_ordered_subtotal' => round($issue['unit_price'] * $issue['needed'], 2),
+                            'refund_amount'             => $shortAmount,
+                        ]);
+                    }
                 }
             }
         }
 
-        // Recalculate order total if any refunds applied
+        // Recalculate order total if any refunds applied.
+        // Exclude fully-refunded items (status = 'refunded') from the subtotal.
         if ($partialRefundAmount > 0) {
             $order->refresh()->load('items');
-            $newSubtotal = $order->items->sum('subtotal');
+            $newSubtotal = $order->items->where('status', '!=', 'refunded')->sum('subtotal');
             $newTotal    = round($newSubtotal + $order->shipping_cost + $order->tax - $order->discount, 2);
 
             // Recalculate advance/balance split based on the advance percentage
@@ -348,10 +389,10 @@ class Order extends Component
             ]);
         }
 
-        // Deduct available stock for every item
+        // Deduct available stock for every non-refunded item
         $order->refresh()->load('items.product');
         $totalDeducted = 0;
-        foreach ($order->items as $item) {
+        foreach ($order->items->where('status', '!=', 'refunded') as $item) {
             $product = $item->product;
             if (!$product) continue;
             $deduct = min((int) $product->stock, (int) $item->quantity);
@@ -363,15 +404,18 @@ class Order extends Component
 
         // Determine correct order status after decisions are applied.
         $issuedItemIds     = array_column($this->stockIssues, 'item_id');
-        $hasNonIssuedItems = $order->items->whereNotIn('id', $issuedItemIds)->isNotEmpty();
+        $hasNonIssuedItems = $order->items->whereNotIn('id', $issuedItemIds)->where('status', '!=', 'refunded')->isNotEmpty();
         $sumNextBatch      = collect($this->stockDecisions)->filter(fn($d) => $d === 'next_batch')->count();
         $sumRefundDec      = collect($this->stockDecisions)->filter(fn($d) => $d === 'refund')->count();
 
-        // Truly fully-backordered = nothing deducted AND no refund decisions involved
+        // Truly fully-backordered = no non-issued active items AND nothing deducted AND no refunds
         $fullyBackordered = !$hasNonIssuedItems && $totalDeducted === 0 && $sumRefundDec === 0;
 
-        // All items refunded and nothing left in order = mark as refunded
-        $allRefunded = $order->items->isEmpty() && $sumRefundDec > 0 && $sumNextBatch === 0;
+        // All items fully refunded (quantity = 0) = mark order as refunded
+        $allRefunded = $order->items->where('status', 'refunded')->count() === $order->items->count()
+                       && $order->items->isNotEmpty()
+                       && $sumRefundDec > 0
+                       && $sumNextBatch === 0;
 
         if ($allRefunded) {
             $targetStatus = 'refunded';
@@ -392,10 +436,12 @@ class Order extends Component
         $order->logStatus($targetStatus, $notes, auth()->id());
         $order->update(['status' => $targetStatus]);
 
+        // Capture replace count before closeStockAlert() resets stockDecisions
+        $sumReplace = collect($this->stockDecisions)->filter(fn($d) => $d === 'replace')->count();
+
         $this->closeStockAlert();
         $this->refreshSelectedOrder($order->id);
 
-        $sumReplace = collect($this->stockDecisions)->filter(fn($d) => $d === 'replace')->count();
         if ($targetStatus === 'refunded') {
             $msg = 'All items refunded. Please fill in the refund payment details below.';
         } elseif ($fullyBackordered) {
@@ -403,7 +449,7 @@ class Order extends Component
         } else {
             $msg = 'Order confirmed.';
             if ($partialRefundAmount > 0) $msg .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' to be refunded — please fill in the refund details below.';
-            if ($sumReplace > 0) $msg .= " {$sumReplace} item(s) flagged for replacement — check Backorders.";
+            if ($sumReplace > 0) $msg .= " {$sumReplace} item(s) replaced directly in the order — no backorder created.";
             if ($partialRefundAmount === 0.0 && $sumReplace === 0) $msg .= ' Backorders created for short items.';
         }
         session()->flash('success', $msg);
@@ -978,7 +1024,8 @@ class Order extends Component
                 'statusLogs.createdBy',
                 'refund',
                 'whatsappToken',
-                'backorders',
+                'backorders.replacementProduct',
+                'backorders.orderItem',
             ])->find($orderId);
         }
     }
