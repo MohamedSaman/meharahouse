@@ -210,7 +210,7 @@ class Checkout extends Component
 
         $subtotal    = $this->getSubtotal();
         $shipping    = Setting::get('delivery_fee_enabled', '0') === '1' ? (float) Setting::get('delivery_fee_amount', '0') : 0;
-        $tax         = round($subtotal * 0.15, 2);
+        $tax         = round($subtotal * ((float) \App\Models\Setting::get('tax_rate', '15') / 100), 2);
         $total       = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
         $orderNumber = Order::generateOrderNumber();
 
@@ -346,7 +346,7 @@ class Checkout extends Component
     {
         $subtotal = $this->getSubtotal();
         $shipping = $subtotal >= 500 ? 0 : 50;
-        $tax      = round($subtotal * 0.15, 2);
+        $tax      = round($subtotal * ((float) \App\Models\Setting::get('tax_rate', '15') / 100), 2);
         $total    = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
 
         // Build payment methods list from admin-enabled settings

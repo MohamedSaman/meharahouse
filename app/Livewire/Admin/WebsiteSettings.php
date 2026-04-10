@@ -38,6 +38,7 @@ class WebsiteSettings extends Component
 
     // ── Order Settings ───────────────────────────────────────────
     public int    $advancePaymentPercentage = 50;
+    public float  $taxRate                  = 15;
     public string $bankTransferDetails      = '';
 
     // ── Delivery Fee ─────────────────────────────────────────────
@@ -71,6 +72,7 @@ class WebsiteSettings extends Component
 
         // Order Settings
         $this->advancePaymentPercentage = (int) Setting::get('advance_payment_percentage', '50');
+        $this->taxRate                  = (float) Setting::get('tax_rate', '15');
         $this->bankTransferDetails      = Setting::get('bank_transfer_details', '') ?? '';
 
         // Delivery Fee
@@ -153,11 +155,13 @@ class WebsiteSettings extends Component
     {
         $this->validate([
             'advancePaymentPercentage' => ['required', 'integer', 'min:1', 'max:100'],
+            'taxRate'                  => ['required', 'numeric', 'min:0', 'max:100'],
             'bankTransferDetails'      => ['nullable', 'string', 'max:1000'],
             'deliveryFeeAmount'        => ['required_if:deliveryFeeEnabled,true', 'numeric', 'min:0'],
         ]);
 
         Setting::set('advance_payment_percentage', (string) $this->advancePaymentPercentage);
+        Setting::set('tax_rate', (string) $this->taxRate);
         Setting::set('bank_transfer_details', $this->bankTransferDetails);
         Setting::set('delivery_fee_enabled', $this->deliveryFeeEnabled ? '1' : '0');
         Setting::set('delivery_fee_amount', (string) $this->deliveryFeeAmount);

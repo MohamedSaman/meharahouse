@@ -131,7 +131,7 @@
                             </span>
                         </div>
                         <div class="flex justify-between text-[#475569]">
-                            <span>Tax (15%)</span>
+                            <span>Tax</span>
                             <span>Rs. {{ number_format($tax, 0) }}</span>
                         </div>
                         @if($discountAmount > 0)

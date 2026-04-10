@@ -461,6 +461,30 @@
                 </p>
             </div>
 
+            {{-- Tax Rate --}}
+            <div class="max-w-xs">
+                <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Tax Rate <span class="text-red-400">*</span>
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number"
+                           wire:model="taxRate"
+                           min="0"
+                           max="100"
+                           step="0.01"
+                           class="form-input w-28 text-center font-bold text-lg"
+                           placeholder="15">
+                    <span class="text-slate-500 text-sm font-semibold">%</span>
+                    <span class="text-xs text-slate-400">applied to all orders at checkout</span>
+                </div>
+                @error('taxRate')
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                @enderror
+                <p class="mt-2 text-xs text-slate-400">
+                    Set to 0 to disable tax. Changes apply immediately to all new orders.
+                </p>
+            </div>
+
             {{-- Bank Transfer Details --}}
             <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1.5">Bank Transfer Details</label>

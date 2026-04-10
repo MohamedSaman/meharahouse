@@ -131,7 +131,7 @@ class Cart extends Component
     {
         $subtotal = $this->getSubtotal();
         $shipping = $subtotal >= 500 ? 0 : 50;
-        $tax      = $subtotal * 0.15;
+        $tax      = $subtotal * ((float) \App\Models\Setting::get('tax_rate', '15') / 100);
         return $subtotal + $shipping + $tax - $this->discountAmount;
     }
 

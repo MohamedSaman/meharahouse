@@ -476,7 +476,7 @@
                                 {{ $shipping == 0 ? 'FREE' : 'Rs. ' . number_format($shipping, 0) }}
                             </span>
                         </div>
-                        <div class="flex justify-between text-[#475569]"><span>Tax (15%)</span><span>Rs. {{ number_format($tax, 0) }}</span></div>
+                        <div class="flex justify-between text-[#475569]"><span>Tax</span><span>Rs. {{ number_format($tax, 0) }}</span></div>
                         @if($discountAmount > 0)
                         <div class="flex justify-between text-green-600 font-semibold"><span>Discount</span><span>-Rs. {{ number_format($discountAmount, 0) }}</span></div>
                         @endif
