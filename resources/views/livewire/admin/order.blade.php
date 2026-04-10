@@ -1194,20 +1194,37 @@
             {{-- Product cards --}}
             <div class="overflow-y-auto flex-1 px-5 py-4 space-y-3">
                 @foreach($stockIssues as $idx => $issue)
-                @php $dec = $stockDecisions[$idx] ?? 'next_batch'; @endphp
-                <div class="rounded-2xl border {{ $dec === 'refund' ? 'border-red-200 bg-red-50/40' : 'border-amber-200 bg-amber-50/30' }} p-4 transition-colors">
+                @php
+                    $dec = $stockDecisions[$idx] ?? 'next_batch';
+                    $replaceProductId = $stockReplaceChoices[$idx] ?? null;
+                    $replaceProduct   = $replaceProductId ? \App\Models\Product::find($replaceProductId) : null;
+                @endphp
+                <div class="rounded-2xl border p-4 transition-colors
+                    {{ $dec === 'refund'   ? 'border-red-200 bg-red-50/40'
+                     : ($dec === 'replace' ? 'border-orange-200 bg-orange-50/30'
+                     :                      'border-amber-200 bg-amber-50/30') }}">
 
                     {{-- Product name + price --}}
                     <div class="flex items-start justify-between mb-3">
                         <div>
                             <p class="font-semibold text-sm text-[#0F172A]">{{ $issue['name'] }}</p>
                             <p class="text-xs text-slate-400 mt-0.5">Rs. {{ number_format($issue['unit_price'], 0) }} per unit</p>
+                            @if($dec === 'replace' && $replaceProduct)
+                            <div class="flex items-center gap-1 mt-1">
+                                <svg class="w-3 h-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                </svg>
+                                <span class="text-[11px] font-semibold text-orange-700">{{ $replaceProduct->name }}</span>
+                            </div>
+                            @endif
                         </div>
                         {{-- Active decision badge --}}
                         @if($dec === 'next_batch')
-                        <span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide">Backorder</span>
+                        <span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide shrink-0">Backorder</span>
+                        @elseif($dec === 'replace')
+                        <span class="px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold uppercase tracking-wide shrink-0">Replace</span>
                         @else
-                        <span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-bold uppercase tracking-wide">Refund</span>
+                        <span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-bold uppercase tracking-wide shrink-0">Refund</span>
                         @endif
                     </div>
 
@@ -1227,35 +1244,50 @@
                         </div>
                     </div>
 
-                    {{-- Two action buttons --}}
-                    <div class="grid grid-cols-2 gap-2">
+                    {{-- Three action buttons --}}
+                    <div class="grid grid-cols-3 gap-1.5">
 
                         {{-- Next Batch Order --}}
                         <button wire:click="setStockNextBatch({{ $idx }})"
-                                class="flex items-center gap-2.5 px-3 py-3 rounded-xl border-2 transition-all
+                                class="flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border-2 transition-all
                                        {{ $dec === 'next_batch'
                                             ? 'border-amber-400 bg-amber-400 text-white shadow-sm'
                                             : 'border-slate-200 bg-white text-slate-500 hover:border-amber-300 hover:bg-amber-50' }}">
                             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>
-                            <div class="text-left leading-tight">
-                                <p class="text-xs font-bold">Next Batch</p>
-                                <p class="text-[9px] {{ $dec === 'next_batch' ? 'text-amber-100' : 'text-slate-400' }}">Backorder {{ $issue['short'] }} unit{{ $issue['short'] > 1 ? 's' : '' }}</p>
+                            <div class="text-center leading-tight">
+                                <p class="text-[11px] font-bold">Next Batch</p>
+                                <p class="text-[9px] {{ $dec === 'next_batch' ? 'text-amber-100' : 'text-slate-400' }}">Backorder</p>
+                            </div>
+                        </button>
+
+                        {{-- Replace Product --}}
+                        <button wire:click="openStockReplaceModal({{ $idx }})"
+                                class="flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border-2 transition-all
+                                       {{ $dec === 'replace'
+                                            ? 'border-orange-400 bg-orange-500 text-white shadow-sm'
+                                            : 'border-slate-200 bg-white text-slate-500 hover:border-orange-300 hover:bg-orange-50' }}">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                            <div class="text-center leading-tight">
+                                <p class="text-[11px] font-bold">Replace</p>
+                                <p class="text-[9px] {{ $dec === 'replace' ? 'text-orange-100' : 'text-slate-400' }}">Substitute</p>
                             </div>
                         </button>
 
                         {{-- Refund Short --}}
                         <button wire:click="openStockRefundConfirm({{ $idx }})"
-                                class="flex items-center gap-2.5 px-3 py-3 rounded-xl border-2 transition-all
+                                class="flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border-2 transition-all
                                        {{ $dec === 'refund'
                                             ? 'border-red-400 bg-red-500 text-white shadow-sm'
                                             : 'border-slate-200 bg-white text-slate-500 hover:border-red-300 hover:bg-red-50' }}">
                             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                             </svg>
-                            <div class="text-left leading-tight">
-                                <p class="text-xs font-bold">Refund Short</p>
+                            <div class="text-center leading-tight">
+                                <p class="text-[11px] font-bold">Refund</p>
                                 <p class="text-[9px] {{ $dec === 'refund' ? 'text-red-100' : 'text-slate-400' }}">Rs. {{ number_format($issue['short_amount'], 0) }}</p>
                             </div>
                         </button>
@@ -1270,6 +1302,7 @@
                 @php
                     $sumNextBatch   = collect($stockDecisions)->filter(fn($d) => $d === 'next_batch')->count();
                     $sumRefund      = collect($stockDecisions)->filter(fn($d) => $d === 'refund')->count();
+                    $sumReplace     = collect($stockDecisions)->filter(fn($d) => $d === 'replace')->count();
                     $totalRefundAmt = 0;
                     foreach ($stockIssues as $i => $iss) {
                         if (($stockDecisions[$i] ?? '') === 'refund') $totalRefundAmt += $iss['short_amount'];
@@ -1280,6 +1313,12 @@
                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         {{ $sumNextBatch }} Backorder{{ $sumNextBatch > 1 ? 's' : '' }}
+                    </span>
+                    @endif
+                    @if($sumReplace)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-semibold">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                        {{ $sumReplace }} Replace{{ $sumReplace > 1 ? 's' : '' }}
                     </span>
                     @endif
                     @if($sumRefund)
@@ -1304,6 +1343,80 @@
                 </div>
             </div>
         </div>
+
+        {{-- ── Replace Sub-Modal (slides over main card) ────────────── --}}
+        @if($showStockReplaceModal && $stockReplaceIdx >= 0)
+        @php $ri = $stockIssues[$stockReplaceIdx]; @endphp
+        <div class="absolute inset-0 flex items-center justify-center p-4 z-10" style="background:rgba(0,0,0,0.45);">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+
+                {{-- Sub-header --}}
+                <div class="flex items-center gap-3 px-5 py-4 bg-orange-50 border-b border-orange-100">
+                    <div class="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-[Poppins] font-bold text-sm text-orange-700">Select Replacement Product</h4>
+                        <p class="text-xs text-slate-500 truncate max-w-[200px]">For: {{ $ri['name'] }} (×{{ $ri['short'] }})</p>
+                    </div>
+                </div>
+
+                {{-- Content --}}
+                <div class="px-5 py-4 space-y-3">
+                    {{-- Search --}}
+                    <div class="flex items-center gap-2 border border-slate-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-orange-400 focus-within:border-transparent transition-all">
+                        <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input wire:model.live.debounce.400ms="stockReplaceSearch"
+                               type="text"
+                               placeholder="Search product name or SKU..."
+                               class="bg-transparent text-sm outline-none flex-1 placeholder-slate-400"
+                               autofocus>
+                    </div>
+
+                    {{-- Product list --}}
+                    <div class="max-h-48 overflow-y-auto space-y-1.5">
+                        @if(strlen($stockReplaceSearch) >= 2)
+                            @forelse($stockReplaceProducts as $rp)
+                            <button wire:click="confirmStockReplaceItem({{ $rp->id }})"
+                                    type="button"
+                                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-slate-200 hover:border-orange-300 hover:bg-orange-50 text-left transition-all">
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-sm text-[#0F172A] truncate">{{ $rp->name }}</p>
+                                    @if($rp->sku)
+                                    <p class="text-[11px] text-slate-400 font-mono">{{ $rp->sku }}</p>
+                                    @endif
+                                </div>
+                                <div class="text-right shrink-0 ml-3">
+                                    <p class="font-bold text-sm text-[#0F172A]">Rs. {{ number_format($rp->price, 0) }}</p>
+                                    <p class="text-[11px] {{ $rp->stock >= $ri['short'] ? 'text-green-600' : 'text-red-500' }} font-semibold">
+                                        {{ $rp->stock }} in stock
+                                    </p>
+                                </div>
+                            </button>
+                            @empty
+                            <p class="text-center text-xs text-slate-400 py-4">No products found</p>
+                            @endforelse
+                        @else
+                        <p class="text-center text-xs text-slate-400 py-4">Type at least 2 characters to search</p>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Sub-footer --}}
+                <div class="px-5 pb-4 flex gap-2">
+                    <button wire:click="closeStockReplaceModal"
+                            class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+
+            </div>
+        </div>
+        @endif
 
         {{-- ── Refund Sub-Confirm Popup (slides over main card) ────── --}}
         @if($showStockRefundConfirm && $stockRefundConfirmIdx >= 0)

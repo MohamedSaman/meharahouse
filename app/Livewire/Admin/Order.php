@@ -40,11 +40,16 @@ class Order extends Component
     // ── Stock Alert Modal ─────────────────────────────────────────────
     public bool  $showStockAlert      = false;
     public array $stockIssues         = []; // [{item_id, product_id, name, needed, available, short, unit_price, short_amount}]
-    public array $stockDecisions      = []; // [index => 'next_batch'|'refund']
+    public array $stockDecisions      = []; // [index => 'next_batch'|'refund'|'replace']
+    public array $stockReplaceChoices = []; // [index => product_id] for 'replace' decisions
     public int   $stockAlertOrder     = 0;
     // Refund sub-confirm inside stock alert
     public bool  $showStockRefundConfirm = false;
     public int   $stockRefundConfirmIdx  = -1;
+    // Replace sub-modal inside stock alert
+    public bool   $showStockReplaceModal = false;
+    public int    $stockReplaceIdx       = -1;
+    public string $stockReplaceSearch    = '';
 
     // ── Refund Modal ──────────────────────────────────────────────────
     public bool   $showRefundModal  = false;
@@ -160,9 +165,13 @@ class Order extends Component
         $this->showStockAlert          = false;
         $this->stockIssues             = [];
         $this->stockDecisions          = [];
+        $this->stockReplaceChoices     = [];
         $this->stockAlertOrder         = 0;
         $this->showStockRefundConfirm  = false;
         $this->stockRefundConfirmIdx   = -1;
+        $this->showStockReplaceModal   = false;
+        $this->stockReplaceIdx         = -1;
+        $this->stockReplaceSearch      = '';
     }
 
     /**
@@ -202,6 +211,42 @@ class Order extends Component
         $this->stockRefundConfirmIdx  = -1;
     }
 
+    /** Open the replace sub-modal for a specific stock issue item. */
+    public function openStockReplaceModal(int $index): void
+    {
+        $this->showStockRefundConfirm  = false;
+        $this->stockRefundConfirmIdx   = -1;
+        $this->stockReplaceIdx         = $index;
+        $this->stockReplaceSearch      = '';
+        $this->stockDecisions[$index]  = 'replace';
+        $this->showStockReplaceModal   = true;
+    }
+
+    /** Cancel the replace sub-modal — revert to next_batch. */
+    public function closeStockReplaceModal(): void
+    {
+        if ($this->stockReplaceIdx >= 0 && !isset($this->stockReplaceChoices[$this->stockReplaceIdx])) {
+            $this->stockDecisions[$this->stockReplaceIdx] = 'next_batch';
+        }
+        $this->showStockReplaceModal = false;
+        $this->stockReplaceIdx       = -1;
+        $this->stockReplaceSearch    = '';
+    }
+
+    /** Confirm the replacement product selection. */
+    public function confirmStockReplaceItem(int $productId): void
+    {
+        $product = \App\Models\Product::find($productId);
+        if (!$product) return;
+
+        $idx = $this->stockReplaceIdx;
+        $this->stockDecisions[$idx]    = 'replace';
+        $this->stockReplaceChoices[$idx] = $productId;
+        $this->showStockReplaceModal   = false;
+        $this->stockReplaceIdx         = -1;
+        $this->stockReplaceSearch      = '';
+    }
+
     /**
      * Apply per-item decisions from the stock alert modal.
      *
@@ -231,6 +276,28 @@ class Order extends Component
                     'decision'      => 'repurchase',
                     'status'        => 'repurchasing',
                     'created_by'    => auth()->id(),
+                ]);
+
+            } elseif ($decision === 'replace') {
+                $replacementProductId = $this->stockReplaceChoices[$index] ?? null;
+                $replacementProduct   = $replacementProductId ? \App\Models\Product::find($replacementProductId) : null;
+
+                OrderBackorder::create([
+                    'order_id'               => $order->id,
+                    'order_item_id'          => $issue['item_id'],
+                    'product_id'             => $issue['product_id'],
+                    'replacement_product_id' => $replacementProduct?->id,
+                    'replacement_price'      => $replacementProduct?->price,
+                    'product_name'           => $issue['name'],
+                    'ordered_qty'            => $issue['needed'],
+                    'available_qty'          => $issue['available'],
+                    'short_qty'              => $issue['short'],
+                    'decision'               => 'replace',
+                    'status'                 => $replacementProduct ? 'ready' : 'pending',
+                    'created_by'             => auth()->id(),
+                    'replacement_notes'      => $replacementProduct
+                        ? "Replacement: {$replacementProduct->name}"
+                        : 'Replacement product to be decided',
                 ]);
 
             } elseif ($decision === 'refund') {
@@ -279,9 +346,12 @@ class Order extends Component
         $this->closeStockAlert();
         $this->refreshSelectedOrder($order->id);
 
-        session()->flash('success', $partialRefundAmount > 0
-            ? 'Order confirmed. Rs. ' . number_format($partialRefundAmount, 0) . ' refunded — order total reduced for short items.'
-            : 'Order confirmed. Backorders created for short items.');
+        $sumReplace = collect($this->stockDecisions)->filter(fn($d) => $d === 'replace')->count();
+        $msg = 'Order confirmed.';
+        if ($partialRefundAmount > 0) $msg .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' refunded for short items.';
+        if ($sumReplace > 0) $msg .= " {$sumReplace} item(s) flagged for product replacement — check Backorders.";
+        if ($partialRefundAmount === 0.0 && $sumReplace === 0) $msg .= ' Backorders created for short items.';
+        session()->flash('success', $msg);
     }
 
     /**
@@ -820,7 +890,16 @@ class Order extends Component
             ->whereNotNull('receipt_path')
             ->count();
 
+        // Products for stock-alert replace search
+        $stockReplaceProducts = ($this->showStockReplaceModal && strlen($this->stockReplaceSearch) >= 2)
+            ? \App\Models\Product::where('name', 'like', "%{$this->stockReplaceSearch}%")
+                                 ->orWhere('sku',  'like', "%{$this->stockReplaceSearch}%")
+                                 ->orderBy('name')
+                                 ->limit(20)
+                                 ->get()
+            : collect();
+
         $layout = auth()->user()?->isAdmin() ? 'layouts.admin' : 'layouts.staff';
-        return view('livewire.admin.order', compact('orders', 'statusCounts', 'pendingReceiptCount'))->layout($layout);
+        return view('livewire.admin.order', compact('orders', 'statusCounts', 'pendingReceiptCount', 'stockReplaceProducts'))->layout($layout);
     }
 }
