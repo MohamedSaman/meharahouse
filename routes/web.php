@@ -75,6 +75,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/manual-order',         App\Livewire\Admin\ManualOrder::class)->name('manual-order');
     Route::get('/suppliers',            App\Livewire\Admin\Supplier::class)->name('suppliers');
     Route::get('/purchasing',           App\Livewire\Admin\Purchasing::class)->name('purchasing');
+    Route::get('/backorders',           App\Livewire\Admin\Backorder::class)->name('backorders');
     Route::get('/shipments',            App\Livewire\Admin\Shipment::class)->name('shipments');
     Route::get('/website-settings',     App\Livewire\Admin\WebsiteSettings::class)->name('website-settings');
     Route::get('/whatsapp-orders',      App\Livewire\Admin\WhatsappOrders::class)->name('whatsapp-orders');
@@ -90,7 +91,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
     // Waybill / Packing Slip — plain print view, not a Livewire component
     Route::get('/orders/{order}/waybill', function (App\Models\Order $order) {
-        $order->load(['items', 'shipmentBatch']);
+        $order->load(['items', 'shipmentBatch', 'backorders']);
         $addr = $order->shipping_address ?? [];
         return view('admin.waybill', compact('order', 'addr'));
     })->name('order.waybill');
@@ -113,7 +114,7 @@ Route::prefix('staff')->name('staff.')->middleware(['auth', 'staff'])->group(fun
 
     // Waybill — staff also need to print waybills
     Route::get('/orders/{order}/waybill', function (App\Models\Order $order) {
-        $order->load(['items', 'shipmentBatch']);
+        $order->load(['items', 'shipmentBatch', 'backorders']);
         $addr = $order->shipping_address ?? [];
         return view('admin.waybill', compact('order', 'addr'));
     })->name('order.waybill');

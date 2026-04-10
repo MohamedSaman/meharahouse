@@ -209,11 +209,17 @@
                         </td>
 
                         {{-- Order Count --}}
+                        @php $totalCount = $batch->orders_count + $batch->backorders_count; @endphp
                         <td class="text-center">
-                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full
-                                {{ $batch->orders_count > 0 ? 'bg-blue-100 text-blue-700 font-bold' : 'bg-slate-100 text-slate-400' }} text-sm">
-                                {{ $batch->orders_count }}
-                            </span>
+                            <div class="flex flex-col items-center gap-0.5">
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full
+                                    {{ $totalCount > 0 ? 'bg-blue-100 text-blue-700 font-bold' : 'bg-slate-100 text-slate-400' }} text-sm">
+                                    {{ $totalCount }}
+                                </span>
+                                @if($batch->backorders_count > 0)
+                                <span class="text-[9px] text-orange-500 font-semibold">+{{ $batch->backorders_count }} BO</span>
+                                @endif
+                            </div>
                         </td>
 
                         {{-- Courier --}}
@@ -327,9 +333,14 @@
                                     <span class="text-xs text-[#64748B]">{{ $expandedBatchOrders[$batch->id]->count() }} orders</span>
                                 </div>
 
-                                @if($expandedBatchOrders[$batch->id]->isEmpty())
+                                @php
+                                    $batchHasOrders     = !$expandedBatchOrders[$batch->id]->isEmpty();
+                                    $batchHasBackorders = isset($expandedBatchBackorders[$batch->id]) && !$expandedBatchBackorders[$batch->id]->isEmpty();
+                                @endphp
+                                @if(!$batchHasOrders && !$batchHasBackorders)
                                 <p class="text-sm text-[#94A3B8] text-center py-4">No orders assigned to this batch.</p>
                                 @else
+                                @if($batchHasOrders)
                                 <div class="overflow-x-auto rounded-xl border border-slate-200">
                                     <table class="w-full text-sm">
                                         <thead class="bg-white border-b border-slate-200">
@@ -405,7 +416,52 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                @endif {{-- end batchHasOrders --}}
+
+                                {{-- Backorders in this batch --}}
+                                @if($batchHasBackorders)
+                                <div class="mt-4">
+                                    <p class="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-2">Backorders in this batch</p>
+                                    <div class="overflow-x-auto rounded-xl border border-orange-200 bg-white">
+                                        <table class="w-full text-xs">
+                                            <thead class="bg-orange-50 border-b border-orange-200">
+                                                <tr>
+                                                    <th class="text-left px-4 py-2.5 font-semibold text-orange-700">BO #</th>
+                                                    <th class="text-left px-4 py-2.5 font-semibold text-orange-700">Customer</th>
+                                                    <th class="text-left px-4 py-2.5 font-semibold text-orange-700">Product</th>
+                                                    <th class="text-center px-4 py-2.5 font-semibold text-orange-700">Qty</th>
+                                                    <th class="text-left px-4 py-2.5 font-semibold text-orange-700">Status</th>
+                                                    <th class="text-left px-4 py-2.5 font-semibold text-orange-700">Orig. Order</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-100">
+                                                @foreach($expandedBatchBackorders[$batch->id] as $bo)
+                                                @php
+                                                    $boAddr = $bo->order?->shipping_address ?? [];
+                                                    $boCust = $bo->order?->user?->name ?? ($boAddr['full_name'] ?? 'Guest');
+                                                @endphp
+                                                <tr class="hover:bg-orange-50/40">
+                                                    <td class="px-4 py-3 font-mono font-bold text-orange-700">{{ $bo->backorder_number }}</td>
+                                                    <td class="px-4 py-3 font-medium text-slate-800">{{ $boCust }}</td>
+                                                    <td class="px-4 py-3 text-slate-600">{{ $bo->product_name }}</td>
+                                                    <td class="px-4 py-3 text-center">
+                                                        <span class="inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">{{ $bo->short_qty }}</span>
+                                                    </td>
+                                                    <td class="px-4 py-3">
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border {{ $bo->statusBadgeClass() }}">
+                                                            {{ $bo->statusLabel() }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-4 py-3 font-mono text-blue-600 text-xs">{{ $bo->order?->order_number }}</td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                                 @endif
+
+                                @endif {{-- end combined empty check --}}
                             </div>
                         </td>
                     </tr>
@@ -567,22 +623,67 @@
                            class="bg-transparent text-sm outline-none flex-1 placeholder-[#94A3B8]">
                 </div>
                 <p class="text-xs text-[#94A3B8] mt-2">
-                    Showing confirmed/sourcing/dispatched orders not yet in another batch.
-                    <span class="font-semibold text-blue-600">{{ count($selectedOrderIds) }} selected.</span>
+                    Orders + backorders (Ready to dispatch) not yet in another batch.
+                    <span class="font-semibold text-blue-600">{{ count($selectedOrderIds) + count($selectedBackorderIds) }} selected.</span>
                 </p>
             </div>
 
-            {{-- Order List --}}
+            {{-- Order + Backorder List --}}
             <div class="overflow-y-auto flex-1 px-5 py-3 space-y-2">
-                @if($assignableOrders->isEmpty())
+
+                {{-- Backorders section --}}
+                @if($assignableBackorders->isNotEmpty())
+                <p class="text-[10px] font-bold text-orange-600 uppercase tracking-wider px-1 pt-1">Backorders (Ready to Dispatch)</p>
+                @foreach($assignableBackorders as $bo)
+                @php
+                    $boAddr     = $bo->order?->shipping_address ?? [];
+                    $boCust     = $bo->order?->user?->name ?? ($boAddr['full_name'] ?? 'Guest');
+                @endphp
+                <label wire:key="bo-select-{{ $bo->id }}"
+                       class="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all duration-150"
+                       x-data="{ checked: @js(in_array((string)$bo->id, array_map('strval', $selectedBackorderIds))) }"
+                       x-bind:class="checked ? 'border-orange-400 bg-orange-50' : 'border-transparent bg-[#FFF7ED] hover:border-orange-200'">
+                    <input type="checkbox"
+                           wire:model.live="selectedBackorderIds"
+                           value="{{ $bo->id }}"
+                           x-model="checked"
+                           class="sr-only">
+                    <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors"
+                         x-bind:class="checked ? 'bg-orange-500 border-orange-500' : 'border-slate-300 bg-white'">
+                        <svg x-show="checked" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-mono text-xs font-bold text-orange-700">{{ $bo->backorder_number }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-orange-100 text-orange-700">Backorder</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-violet-100 text-violet-700">{{ $bo->statusLabel() }}</span>
+                        </div>
+                        <div class="flex items-center gap-3 mt-1">
+                            <span class="text-xs text-[#475569] font-medium">{{ $boCust }}</span>
+                            <span class="text-xs text-slate-400">{{ $bo->product_name }} ×{{ $bo->short_qty }}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-400 mt-0.5">From order: {{ $bo->order?->order_number }}</div>
+                    </div>
+                </label>
+                @endforeach
+                <div class="border-t border-slate-100 pt-2"></div>
+                @endif
+
+                {{-- Regular orders --}}
+                @if($assignableOrders->isEmpty() && $assignableBackorders->isEmpty())
                 <div class="flex flex-col items-center justify-center py-10 text-center">
                     <svg class="w-10 h-10 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    <p class="text-sm text-[#64748B] font-medium">No eligible orders found</p>
-                    <p class="text-xs text-[#94A3B8] mt-1">Orders must be in confirmed, sourcing, or dispatched status.</p>
+                    <p class="text-sm text-[#64748B] font-medium">No eligible orders or backorders found</p>
+                    <p class="text-xs text-[#94A3B8] mt-1">Orders must be confirmed/sourcing/dispatched. Backorders must be Ready.</p>
                 </div>
-                @else
+                @elseif($assignableOrders->isNotEmpty())
+                @if($assignableBackorders->isNotEmpty())
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">Regular Orders</p>
+                @endif
                 @foreach($assignableOrders as $order)
                 @php
                 $addr      = $order->shipping_address ?? [];
@@ -640,7 +741,7 @@
                     </div>
                 </div>
                 @endforeach
-                @endif
+                @endif {{-- end combined empty check --}}
             </div>
 
             {{-- Modal Footer --}}
@@ -652,8 +753,9 @@
                 <button wire:click="saveOrderAssignment"
                         wire:loading.attr="disabled"
                         class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-60">
+                    @php $totalSelected = count($selectedOrderIds) + count($selectedBackorderIds); @endphp
                     <span wire:loading.remove wire:target="saveOrderAssignment">
-                        Assign {{ count($selectedOrderIds) }} Order{{ count($selectedOrderIds) !== 1 ? 's' : '' }}
+                        Assign {{ $totalSelected }} Item{{ $totalSelected !== 1 ? 's' : '' }} to Batch
                     </span>
                     <span wire:loading wire:target="saveOrderAssignment">Saving...</span>
                 </button>

@@ -431,7 +431,7 @@
     @endif
 
     {{-- ── WhatsApp Reminder Popup ──────────────────────────────────── --}}
-    <div x-show="waPrompt" x-cloak
+    <div x-show="waPrompt" x-cloak style="display:none;"
          class="fixed bottom-6 right-6 z-50 w-80 bg-white rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden">
         <div class="bg-[#25D366] px-4 py-3 flex items-center gap-2">
             <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">

@@ -95,6 +95,11 @@ class Order extends Model
         return $this->hasOne(OrderReturn::class);
     }
 
+    public function backorders(): HasMany
+    {
+        return $this->hasMany(OrderBackorder::class);
+    }
+
     // ── Scopes ────────────────────────────────────────────────────────
 
     public function scopeStatus($query, string $status)

@@ -4,6 +4,7 @@
     x-data="{
         detailOpen: @entangle('showDetail'),
         refundOpen: @entangle('showRefundModal'),
+        backorderOpen: @entangle('showBackorderModal'),
         waPrompt: false,
         waLink: '',
         copyDone: false,
@@ -606,6 +607,7 @@
                         'advance' => 'bg-blue-100 text-blue-700',
                         'balance' => 'bg-purple-100 text-purple-700',
                         'refund'  => 'bg-red-100 text-red-700',
+                        'full'    => 'bg-green-100 text-green-700',
                         default   => 'bg-slate-100 text-slate-600',
                     };
                     @endphp
@@ -662,24 +664,8 @@
                 <p class="text-xs text-slate-400 italic">No payment records yet.</p>
                 @endif
 
-                {{-- Bank Transfer Payment Proof (uploaded by customer) --}}
-                @if($selectedOrder->payment_method === 'bank_transfer' && $selectedOrder->payment_proof)
-                <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <p class="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        Customer Payment Receipt
-                    </p>
-                    <a href="{{ asset('storage/' . $selectedOrder->payment_proof) }}" target="_blank"
-                       class="block w-full rounded-xl overflow-hidden border-2 border-amber-200 hover:border-amber-400 transition-colors shadow-sm">
-                        <img src="{{ asset('storage/' . $selectedOrder->payment_proof) }}"
-                             alt="Payment Proof"
-                             class="w-full max-h-64 object-contain bg-white">
-                    </a>
-                    <p class="text-[10px] text-amber-600 mt-2 text-center">Click image to view full size</p>
-                </div>
-                @elseif($selectedOrder->payment_method === 'bank_transfer' && !$selectedOrder->payment_proof)
+                {{-- Bank transfer: show pending receipt notice only when no payments recorded yet --}}
+                @if($selectedOrder->payment_method === 'bank_transfer' && $selectedOrder->payments->where('status', 'pending')->whereNotNull('receipt_path')->isEmpty() && $selectedOrder->payments->isEmpty())
                 <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 flex items-center gap-2">
                     <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -775,6 +761,103 @@
                     <p class="mt-0.5 text-red-600">{{ $selectedOrder->refund->processed_at?->format('d M Y') }}</p>
                 </div>
                 @endif
+            </div>
+            @endif
+
+            {{-- ── Partial Fulfillment / Backorder ── --}}
+            @php
+                $shortageItems = [];
+                if (in_array($selectedOrder->status, ['sourcing', 'confirmed', 'payment_received', 'new'])) {
+                    foreach ($selectedOrder->items as $bi) {
+                        $inStock = (int)($bi->product?->stock ?? 0);
+                        if ($inStock < (int)$bi->quantity) {
+                            $shortageItems[] = [
+                                'name'    => $bi->product_name,
+                                'ordered' => (int)$bi->quantity,
+                                'stock'   => $inStock,
+                                'short'   => (int)$bi->quantity - $inStock,
+                            ];
+                        }
+                    }
+                }
+                $pendingBackorders = $selectedOrder->backorders->whereIn('status', ['pending', 'repurchasing'])->values();
+                $activeBackorders  = $selectedOrder->backorders->whereNotIn('status', ['completed', 'cancelled'])->values();
+                $fulfilledBackorders = $selectedOrder->backorders->where('status', 'completed')->values();
+            @endphp
+
+            {{-- Show shortage banner + action button when there is a shortage and no active backorder yet --}}
+            @if(count($shortageItems) > 0 && $pendingBackorders->isEmpty())
+            <div class="rounded-xl border border-orange-200 bg-orange-50 p-3 space-y-2">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <p class="text-xs font-semibold text-orange-700">Stock shortage — items cannot be fully fulfilled.</p>
+                </div>
+                @foreach($shortageItems as $s)
+                <p class="text-xs text-orange-600 pl-6">
+                    &bull; {{ $s['name'] }}: ordered <strong>{{ $s['ordered'] }}</strong>, in stock <strong>{{ $s['stock'] }}</strong>, <span class="font-bold text-red-600">short {{ $s['short'] }}</span>
+                </p>
+                @endforeach
+                <button wire:click="openBackorderModal({{ $selectedOrder->id }})"
+                        class="w-full mt-1 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-colors">
+                    Handle Stock Shortage
+                </button>
+            </div>
+            @endif
+
+            {{-- Show active backorders when they exist --}}
+            @if($activeBackorders->isNotEmpty())
+            <div class="rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-2">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <p class="text-xs font-semibold text-blue-700">Active Backorders ({{ $activeBackorders->count() }})</p>
+                    </div>
+                    <a href="{{ route('admin.backorders') }}"
+                       class="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline underline-offset-2">
+                        Manage &rarr;
+                    </a>
+                </div>
+                @foreach($activeBackorders as $bo)
+                <div class="flex items-center justify-between gap-2 rounded-lg bg-white border border-blue-100 px-3 py-2">
+                    <div class="min-w-0">
+                        <p class="text-xs font-semibold text-slate-800 truncate">{{ $bo->product_name }}</p>
+                        <p class="text-[10px] text-slate-500">
+                            Short: <strong class="text-red-600">{{ $bo->short_qty }}</strong>
+                            &middot;
+                            <span class="capitalize font-semibold text-blue-600">{{ $bo->decisionLabel() }}</span>
+                        </p>
+                    </div>
+                    <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border {{ $bo->statusBadgeClass() }}">
+                        {{ $bo->statusLabel() }}
+                    </span>
+                </div>
+                @endforeach
+                {{-- Quick action for pending/repurchasing only --}}
+                @if($pendingBackorders->isNotEmpty())
+                @foreach($pendingBackorders as $bo)
+                <button wire:click="fulfillBackorder({{ $bo->id }})"
+                        wire:loading.attr="disabled"
+                        class="w-full py-1.5 rounded-lg border border-blue-200 bg-blue-100 hover:bg-blue-200 text-blue-700 text-[10px] font-bold transition-colors whitespace-nowrap">
+                    Mark "{{ $bo->product_name }}" as Ready
+                </button>
+                @endforeach
+                @endif
+            </div>
+            @endif
+
+            {{-- Completed backorders summary --}}
+            @if($fulfilledBackorders->isNotEmpty() && $activeBackorders->isEmpty())
+            <div class="rounded-xl border border-green-200 bg-green-50 p-3">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-xs font-semibold text-green-700">All backorders completed and delivered</p>
+                </div>
             </div>
             @endif
 
@@ -914,6 +997,126 @@
         </div>
     </div>
 
+    {{-- ══════════════════════════════════════════════════════════════
+         BACKORDER / PARTIAL FULFILLMENT MODAL
+    ══════════════════════════════════════════════════════════════ --}}
+    <div
+        x-show="backorderOpen"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+        style="display:none;"
+        wire:ignore.self
+        @click.self="backorderOpen = false; $wire.set('showBackorderModal', false)"
+    >
+        <div
+            x-show="backorderOpen"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200/80 w-full max-w-lg max-h-[90vh] flex flex-col"
+            @click.stop
+        >
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-[Poppins] font-bold text-[#0F172A]">Handle Stock Shortage</h3>
+                        <p class="text-xs text-slate-500">Choose how to handle each unavailable item</p>
+                    </div>
+                </div>
+                <button @click="backorderOpen = false; $wire.set('showBackorderModal', false)"
+                        class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Body --}}
+            <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+
+                <div class="bg-orange-50 rounded-xl p-3 text-xs text-orange-700 border border-orange-200">
+                    <strong>Note:</strong> Available stock will be deducted and the order confirmed for dispatch. The short quantity will be tracked as a backorder for resolution.
+                </div>
+
+                {{-- Items list --}}
+                <div class="space-y-3">
+                    @foreach($backorderItems as $idx => $item)
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+
+                        {{-- Product info row --}}
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="font-semibold text-sm text-[#0F172A]">{{ $item['product_name'] }}</p>
+                                <div class="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
+                                    <span>Ordered: <strong class="text-slate-700">{{ $item['ordered'] }}</strong></span>
+                                    <span>In Stock: <strong class="text-green-600">{{ $item['available'] }}</strong></span>
+                                    <span>Short: <strong class="text-red-600">{{ $item['short'] }}</strong></span>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700 shrink-0 whitespace-nowrap">
+                                -{{ $item['short'] }} units
+                            </span>
+                        </div>
+
+                        {{-- Decision selector --}}
+                        <div>
+                            <p class="text-xs font-semibold text-slate-600 mb-2">Decision for short qty:</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button
+                                    wire:click="setBackorderDecision({{ $idx }}, 'repurchase')"
+                                    class="py-2.5 px-3 rounded-xl text-xs font-bold border-2 transition-all text-left {{ $item['decision'] === 'repurchase' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400' }}"
+                                >
+                                    <span class="block text-base leading-none mb-1">🛒</span>
+                                    Repurchase
+                                    <span class="block font-normal text-[10px] mt-0.5 leading-snug {{ $item['decision'] === 'repurchase' ? 'text-blue-100' : 'text-slate-400' }}">Add to next purchasing plan</span>
+                                </button>
+                                <button
+                                    wire:click="setBackorderDecision({{ $idx }}, 'waitlist')"
+                                    class="py-2.5 px-3 rounded-xl text-xs font-bold border-2 transition-all text-left {{ $item['decision'] === 'waitlist' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-200 hover:border-amber-400' }}"
+                                >
+                                    <span class="block text-base leading-none mb-1">⏳</span>
+                                    Waitlist
+                                    <span class="block font-normal text-[10px] mt-0.5 leading-snug {{ $item['decision'] === 'waitlist' ? 'text-amber-100' : 'text-slate-400' }}">Hold for next shipment batch</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                    @endforeach
+                </div>
+
+            </div>
+
+            {{-- Footer --}}
+            <div class="px-6 pb-5 pt-3 flex items-center gap-3 border-t border-slate-100 shrink-0">
+                <button @click="backorderOpen = false; $wire.set('showBackorderModal', false)"
+                        class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
+                    Cancel
+                </button>
+                <button wire:click="processBackorder"
+                        wire:loading.attr="disabled"
+                        class="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold transition-colors disabled:opacity-60">
+                    <span wire:loading.remove wire:target="processBackorder">Confirm &amp; Record Backorder</span>
+                    <span wire:loading wire:target="processBackorder">Processing...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     {{-- ══════════════════════ WHATSAPP SEND PROMPT ══════════════════════ --}}
     <div x-show="waPrompt"
          x-transition:enter="transition ease-out duration-200"
@@ -962,111 +1165,219 @@
         </div>
     </div>
 
-    {{-- ── Stock Alert Modal ─────────────────────────────────────────── --}}
+    {{-- ══════════════════════ STOCK ALERT MODAL ══════════════════════ --}}
     @if($showStockAlert)
     <div class="fixed inset-0 z-[70] flex items-center justify-center p-4"
-         style="background:rgba(0,0,0,0.55);">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+         style="background:rgba(0,0,0,0.6);">
+
+        {{-- ── Main Stock Alert Card ─────────────────────────────── --}}
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
 
             {{-- Header --}}
-            <div class="flex items-center gap-3 px-6 py-4 bg-red-50 border-b border-red-100">
-                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                    </svg>
+            <div class="flex items-center justify-between px-6 py-4 bg-red-50 border-b border-red-100 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-[Poppins] font-bold text-[#0F172A]">Insufficient Stock</h3>
+                        <p class="text-xs text-slate-500">Pick an action for each short item, then confirm.</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="font-[Poppins] font-bold text-base text-red-700">Insufficient Stock</h3>
-                    <p class="text-xs text-red-500">Cannot confirm — some products are out of stock. Choose how to proceed.</p>
-                </div>
+                <button wire:click="closeStockAlert" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
 
-            {{-- Stock Issues List --}}
-            <div class="px-6 pt-5 pb-3 space-y-3">
-                @foreach($stockIssues as $issue)
-                <div class="flex items-center justify-between bg-red-50 rounded-xl px-4 py-3">
-                    <div>
-                        <p class="text-sm font-semibold text-[#0F172A]">{{ $issue['name'] }}</p>
-                        <p class="text-xs text-[#64748B] mt-0.5">
-                            Needed: <span class="font-bold text-red-600">{{ $issue['needed'] }}</span>
-                            &nbsp;·&nbsp;
-                            In stock: <span class="font-bold text-[#0F172A]">{{ $issue['available'] }}</span>
-                            &nbsp;·&nbsp;
-                            Short: <span class="font-bold text-red-600">{{ $issue['needed'] - $issue['available'] }}</span>
-                        </p>
+            {{-- Product cards --}}
+            <div class="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+                @foreach($stockIssues as $idx => $issue)
+                @php $dec = $stockDecisions[$idx] ?? 'next_batch'; @endphp
+                <div class="rounded-2xl border {{ $dec === 'refund' ? 'border-red-200 bg-red-50/40' : 'border-amber-200 bg-amber-50/30' }} p-4 transition-colors">
+
+                    {{-- Product name + price --}}
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <p class="font-semibold text-sm text-[#0F172A]">{{ $issue['name'] }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Rs. {{ number_format($issue['unit_price'], 0) }} per unit</p>
+                        </div>
+                        {{-- Active decision badge --}}
+                        @if($dec === 'next_batch')
+                        <span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide">Backorder</span>
+                        @else
+                        <span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-bold uppercase tracking-wide">Refund</span>
+                        @endif
                     </div>
-                    <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
+
+                    {{-- Qty pills --}}
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="flex-1 text-center rounded-xl bg-slate-100 py-2">
+                            <p class="text-[9px] text-slate-400 uppercase tracking-wide font-semibold">Ordered</p>
+                            <p class="text-base font-bold text-slate-700 leading-tight">{{ $issue['needed'] }}</p>
+                        </div>
+                        <div class="flex-1 text-center rounded-xl bg-green-50 border border-green-200 py-2">
+                            <p class="text-[9px] text-green-500 uppercase tracking-wide font-semibold">In Stock</p>
+                            <p class="text-base font-bold text-green-700 leading-tight">{{ $issue['available'] }}</p>
+                        </div>
+                        <div class="flex-1 text-center rounded-xl bg-red-50 border border-red-200 py-2">
+                            <p class="text-[9px] text-red-400 uppercase tracking-wide font-semibold">Short</p>
+                            <p class="text-base font-bold text-red-600 leading-tight">-{{ $issue['short'] }}</p>
+                        </div>
+                    </div>
+
+                    {{-- Two action buttons --}}
+                    <div class="grid grid-cols-2 gap-2">
+
+                        {{-- Next Batch Order --}}
+                        <button wire:click="setStockNextBatch({{ $idx }})"
+                                class="flex items-center gap-2.5 px-3 py-3 rounded-xl border-2 transition-all
+                                       {{ $dec === 'next_batch'
+                                            ? 'border-amber-400 bg-amber-400 text-white shadow-sm'
+                                            : 'border-slate-200 bg-white text-slate-500 hover:border-amber-300 hover:bg-amber-50' }}">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <div class="text-left leading-tight">
+                                <p class="text-xs font-bold">Next Batch</p>
+                                <p class="text-[9px] {{ $dec === 'next_batch' ? 'text-amber-100' : 'text-slate-400' }}">Backorder {{ $issue['short'] }} unit{{ $issue['short'] > 1 ? 's' : '' }}</p>
+                            </div>
+                        </button>
+
+                        {{-- Refund Short --}}
+                        <button wire:click="openStockRefundConfirm({{ $idx }})"
+                                class="flex items-center gap-2.5 px-3 py-3 rounded-xl border-2 transition-all
+                                       {{ $dec === 'refund'
+                                            ? 'border-red-400 bg-red-500 text-white shadow-sm'
+                                            : 'border-slate-200 bg-white text-slate-500 hover:border-red-300 hover:bg-red-50' }}">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                            <div class="text-left leading-tight">
+                                <p class="text-xs font-bold">Refund Short</p>
+                                <p class="text-[9px] {{ $dec === 'refund' ? 'text-red-100' : 'text-slate-400' }}">Rs. {{ number_format($issue['short_amount'], 0) }}</p>
+                            </div>
+                        </button>
+
                     </div>
                 </div>
                 @endforeach
             </div>
 
-            {{-- 3 Action Options --}}
-            <div class="px-6 pb-6 space-y-3 mt-1">
-                <p class="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-2">Choose an action</p>
+            {{-- Footer summary + apply --}}
+            <div class="px-5 pb-5 pt-3 border-t border-slate-100 bg-slate-50/60 shrink-0 space-y-3">
+                @php
+                    $sumNextBatch   = collect($stockDecisions)->filter(fn($d) => $d === 'next_batch')->count();
+                    $sumRefund      = collect($stockDecisions)->filter(fn($d) => $d === 'refund')->count();
+                    $totalRefundAmt = 0;
+                    foreach ($stockIssues as $i => $iss) {
+                        if (($stockDecisions[$i] ?? '') === 'refund') $totalRefundAmt += $iss['short_amount'];
+                    }
+                @endphp
+                <div class="flex items-center gap-2 flex-wrap">
+                    @if($sumNextBatch)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        {{ $sumNextBatch }} Backorder{{ $sumNextBatch > 1 ? 's' : '' }}
+                    </span>
+                    @endif
+                    @if($sumRefund)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                        Refund Rs. {{ number_format($totalRefundAmt, 0) }}
+                    </span>
+                    @endif
+                </div>
 
-                {{-- Option 1: Refund --}}
-                <button wire:click="stockAlertRefund"
-                        class="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 border-red-200 hover:border-red-400 hover:bg-red-50 transition-all text-left group">
-                    <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center shrink-0 group-hover:bg-red-200">
-                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold text-red-700">Refund Customer</p>
-                        <p class="text-xs text-[#64748B]">Cancel this order and process a refund to the customer</p>
-                    </div>
-                </button>
-
-                {{-- Option 2: Repurchase --}}
-                <button wire:click="stockAlertRepurchase"
-                        class="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-left group">
-                    <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0 group-hover:bg-blue-200">
-                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold text-blue-700">Replace Product</p>
-                        <p class="text-xs text-[#64748B]">Mark order as sourcing &amp; go to Purchasing to create a purchase order</p>
-                    </div>
-                </button>
-
-                {{-- Option 3: Add Stock (just go to purchasing) --}}
-                <a href="{{ route('admin.purchasing') }}" wire:navigate
-                   class="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-all text-left group">
-                    <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0 group-hover:bg-amber-200">
-                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M12 4v16m8-8H4"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold text-amber-700">Add Stock</p>
-                        <p class="text-xs text-[#64748B]">Go to Purchasing, use the purchasing plan &amp; buy the needed stock</p>
-                    </div>
-                </a>
-
-                <button wire:click="closeStockAlert"
-                        class="w-full py-2.5 rounded-xl border border-[#E2E8F0] text-sm font-semibold text-[#94A3B8] hover:bg-[#F8FAFC] transition-colors mt-1">
-                    Cancel
-                </button>
+                <div class="flex gap-2">
+                    <button wire:click="closeStockAlert"
+                            class="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-white transition-colors">
+                        Cancel
+                    </button>
+                    <button wire:click="applyStockDecisions"
+                            wire:loading.attr="disabled"
+                            class="flex-1 py-2.5 rounded-xl bg-[#0F172A] text-white text-sm font-bold hover:bg-slate-800 transition-colors disabled:opacity-60">
+                        <span wire:loading.remove wire:target="applyStockDecisions">Confirm Order</span>
+                        <span wire:loading wire:target="applyStockDecisions">Processing…</span>
+                    </button>
+                </div>
             </div>
         </div>
+
+        {{-- ── Refund Sub-Confirm Popup (slides over main card) ────── --}}
+        @if($showStockRefundConfirm && $stockRefundConfirmIdx >= 0)
+        @php $ri = $stockIssues[$stockRefundConfirmIdx]; @endphp
+        <div class="absolute inset-0 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.45);">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+
+                {{-- Sub-header --}}
+                <div class="flex items-center gap-3 px-5 py-4 bg-red-50 border-b border-red-100">
+                    <div class="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-[Poppins] font-bold text-sm text-red-700">Confirm Partial Refund</h4>
+                        <p class="text-xs text-slate-500">{{ $ri['name'] }}</p>
+                    </div>
+                </div>
+
+                {{-- Content --}}
+                <div class="px-5 py-5 space-y-4">
+
+                    {{-- Amount breakdown --}}
+                    <div class="rounded-xl bg-slate-50 border border-slate-200 divide-y divide-slate-200">
+                        <div class="flex justify-between items-center px-4 py-2.5 text-sm">
+                            <span class="text-slate-500">Short qty</span>
+                            <span class="font-bold text-slate-700">{{ $ri['short'] }} unit{{ $ri['short'] > 1 ? 's' : '' }}</span>
+                        </div>
+                        <div class="flex justify-between items-center px-4 py-2.5 text-sm">
+                            <span class="text-slate-500">Unit price</span>
+                            <span class="font-bold text-slate-700">Rs. {{ number_format($ri['unit_price'], 0) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center px-4 py-3 bg-red-50">
+                            <span class="font-semibold text-red-700 text-sm">Refund Amount</span>
+                            <span class="font-bold text-red-700 text-lg">Rs. {{ number_format($ri['short_amount'], 0) }}</span>
+                        </div>
+                    </div>
+
+                    {{-- What happens note --}}
+                    <div class="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800 leading-relaxed">
+                        The order total will be <strong>reduced by Rs. {{ number_format($ri['short_amount'], 0) }}</strong>.
+                        @if($ri['available'] > 0)
+                        The remaining <strong>{{ $ri['available'] }} unit{{ $ri['available'] > 1 ? 's' : '' }}</strong> will be delivered.
+                        @else
+                        This item will be <strong>removed</strong> from the order.
+                        @endif
+                        Customer's payment for this amount will need to be refunded.
+                    </div>
+                </div>
+
+                {{-- Sub-footer --}}
+                <div class="px-5 pb-5 flex gap-2">
+                    <button wire:click="closeStockRefundConfirm"
+                            class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button wire:click="confirmStockRefundItem"
+                            class="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">
+                        Confirm Refund
+                    </button>
+                </div>
+
+            </div>
+        </div>
+        @endif
+
     </div>
     @endif
 
     {{-- ══════════════════════ PAYMENT DUE ON DISPATCH WARNING ══════════════════════ --}}
     <div x-show="dispatchAlert" x-cloak
          class="fixed inset-0 z-[70] flex items-center justify-center p-4"
-         style="background:rgba(0,0,0,0.55);">
+         style="display:none;background:rgba(0,0,0,0.55);">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div class="flex items-center gap-3 px-6 py-4 bg-amber-50 border-b border-amber-100">
                 <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">

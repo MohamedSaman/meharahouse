@@ -8,6 +8,7 @@ use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
 use App\Models\ShipmentBatch;
 use App\Models\Order;
+use App\Models\OrderBackorder;
 use Illuminate\Support\Facades\DB;
 
 #[Title('Shipment Batches')]
@@ -30,11 +31,12 @@ class Shipment extends Component
     public string $batchNotes      = '';
 
     // ── Assign Orders Modal ───────────────────────────────────────────
-    public bool   $showAssignModal    = false;
-    public ?int   $assigningBatchId   = null;
-    public string $assigningBatchName = '';
-    public array  $selectedOrderIds   = [];
-    public string $orderSearch        = '';
+    public bool   $showAssignModal      = false;
+    public ?int   $assigningBatchId     = null;
+    public string $assigningBatchName   = '';
+    public array  $selectedOrderIds     = [];
+    public array  $selectedBackorderIds = [];
+    public string $orderSearch          = '';
 
     // ── Waybill Modal ─────────────────────────────────────────────────
     public bool   $showWaybillModal = false;
@@ -147,11 +149,12 @@ class Shipment extends Component
     public function openAssignModal(int $batchId): void
     {
         $batch = ShipmentBatch::findOrFail($batchId);
-        $this->assigningBatchId   = $batchId;
-        $this->assigningBatchName = $batch->name;
-        $this->selectedOrderIds   = $batch->orders()->pluck('id')->toArray();
-        $this->orderSearch        = '';
-        $this->showAssignModal    = true;
+        $this->assigningBatchId     = $batchId;
+        $this->assigningBatchName   = $batch->name;
+        $this->selectedOrderIds     = $batch->orders()->pluck('id')->toArray();
+        $this->selectedBackorderIds = $batch->backorders()->pluck('id')->toArray();
+        $this->orderSearch          = '';
+        $this->showAssignModal      = true;
     }
 
     public function toggleOrderSelection(int $orderId): void
@@ -165,25 +168,43 @@ class Shipment extends Component
         }
     }
 
+    public function toggleBackorderSelection(int $boId): void
+    {
+        $ids = array_map('intval', $this->selectedBackorderIds);
+        if (in_array($boId, $ids)) {
+            $this->selectedBackorderIds = array_values(
+                array_filter($ids, fn($id) => $id !== $boId)
+            );
+        } else {
+            $ids[] = $boId;
+            $this->selectedBackorderIds = $ids;
+        }
+    }
+
     public function saveOrderAssignment(): void
     {
-        if (!$this->assigningBatchId) {
-            return;
-        }
+        if (!$this->assigningBatchId) return;
 
-        // Unassign previously assigned orders from this batch
+        // Regular orders
         Order::where('shipment_batch_id', $this->assigningBatchId)
              ->update(['shipment_batch_id' => null]);
-
-        // Assign selected orders to this batch
         if (!empty($this->selectedOrderIds)) {
             Order::whereIn('id', $this->selectedOrderIds)
                  ->update(['shipment_batch_id' => $this->assigningBatchId]);
         }
 
-        $count = count($this->selectedOrderIds);
+        // Backorders
+        OrderBackorder::where('shipment_batch_id', $this->assigningBatchId)
+                      ->update(['shipment_batch_id' => null]);
+        if (!empty($this->selectedBackorderIds)) {
+            OrderBackorder::whereIn('id', $this->selectedBackorderIds)
+                          ->update(['shipment_batch_id' => $this->assigningBatchId]);
+        }
+
+        $orders    = count($this->selectedOrderIds);
+        $backorders = count($this->selectedBackorderIds);
         $this->showAssignModal = false;
-        session()->flash('success', "{$count} " . ($count === 1 ? 'order' : 'orders') . " assigned to batch.");
+        session()->flash('success', "{$orders} order(s) and {$backorders} backorder(s) assigned to batch.");
     }
 
     // ── Waybill / Local Delivery Tracking ────────────────────────────
@@ -220,7 +241,7 @@ class Shipment extends Component
 
     public function render()
     {
-        $batches = ShipmentBatch::withCount('orders')
+        $batches = ShipmentBatch::withCount(['orders', 'backorders'])
             ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
             ->when($this->search, fn($q) => $q
                 ->where('name', 'like', "%{$this->search}%")
@@ -247,12 +268,33 @@ class Shipment extends Component
                 ->get()
             : collect();
 
+        // Backorders available for batch assignment (ready status, no batch or in current batch)
+        $assignableBackorders = $this->showAssignModal
+            ? OrderBackorder::with(['order.user'])
+                ->whereIn('status', ['ready', 'dispatched'])
+                ->where(fn($q) => $q
+                    ->whereNull('shipment_batch_id')
+                    ->orWhere('shipment_batch_id', $this->assigningBatchId))
+                ->when($this->orderSearch, fn($q) => $q
+                    ->where('product_name', 'like', "%{$this->orderSearch}%")
+                    ->orWhere('backorder_number', 'like', "%{$this->orderSearch}%")
+                    ->orWhereHas('order', fn($o) => $o->where('order_number', 'like', "%{$this->orderSearch}%")))
+                ->latest()
+                ->limit(30)
+                ->get()
+            : collect();
+
         // Expanded batch orders for waybill management
-        $expandedBatchOrders = [];
+        $expandedBatchOrders    = [];
+        $expandedBatchBackorders = [];
         if (!empty($this->expandedBatches)) {
             foreach ($this->expandedBatches as $batchId) {
                 $expandedBatchOrders[$batchId] = Order::where('shipment_batch_id', $batchId)
                     ->with('user')
+                    ->latest()
+                    ->get();
+                $expandedBatchBackorders[$batchId] = OrderBackorder::where('shipment_batch_id', $batchId)
+                    ->with(['order.user'])
                     ->latest()
                     ->get();
             }
@@ -265,6 +307,6 @@ class Shipment extends Component
             'completed'  => ShipmentBatch::where('status', 'completed')->count(),
         ];
 
-        return view('livewire.admin.shipment', compact('batches', 'assignableOrders', 'expandedBatchOrders', 'stats'));
+        return view('livewire.admin.shipment', compact('batches', 'assignableOrders', 'assignableBackorders', 'expandedBatchOrders', 'expandedBatchBackorders', 'stats'));
     }
 }

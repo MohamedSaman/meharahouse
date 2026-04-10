@@ -7,6 +7,7 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
 use Livewire\WithPagination;
+use App\Models\OrderBackorder;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Supplier;
@@ -53,6 +54,10 @@ class Purchasing extends Component
     public bool  $showReadyOrdersModal = false;
     public int   $readyOrdersCount     = 0;
     public array $readyOrderIds        = [];
+
+    // ── Backorder Fulfillment Modal (after receiving goods) ───────────
+    public bool  $showBackorderFulfillModal = false;
+    public array $fulfillableBackorders     = [];
 
     // ── Lifecycle ─────────────────────────────────────────────────────
 
@@ -295,6 +300,9 @@ class Purchasing extends Component
         // Check for orders that can now be confirmed
         $this->checkReadyOrders();
 
+        // Check if any backorders can now be fulfilled with the new stock
+        $this->checkFulfillableBackorders();
+
         session()->flash('success', 'Goods received and stock updated successfully.');
     }
 
@@ -352,6 +360,70 @@ class Purchasing extends Component
         $this->readyOrdersCount     = 0;
     }
 
+    // ── Backorder Fulfillment After Receiving ─────────────────────────
+
+    private function checkFulfillableBackorders(): void
+    {
+        $backorders = OrderBackorder::with(['product', 'order'])
+            ->whereIn('status', ['pending', 'repurchasing'])
+            ->get();
+
+        $fulfillable = [];
+        foreach ($backorders as $bo) {
+            $stock = (int) ($bo->product?->stock ?? 0);
+            if ($stock >= $bo->short_qty) {
+                $fulfillable[] = [
+                    'id'           => $bo->id,
+                    'order_number' => $bo->order?->order_number ?? 'N/A',
+                    'order_id'     => $bo->order_id,
+                    'product_name' => $bo->product_name,
+                    'short_qty'    => $bo->short_qty,
+                    'stock'        => $stock,
+                ];
+            }
+        }
+
+        if (!empty($fulfillable)) {
+            $this->fulfillableBackorders     = $fulfillable;
+            $this->showBackorderFulfillModal = true;
+        }
+    }
+
+    public function fulfillAllBackorders(): void
+    {
+        foreach ($this->fulfillableBackorders as $item) {
+            $bo = OrderBackorder::find($item['id']);
+            if (!$bo) continue;
+
+            // Mark as ready — stock is deducted when dispatched from the Backorders page
+            $bo->update(['status' => 'ready']);
+        }
+
+        $count = count($this->fulfillableBackorders);
+        $this->showBackorderFulfillModal = false;
+        $this->fulfillableBackorders     = [];
+        session()->flash('success', "{$count} backorder(s) marked as ready. Go to Back Orders to dispatch them.");
+    }
+
+    public function dismissBackorderFulfill(): void
+    {
+        $this->showBackorderFulfillModal = false;
+        $this->fulfillableBackorders     = [];
+    }
+
+    // ── Backorder Actions ─────────────────────────────────────────────
+
+    /**
+     * Mark a backorder record as ready from the purchasing page.
+     * Stock deduction and full lifecycle completion are managed from the Backorders page.
+     */
+    public function fulfillBackorder(int $backorderId): void
+    {
+        $backorder = OrderBackorder::findOrFail($backorderId);
+        $backorder->update(['status' => 'ready']);
+        session()->flash('success', 'Backorder marked as ready. Go to Back Orders to dispatch it.');
+    }
+
     // ── Detail Modal ──────────────────────────────────────────────────
 
     public function openDetailModal(int $id): void
@@ -377,12 +449,14 @@ class Purchasing extends Component
                 if (!$pid) continue;
                 if (!isset($needed[$pid])) {
                     $needed[$pid] = [
-                        'product_id'    => $pid,   // ← store product_id so it carries through to the PO
-                        'product_name'  => $item->product_name,
-                        'sku'           => $item->product?->sku ?? '',
-                        'qty_needed'    => 0,
-                        'order_count'   => 0,
-                        'current_stock' => $item->product?->stock ?? 0,
+                        'product_id'      => $pid,
+                        'product_name'    => $item->product_name,
+                        'sku'             => $item->product?->sku ?? '',
+                        'qty_needed'      => 0,
+                        'order_count'     => 0,
+                        'backorder_qty'   => 0,
+                        'backorder_count' => 0,
+                        'current_stock'   => $item->product?->stock ?? 0,
                     ];
                 }
                 $needed[$pid]['qty_needed']  += $item->quantity;
@@ -390,8 +464,34 @@ class Purchasing extends Component
             }
         }
 
+        // Merge pending backorders (repurchase) into the plan
+        $backorders = OrderBackorder::with('product')
+            ->whereIn('status', ['pending', 'repurchasing'])
+            ->get();
+
+        foreach ($backorders as $bo) {
+            $pid = $bo->product_id;
+            if (!$pid) continue;
+            if (!isset($needed[$pid])) {
+                $needed[$pid] = [
+                    'product_id'      => $pid,
+                    'product_name'    => $bo->product_name,
+                    'sku'             => $bo->product?->sku ?? '',
+                    'qty_needed'      => 0,
+                    'order_count'     => 0,
+                    'backorder_qty'   => 0,
+                    'backorder_count' => 0,
+                    'current_stock'   => $bo->product?->stock ?? 0,
+                ];
+            }
+            $needed[$pid]['backorder_qty']   += $bo->short_qty;
+            $needed[$pid]['backorder_count'] += 1;
+        }
+
         $this->planItems = collect($needed)->map(function ($row) {
-            $row['to_buy'] = max(0, $row['qty_needed'] - $row['current_stock']);
+            $totalNeeded       = $row['qty_needed'] + $row['backorder_qty'];
+            $row['total_needed'] = $totalNeeded;
+            $row['to_buy']     = max(0, $totalNeeded - $row['current_stock']);
             return $row;
         })->sortByDesc('to_buy')->values()->toArray();
 

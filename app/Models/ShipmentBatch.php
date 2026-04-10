@@ -27,6 +27,11 @@ class ShipmentBatch extends Model
         return $this->hasMany(Order::class, 'shipment_batch_id');
     }
 
+    public function backorders(): HasMany
+    {
+        return $this->hasMany(OrderBackorder::class, 'shipment_batch_id');
+    }
+
     public static function generateBatchNumber(): string
     {
         $month = date('Ym');

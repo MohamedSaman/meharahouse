@@ -114,6 +114,7 @@
         </div>
     </div>
 
+
     {{-- ══════════════════════ FILTER BAR ══════════════════════ --}}
     <div class="card p-4">
         <div class="flex flex-col md:flex-row gap-3">
@@ -917,7 +918,13 @@
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-900 to-slate-800">
                 <div>
                     <h3 class="font-[Poppins] font-bold text-lg text-white">Purchasing Plan</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Based on {{ count($planOrderIds) }} pending order(s)</p>
+                    @php $planBackorderQty = collect($planItems)->sum('backorder_qty'); @endphp
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        {{ count($planOrderIds) }} pending order(s)
+                        @if($planBackorderQty > 0)
+                        &middot; <span class="text-orange-300">{{ $planBackorderQty }} backorder unit(s) included</span>
+                        @endif
+                    </p>
                 </div>
                 <button wire:click="$set('showPlanModal', false)" class="text-slate-400 hover:text-white transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -937,7 +944,8 @@
                             <th class="text-left py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</th>
                             <th class="text-left py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Code</th>
                             <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Orders</th>
-                            <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Needed</th>
+                            <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Needed</th>
+                            <th class="text-center py-2 text-xs font-semibold text-orange-400 uppercase tracking-wide">Backorder</th>
                             <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">In Stock</th>
                             <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">To Buy</th>
                         </tr>
@@ -947,10 +955,19 @@
                         <tr class="{{ $item['to_buy'] > 0 ? 'bg-red-50/40' : '' }}">
                             <td class="py-3 font-medium text-slate-800">{{ $item['product_name'] }}</td>
                             <td class="py-3 text-slate-500 font-mono text-xs">{{ $item['sku'] ?: '—' }}</td>
-                            <td class="py-3 text-center text-slate-500">{{ $item['order_count'] }}</td>
-                            <td class="py-3 text-center font-semibold text-slate-700">{{ $item['qty_needed'] }}</td>
+                            <td class="py-3 text-center text-slate-500">{{ $item['order_count'] ?: '—' }}</td>
+                            <td class="py-3 text-center font-semibold text-slate-700">{{ $item['qty_needed'] ?: '—' }}</td>
                             <td class="py-3 text-center">
-                                <span class="{{ $item['current_stock'] < $item['qty_needed'] ? 'text-red-600 font-bold' : 'text-green-600 font-semibold' }}">
+                                @if($item['backorder_qty'] > 0)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                                        +{{ $item['backorder_qty'] }}
+                                    </span>
+                                @else
+                                    <span class="text-slate-300">—</span>
+                                @endif
+                            </td>
+                            <td class="py-3 text-center">
+                                <span class="{{ $item['current_stock'] < $item['total_needed'] ? 'text-red-600 font-bold' : 'text-green-600 font-semibold' }}">
                                     {{ $item['current_stock'] }}
                                 </span>
                             </td>
@@ -1026,6 +1043,61 @@
                         I'll Confirm Manually (Orders Page)
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══ BACKORDER FULFILLMENT MODAL (after receiving goods) ══ --}}
+    @if($showBackorderFulfillModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.6);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+
+            {{-- Header --}}
+            <div class="px-6 py-5 bg-gradient-to-r from-orange-500 to-amber-500 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-white text-base">Backorders Ready to Dispatch</h3>
+                    <p class="text-orange-100 text-xs mt-0.5">Stock received covers these backorders — mark as ready then dispatch from Back Orders</p>
+                </div>
+            </div>
+
+            {{-- Body --}}
+            <div class="px-6 py-5 space-y-3 max-h-80 overflow-y-auto">
+                @foreach($fulfillableBackorders as $item)
+                <div class="flex items-center justify-between gap-3 rounded-xl border border-orange-100 bg-orange-50/50 px-4 py-3">
+                    <div class="min-w-0">
+                        <p class="text-xs font-mono font-bold text-orange-700">{{ $item['order_number'] }}</p>
+                        <p class="text-sm font-semibold text-slate-800 truncate">{{ $item['product_name'] }}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Need <strong>{{ $item['short_qty'] }}</strong> &middot; Stock <strong class="text-green-600">{{ $item['stock'] }}</strong>
+                        </p>
+                    </div>
+                    <span class="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                        Ready
+                    </span>
+                </div>
+                @endforeach
+            </div>
+
+            {{-- Footer --}}
+            <div class="px-6 pb-5 space-y-2">
+                <button wire:click="fulfillAllBackorders"
+                        wire:loading.attr="disabled"
+                        class="w-full py-3 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 transition-colors disabled:opacity-60">
+                    <span wire:loading.remove wire:target="fulfillAllBackorders">
+                        Mark {{ count($fulfillableBackorders) }} Backorder(s) as Ready
+                    </span>
+                    <span wire:loading wire:target="fulfillAllBackorders">Processing...</span>
+                </button>
+                <button wire:click="dismissBackorderFulfill"
+                        class="w-full py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
+                    I'll Handle from Back Orders Page
+                </button>
             </div>
         </div>
     </div>

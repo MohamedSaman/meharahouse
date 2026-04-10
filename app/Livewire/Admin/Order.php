@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Title;
 use Livewire\WithPagination;
 use App\Models\Order as OrderModel;
+use App\Models\OrderBackorder;
 use App\Models\OrderPayment;
 use App\Models\Product;
 use App\Models\Refund;
@@ -37,9 +38,13 @@ class Order extends Component
     public ?OrderModel  $selectedOrder = null;
 
     // ── Stock Alert Modal ─────────────────────────────────────────────
-    public bool  $showStockAlert  = false;
-    public array $stockIssues     = []; // [{name, needed, available}]
-    public int   $stockAlertOrder = 0;
+    public bool  $showStockAlert      = false;
+    public array $stockIssues         = []; // [{item_id, product_id, name, needed, available, short, unit_price, short_amount}]
+    public array $stockDecisions      = []; // [index => 'next_batch'|'refund']
+    public int   $stockAlertOrder     = 0;
+    // Refund sub-confirm inside stock alert
+    public bool  $showStockRefundConfirm = false;
+    public int   $stockRefundConfirmIdx  = -1;
 
     // ── Refund Modal ──────────────────────────────────────────────────
     public bool   $showRefundModal  = false;
@@ -48,6 +53,11 @@ class Order extends Component
     public string $refundMethod     = 'bank_transfer';
     public string $refundReference  = '';
     public string $refundNotes      = '';
+
+    // ── Backorder / Partial Fulfillment ───────────────────────────────
+    public bool  $showBackorderModal = false;
+    public int   $backorderOrderId   = 0;
+    public array $backorderItems     = []; // [{item_id, product_id, product_name, ordered, available, short, decision}]
 
     // ─────────────────────────────────────────────────────────────────
 
@@ -77,6 +87,7 @@ class Order extends Component
             'statusLogs.createdBy',
             'refund',
             'whatsappToken',
+            'backorders',
         ])->findOrFail($id);
 
         $this->showDetail = true;
@@ -103,16 +114,23 @@ class Order extends Component
             $product = $item->product;
             if (!$product) continue;
             if ($product->stock < $item->quantity) {
+                $short = (int) $item->quantity - (int) $product->stock;
                 $issues[] = [
-                    'name'      => $item->product_name,
-                    'needed'    => $item->quantity,
-                    'available' => $product->stock,
+                    'item_id'      => $item->id,
+                    'product_id'   => $item->product_id,
+                    'name'         => $item->product_name,
+                    'needed'       => (int) $item->quantity,
+                    'available'    => (int) $product->stock,
+                    'short'        => $short,
+                    'unit_price'   => (float) $item->price,
+                    'short_amount' => round((float) $item->price * $short, 2),
                 ];
             }
         }
 
         if (!empty($issues)) {
             $this->stockIssues     = $issues;
+            $this->stockDecisions  = array_fill(0, count($issues), 'next_batch');
             $this->stockAlertOrder = $orderId;
             $this->showStockAlert  = true;
             return;
@@ -139,35 +157,131 @@ class Order extends Component
 
     public function closeStockAlert(): void
     {
-        $this->showStockAlert  = false;
-        $this->stockIssues     = [];
-        $this->stockAlertOrder = 0;
+        $this->showStockAlert          = false;
+        $this->stockIssues             = [];
+        $this->stockDecisions          = [];
+        $this->stockAlertOrder         = 0;
+        $this->showStockRefundConfirm  = false;
+        $this->stockRefundConfirmIdx   = -1;
     }
 
     /**
-     * Stock alert → Refund: close alert, open refund modal for this order.
+     * Select next_batch for an item (direct toggle, no sub-popup needed).
      */
-    public function stockAlertRefund(): void
+    public function setStockNextBatch(int $index): void
     {
-        $orderId = $this->stockAlertOrder;
-        $this->closeStockAlert();
-        $this->openRefundModal($orderId);
+        $this->showStockRefundConfirm = false;
+        $this->stockRefundConfirmIdx  = -1;
+        $this->stockDecisions[$index] = 'next_batch';
     }
 
     /**
-     * Stock alert → Repurchase: mark order as 'sourcing', redirect to purchasing.
-     * The purchasing module will auto-prompt "confirm pending orders" once stock arrives.
+     * Open the refund sub-confirm popup for a specific item and mark it as 'refund'.
      */
-    public function stockAlertRepurchase(): void
+    public function openStockRefundConfirm(int $index): void
     {
-        $orderId = $this->stockAlertOrder;
+        $this->stockDecisions[$index]  = 'refund';
+        $this->stockRefundConfirmIdx   = $index;
+        $this->showStockRefundConfirm  = true;
+    }
+
+    /** Close just the refund sub-confirm (revert to next_batch for that item). */
+    public function closeStockRefundConfirm(): void
+    {
+        if ($this->stockRefundConfirmIdx >= 0) {
+            $this->stockDecisions[$this->stockRefundConfirmIdx] = 'next_batch';
+        }
+        $this->showStockRefundConfirm = false;
+        $this->stockRefundConfirmIdx  = -1;
+    }
+
+    /** Confirm the refund selection for the item and close the sub-popup. */
+    public function confirmStockRefundItem(): void
+    {
+        $this->showStockRefundConfirm = false;
+        $this->stockRefundConfirmIdx  = -1;
+    }
+
+    /**
+     * Apply per-item decisions from the stock alert modal.
+     *
+     * next_batch → creates a backorder record; deducts available stock and confirms order
+     * refund     → reduces order item amount by short qty × unit price, confirms with available stock
+     */
+    public function applyStockDecisions(): void
+    {
+        if (!$this->stockAlertOrder) return;
+
+        $order = OrderModel::with('items.product')->findOrFail($this->stockAlertOrder);
+
+        $partialRefundAmount = 0.0;
+
+        foreach ($this->stockIssues as $index => $issue) {
+            $decision = $this->stockDecisions[$index] ?? 'next_batch';
+
+            if ($decision === 'next_batch') {
+                OrderBackorder::create([
+                    'order_id'      => $order->id,
+                    'order_item_id' => $issue['item_id'],
+                    'product_id'    => $issue['product_id'],
+                    'product_name'  => $issue['name'],
+                    'ordered_qty'   => $issue['needed'],
+                    'available_qty' => $issue['available'],
+                    'short_qty'     => $issue['short'],
+                    'decision'      => 'repurchase',
+                    'status'        => 'repurchasing',
+                    'created_by'    => auth()->id(),
+                ]);
+
+            } elseif ($decision === 'refund') {
+                $partialRefundAmount += $issue['short_amount'];
+
+                // Reduce the order item quantity to what's actually available
+                $orderItem = $order->items->firstWhere('id', $issue['item_id']);
+                if ($orderItem && $issue['available'] > 0) {
+                    $orderItem->update([
+                        'quantity' => $issue['available'],
+                        'subtotal' => round($issue['unit_price'] * $issue['available'], 2),
+                    ]);
+                } elseif ($orderItem && $issue['available'] === 0) {
+                    // Nothing available — remove item from order
+                    $orderItem->delete();
+                }
+            }
+        }
+
+        // Recalculate order total if any refunds applied
+        if ($partialRefundAmount > 0) {
+            $order->refresh()->load('items');
+            $newSubtotal = $order->items->sum('subtotal');
+            $order->update([
+                'subtotal' => $newSubtotal,
+                'total'    => round($newSubtotal + $order->shipping_cost + $order->tax - $order->discount, 2),
+            ]);
+        }
+
+        // Deduct available stock for every item
+        $order->refresh()->load('items.product');
+        foreach ($order->items as $item) {
+            $product = $item->product;
+            if (!$product) continue;
+            $deduct = min((int) $product->stock, (int) $item->quantity);
+            if ($deduct > 0) $product->decrement('stock', $deduct);
+        }
+
+        $notes = 'Order confirmed with partial stock.';
+        if ($partialRefundAmount > 0) {
+            $notes .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' refunded for short items (order total adjusted).';
+        }
+        $order->logStatus('confirmed', $notes, auth()->id());
+        $order->update(['status' => 'confirmed']);
+
         $this->closeStockAlert();
+        $this->refreshSelectedOrder($order->id);
 
-        $order = OrderModel::findOrFail($orderId);
-        $order->logStatus('sourcing', 'Marked for repurchase — awaiting stock from supplier.', auth()->id());
-        $order->update(['status' => 'sourcing', 'supplier_status' => 'ordered']);
-
-        $this->redirect(route('admin.purchasing'));
+        session()->flash('success', $partialRefundAmount > 0
+            ? 'Order confirmed. Rs. ' . number_format($partialRefundAmount, 0) . ' refunded — order total reduced for short items.'
+            : 'Order confirmed. Backorders created for short items.');
     }
 
     /**
@@ -204,6 +318,118 @@ class Order extends Component
         $order->update(['supplier_status' => 'unavailable']);
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Supplier status updated to unavailable.');
+    }
+
+    // ── Backorder / Partial Fulfillment ──────────────────────────────
+
+    /**
+     * Open the partial-fulfillment / backorder modal for an order.
+     * Computes the stock shortage per item and pre-fills the modal.
+     */
+    public function openBackorderModal(int $orderId): void
+    {
+        $order = OrderModel::with('items.product')->findOrFail($orderId);
+        $items = [];
+
+        foreach ($order->items as $item) {
+            $stock  = (int) ($item->product?->stock ?? 0);
+            $needed = (int) $item->quantity;
+            if ($stock < $needed) {
+                $items[] = [
+                    'item_id'      => $item->id,
+                    'product_id'   => $item->product_id,
+                    'product_name' => $item->product_name,
+                    'ordered'      => $needed,
+                    'available'    => $stock,
+                    'short'        => $needed - $stock,
+                    'decision'     => 'repurchase', // default decision
+                ];
+            }
+        }
+
+        if (empty($items)) {
+            session()->flash('success', 'No stock shortage detected — all items have sufficient stock.');
+            return;
+        }
+
+        $this->backorderOrderId   = $orderId;
+        $this->backorderItems     = $items;
+        $this->showBackorderModal = true;
+    }
+
+    /**
+     * Update a single item's backorder decision (repurchase / waitlist) in the modal array.
+     */
+    public function setBackorderDecision(int $index, string $decision): void
+    {
+        if (isset($this->backorderItems[$index])) {
+            $this->backorderItems[$index]['decision'] = $decision;
+        }
+    }
+
+    /**
+     * Persist backorder decisions, deduct the available stock, and move the
+     * order to confirmed so it can be dispatched with what is in stock.
+     */
+    public function processBackorder(): void
+    {
+        if (empty($this->backorderItems) || !$this->backorderOrderId) return;
+
+        $order = OrderModel::with('items.product')->findOrFail($this->backorderOrderId);
+
+        // Create one backorder record per short item
+        foreach ($this->backorderItems as $item) {
+            OrderBackorder::create([
+                'order_id'      => $order->id,
+                'order_item_id' => $item['item_id'],
+                'product_id'    => $item['product_id'],
+                'product_name'  => $item['product_name'],
+                'ordered_qty'   => $item['ordered'],
+                'available_qty' => $item['available'],
+                'short_qty'     => $item['short'],
+                'decision'      => $item['decision'],
+                'status'        => $item['decision'] === 'repurchase' ? 'repurchasing' : 'pending',
+                'created_by'    => auth()->id(),
+            ]);
+        }
+
+        // Deduct only the available (not the full ordered) qty from stock
+        foreach ($order->items as $orderItem) {
+            $stock  = (int) ($orderItem->product?->stock ?? 0);
+            $deduct = min($stock, (int) $orderItem->quantity);
+            if ($deduct > 0 && $orderItem->product) {
+                $orderItem->product->decrement('stock', $deduct);
+            }
+        }
+
+        // Confirm the order so staff can dispatch the available portion
+        $order->logStatus(
+            'confirmed',
+            'Partial fulfillment acknowledged. Backorder created for the shortage.',
+            auth()->id()
+        );
+        $order->update(['status' => 'confirmed', 'supplier_status' => 'received']);
+
+        $this->showBackorderModal = false;
+        $this->backorderItems     = [];
+        $this->backorderOrderId   = 0;
+
+        $this->refreshSelectedOrder($order->id);
+        session()->flash('success', 'Backorder recorded. Order confirmed for dispatch with available stock.');
+    }
+
+    /**
+     * Mark a specific backorder record as ready from the order detail panel.
+     * Full dispatch lifecycle (dispatched → delivered → completed) is managed
+     * from the dedicated Back Orders page.
+     */
+    public function fulfillBackorder(int $backorderId): void
+    {
+        $backorder = OrderBackorder::findOrFail($backorderId);
+        $backorder->update(['status' => 'ready']);
+
+        $this->refreshSelectedOrder($backorder->order_id);
+        session()->flash('success', 'Backorder marked as ready. Go to Back Orders to dispatch it.');
     }
 
     /**
@@ -556,6 +782,7 @@ class Order extends Component
                 'statusLogs.createdBy',
                 'refund',
                 'whatsappToken',
+                'backorders',
             ])->find($orderId);
         }
     }
