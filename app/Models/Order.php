@@ -90,6 +90,11 @@ class Order extends Model
         return $this->hasOne(Refund::class);
     }
 
+    public function refunds(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
     public function orderReturn(): HasOne
     {
         return $this->hasOne(OrderReturn::class);
@@ -130,16 +135,43 @@ class Order extends Model
 
     /**
      * Calculate the outstanding balance owed by the customer.
-     * balance_amount minus all confirmed balance payments already received.
+     * Uses the stored balance_amount field as the authoritative source,
+     * which is kept up-to-date by payment confirmation logic.
      */
     public function balanceDue(): float
     {
-        $paidBalance = $this->payments()
-                            ->where('type', 'balance')
-                            ->where('status', 'confirmed')
-                            ->sum('amount');
+        return max(0, (float) $this->balance_amount);
+    }
 
-        return max(0, (float) $this->balance_amount - (float) $paidBalance);
+    /**
+     * Total confirmed payments received (advance + balance) for this order.
+     * Uses the loaded payments relation when available to avoid extra queries.
+     */
+    public function totalPaid(): float
+    {
+        if ($this->relationLoaded('payments')) {
+            return (float) $this->payments
+                ->whereIn('type', ['advance', 'balance', 'full'])
+                ->where('status', 'confirmed')
+                ->sum('amount');
+        }
+
+        return (float) $this->payments()
+            ->whereIn('type', ['advance', 'balance', 'full'])
+            ->where('status', 'confirmed')
+            ->sum('amount');
+    }
+
+    /**
+     * Total amount refunded to the customer across all refund records.
+     */
+    public function totalRefunded(): float
+    {
+        if ($this->relationLoaded('refunds')) {
+            return (float) $this->refunds->sum('amount');
+        }
+
+        return (float) $this->refunds()->sum('amount');
     }
 
     /**

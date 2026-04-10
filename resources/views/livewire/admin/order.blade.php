@@ -582,23 +582,41 @@
                 </h4>
 
                 {{-- Payment summary bar --}}
-                <div class="bg-slate-900 rounded-xl p-4 mb-4 grid grid-cols-3 gap-3 text-center">
-                    <div>
-                        <p class="text-xs text-slate-400">Total</p>
-                        <p class="font-bold text-white text-sm mt-0.5">Rs. {{ number_format($selectedOrder->total, 0) }}</p>
+                @php
+                    $summaryTotalPaid    = $selectedOrder->totalPaid();
+                    $summaryTotalRefund  = $selectedOrder->totalRefunded();
+                    $summaryBalanceDue   = $selectedOrder->balanceDue();
+                @endphp
+                <div class="bg-slate-900 rounded-xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    <div class="border-r border-slate-700 last:border-0 sm:border-r sm:last:border-0 pr-3 last:pr-0">
+                        <p class="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">Order Total</p>
+                        <p class="font-bold text-white text-sm">Rs. {{ number_format($selectedOrder->total, 0) }}</p>
                     </div>
-                    <div>
-                        <p class="text-xs text-slate-400">Advance</p>
-                        <p class="font-bold text-amber-400 text-sm mt-0.5">Rs. {{ number_format($selectedOrder->advance_amount, 0) }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs text-slate-400">Balance Due</p>
-                        @if(in_array($selectedOrder->status, ['refunded','cancelled']))
-                        <p class="font-bold text-slate-400 text-sm mt-0.5">— Refunded —</p>
-                        @else
-                        <p class="font-bold text-{{ $selectedOrder->balanceDue() > 0 ? 'red' : 'emerald' }}-400 text-sm mt-0.5">
-                            Rs. {{ number_format($selectedOrder->balanceDue(), 0) }}
+                    <div class="sm:border-r border-slate-700 sm:pr-3">
+                        <p class="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">Advance Paid</p>
+                        <p class="font-bold text-amber-400 text-sm">
+                            Rs. {{ number_format($summaryTotalPaid, 0) }}
                         </p>
+                        @if($summaryTotalPaid > 0 && $summaryTotalPaid < $selectedOrder->total)
+                        <p class="text-[9px] text-slate-500 mt-0.5">of Rs. {{ number_format($selectedOrder->advance_amount, 0) }} req.</p>
+                        @endif
+                    </div>
+                    <div class="border-r border-slate-700 last:border-0 sm:border-r pr-3 last:pr-0">
+                        <p class="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">Refunded</p>
+                        @if($summaryTotalRefund > 0)
+                        <p class="font-bold text-purple-400 text-sm">Rs. {{ number_format($summaryTotalRefund, 0) }}</p>
+                        @else
+                        <p class="font-bold text-slate-600 text-sm">Rs. 0</p>
+                        @endif
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">Balance Due</p>
+                        @if(in_array($selectedOrder->status, ['refunded', 'cancelled']) && $summaryTotalRefund > 0)
+                        <p class="font-bold text-slate-400 text-sm">Refunded</p>
+                        @elseif($summaryBalanceDue > 0)
+                        <p class="font-bold text-red-400 text-sm">Rs. {{ number_format($summaryBalanceDue, 0) }}</p>
+                        @else
+                        <p class="font-bold text-emerald-400 text-sm">Cleared</p>
                         @endif
                     </div>
                 </div>
@@ -989,22 +1007,120 @@
                     @endforeach
                 </div>
 
-                {{-- Totals --}}
-                <div class="bg-[#F8FAFC] rounded-xl p-4 space-y-2 text-sm mt-3">
-                    <div class="flex justify-between"><span class="text-[#64748B]">Subtotal</span><span>Rs. {{ number_format($selectedOrder->subtotal, 0) }}</span></div>
+                {{-- Totals: full accounting breakdown --}}
+                @php
+                    // Original items subtotal = what customer was charged when they ordered
+                    // For changed items (replaced/refunded), use the stored original_ordered_subtotal
+                    $origItemsSubtotal = $selectedOrder->items->sum(function($item) {
+                        if (!empty($item->original_ordered_subtotal)) {
+                            return (float) $item->original_ordered_subtotal;
+                        }
+                        return (float) $item->subtotal;
+                    });
+                    $origTotal = round(
+                        $origItemsSubtotal
+                        + (float) $selectedOrder->shipping_cost
+                        + (float) $selectedOrder->tax
+                        - (float) $selectedOrder->discount,
+                    2);
+
+                    // Replacement price difference: positive = customer owes more, negative = cheaper replacement
+                    $replaceDiff = $selectedOrder->items->where('status', 'replaced')->sum(function($item) {
+                        $orig = (float) ($item->original_ordered_subtotal ?? $item->subtotal);
+                        return (float) $item->subtotal - $orig;
+                    });
+
+                    $refundedAmt = $selectedOrder->totalRefunded();
+                    $paidAmt     = $selectedOrder->totalPaid();
+                    $balanceDue  = $selectedOrder->balanceDue();
+                @endphp
+
+                <div class="bg-[#F8FAFC] rounded-xl p-4 mt-3 text-sm space-y-1.5">
+
+                    {{-- Original order lines --}}
+                    <div class="flex justify-between text-[#64748B]">
+                        <span>Subtotal (as ordered)</span>
+                        <span>Rs. {{ number_format($origItemsSubtotal, 0) }}</span>
+                    </div>
                     @if($selectedOrder->shipping_cost > 0)
-                    <div class="flex justify-between"><span class="text-[#64748B]">Shipping</span><span>Rs. {{ number_format($selectedOrder->shipping_cost, 0) }}</span></div>
+                    <div class="flex justify-between text-[#64748B]">
+                        <span>Shipping</span><span>Rs. {{ number_format($selectedOrder->shipping_cost, 0) }}</span>
+                    </div>
                     @endif
                     @if($selectedOrder->tax > 0)
-                    <div class="flex justify-between"><span class="text-[#64748B]">Tax</span><span>Rs. {{ number_format($selectedOrder->tax, 0) }}</span></div>
+                    <div class="flex justify-between text-[#64748B]">
+                        <span>Tax</span><span>Rs. {{ number_format($selectedOrder->tax, 0) }}</span>
+                    </div>
                     @endif
                     @if($selectedOrder->discount > 0)
-                    <div class="flex justify-between text-green-600"><span>Discount</span><span>-Rs. {{ number_format($selectedOrder->discount, 0) }}</span></div>
-                    @endif
-                    <div class="flex justify-between font-bold text-base border-t border-[#E2E8F0] pt-2">
-                        <span class="text-[#0F172A]">Total</span>
-                        <span class="text-[#0F172A]">Rs. {{ number_format($selectedOrder->total, 0) }}</span>
+                    <div class="flex justify-between text-green-600">
+                        <span>Discount</span><span>-Rs. {{ number_format($selectedOrder->discount, 0) }}</span>
                     </div>
+                    @endif
+
+                    {{-- Original total --}}
+                    <div class="flex justify-between font-semibold border-t border-[#E2E8F0] pt-2 text-[#0F172A]">
+                        <span>Original Order Total</span>
+                        <span>Rs. {{ number_format($origTotal, 0) }}</span>
+                    </div>
+
+                    {{-- Replacement charge / saving --}}
+                    @if($replaceDiff > 0)
+                    <div class="flex justify-between text-orange-600">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Replace charge (more expensive item)
+                        </span>
+                        <span>+Rs. {{ number_format($replaceDiff, 0) }}</span>
+                    </div>
+                    @elseif($replaceDiff < 0)
+                    <div class="flex justify-between text-blue-600">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+                            Replace saving (cheaper item)
+                        </span>
+                        <span>-Rs. {{ number_format(abs($replaceDiff), 0) }}</span>
+                    </div>
+                    @endif
+
+                    {{-- Refunded --}}
+                    @if($refundedAmt > 0)
+                    <div class="flex justify-between text-red-500">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                            Refunded to customer
+                        </span>
+                        <span>-Rs. {{ number_format($refundedAmt, 0) }}</span>
+                    </div>
+                    @endif
+
+                    {{-- Current total (after all adjustments) --}}
+                    @if($replaceDiff != 0 || $refundedAmt > 0)
+                    <div class="flex justify-between font-semibold border-t border-[#E2E8F0] pt-2 text-[#0F172A]">
+                        <span>Current Order Total</span>
+                        <span>Rs. {{ number_format($selectedOrder->total, 0) }}</span>
+                    </div>
+                    @endif
+
+                    {{-- Advance paid --}}
+                    <div class="flex justify-between text-emerald-600 {{ ($replaceDiff == 0 && $refundedAmt == 0) ? 'border-t border-[#E2E8F0] pt-2' : '' }}">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Advance Paid
+                        </span>
+                        <span>-Rs. {{ number_format($paidAmt, 0) }}</span>
+                    </div>
+
+                    {{-- Balance Due --}}
+                    <div class="flex justify-between font-bold text-base border-t border-[#E2E8F0] pt-2">
+                        <span class="text-[#0F172A]">Balance Due</span>
+                        @if($balanceDue > 0)
+                            <span class="text-red-600">Rs. {{ number_format($balanceDue, 0) }}</span>
+                        @else
+                            <span class="text-emerald-600">Cleared</span>
+                        @endif
+                    </div>
+
                 </div>
             </div>
 

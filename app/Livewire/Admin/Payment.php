@@ -197,11 +197,20 @@ class Payment extends Component
             ->latest()
             ->paginate(20);
 
-        $totalConfirmedPayments   = OrderPayment::where('status', 'confirmed')->whereIn('type', ['advance', 'balance'])->sum('amount');
-        $totalPendingReceipts     = OrderPayment::where('status', 'pending')->sum('amount');
-        $partialCount             = Order::where('payment_status', 'pending')->where('advance_amount', '>', 0)->where('balance_amount', '>', 0)->count();
-        $confirmedBalancePayments = OrderPayment::where('status', 'confirmed')->where('type', 'balance')->sum('amount');
-        $totalDue = max(0, Order::where('payment_status', '!=', 'paid')->where('balance_amount', '>', 0)->sum('balance_amount') - $confirmedBalancePayments);
+        $totalConfirmedPayments = OrderPayment::where('status', 'confirmed')
+            ->whereIn('type', ['advance', 'balance', 'full'])
+            ->sum('amount');
+        $totalPendingReceipts = OrderPayment::where('status', 'pending')->sum('amount');
+        $partialCount         = Order::where('payment_status', 'pending')
+            ->where('advance_amount', '>', 0)
+            ->where('balance_amount', '>', 0)
+            ->count();
+
+        // balance_amount is already the remaining balance after confirmed payments —
+        // sum it directly without double-subtracting confirmed balance records.
+        $totalDue = (float) Order::whereNotIn('payment_status', ['paid', 'refunded', 'cancelled'])
+            ->where('balance_amount', '>', 0)
+            ->sum('balance_amount');
 
         $summary = [
             'total_collected'        => $totalConfirmedPayments,

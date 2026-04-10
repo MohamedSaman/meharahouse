@@ -205,16 +205,30 @@
                     @php
                         $name  = $order->shipping_address['full_name'] ?? ($order->user?->name ?? 'Guest');
                         $phone = $order->shipping_address['phone'] ?? '';
-                        $confirmedTotal = $order->payments->sum('amount');
-                        $advancePaid    = $order->payments->where('type', 'advance')->sum('amount');
-                        $balancePaid    = $order->payments->where('type', 'balance')->sum('amount');
-                        $due            = max(0, (float)$order->total - $confirmedTotal);
 
-                        if ($order->payment_status === 'paid' || $due <= 0)    $payLabel = 'fully_paid';
-                        elseif ($confirmedTotal > 0)                            $payLabel = 'partial';
-                        elseif ($order->payment_status === 'failed')            $payLabel = 'failed';
-                        elseif ($order->payment_status === 'refunded')          $payLabel = 'refunded';
-                        else                                                    $payLabel = 'pending';
+                        // Use confirmed payments loaded via eager load (only status=confirmed rows)
+                        $confirmedTotal = (float) $order->payments->sum('amount');
+                        $advancePaid    = (float) $order->payments->where('type', 'advance')->sum('amount');
+                        $balancePaid    = (float) $order->payments->where('type', 'balance')->sum('amount');
+
+                        // Use balance_amount from the order record — this is the authoritative
+                        // remaining balance kept in sync by payment confirmation logic.
+                        $due = max(0, (float) $order->balance_amount);
+
+                        // Derive status label from the stored payment_status field, not
+                        // recomputed from payments, to avoid edge-case mismatches.
+                        $payLabel = match($order->payment_status) {
+                            'paid'     => 'fully_paid',
+                            'partial'  => 'partial',
+                            'failed'   => 'failed',
+                            'refunded' => 'refunded',
+                            default    => $confirmedTotal > 0 ? 'partial' : 'pending',
+                        };
+
+                        // Treat as fully paid when balance_amount is zero or payment_status is paid
+                        if ($due <= 0 || $order->payment_status === 'paid') {
+                            $payLabel    = 'fully_paid';
+                        }
 
                         $isFullyPaid = $payLabel === 'fully_paid';
                     @endphp
@@ -234,30 +248,34 @@
                                     Rs. {{ number_format($confirmedTotal, 2) }}
                                 </span>
                                 @if($advancePaid > 0 && $balancePaid > 0)
-                                    <div class="text-xs text-[#94A3B8]">Adv + Balance</div>
+                                    <div class="text-xs text-[#94A3B8]">Adv + Bal</div>
+                                @elseif($balancePaid > 0)
+                                    <div class="text-xs text-[#94A3B8]">Balance</div>
                                 @elseif($advancePaid > 0)
-                                    <div class="text-xs text-[#94A3B8]">Advance</div>
+                                    <div class="text-xs text-[#94A3B8]">Advance only</div>
                                 @endif
                             @else
                                 <span class="text-xs text-[#94A3B8]">—</span>
                             @endif
                         </td>
                         <td>
-                            @if($due > 0)
+                            @if($order->payment_status === 'refunded')
+                                <span class="text-xs font-semibold text-purple-500">Refunded</span>
+                            @elseif($due > 0)
                                 <span class="text-sm font-semibold text-red-500">Rs. {{ number_format($due, 2) }}</span>
                             @else
                                 <span class="text-xs font-semibold text-green-500">Cleared</span>
                             @endif
                         </td>
                         <td>
-                            @if($isFullyPaid)
+                            @if($order->payment_status === 'refunded')
+                                <span class="badge" style="background:#EDE9FE;color:#7C3AED;">Refunded</span>
+                            @elseif($isFullyPaid)
                                 <span class="badge badge-success">Paid</span>
                             @elseif($payLabel === 'partial')
                                 <span class="badge" style="background:#FFF7ED;color:#C2410C;border:1px solid #FED7AA;">Partial</span>
                             @elseif($payLabel === 'failed')
                                 <span class="badge badge-danger">Failed</span>
-                            @elseif($payLabel === 'refunded')
-                                <span class="badge" style="background:#EDE9FE;color:#7C3AED;">Refunded</span>
                             @else
                                 <span class="badge badge-warning">Pending</span>
                             @endif
