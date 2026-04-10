@@ -329,28 +329,45 @@ class Order extends Component
 
         // Deduct available stock for every item
         $order->refresh()->load('items.product');
+        $totalDeducted = 0;
         foreach ($order->items as $item) {
             $product = $item->product;
             if (!$product) continue;
             $deduct = min((int) $product->stock, (int) $item->quantity);
-            if ($deduct > 0) $product->decrement('stock', $deduct);
+            if ($deduct > 0) {
+                $product->decrement('stock', $deduct);
+                $totalDeducted += $deduct;
+            }
         }
 
-        $notes = 'Order confirmed with partial stock.';
+        // If nothing was deducted (all items fully backordered with 0 available),
+        // the order is waiting for stock — mark as 'sourcing' not 'confirmed'.
+        $issuedItemIds = array_column($this->stockIssues, 'item_id');
+        $hasNonIssuedItems = $order->items->whereNotIn('id', $issuedItemIds)->isNotEmpty();
+        $fullyBackordered  = !$hasNonIssuedItems && $totalDeducted === 0;
+
+        $targetStatus = $fullyBackordered ? 'sourcing' : 'confirmed';
+        $notes = $fullyBackordered
+            ? 'All items on backorder — awaiting stock from next batch.'
+            : 'Order confirmed with partial stock.';
         if ($partialRefundAmount > 0) {
-            $notes .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' refunded for short items (order total adjusted).';
+            $notes .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' refunded for short items.';
         }
-        $order->logStatus('confirmed', $notes, auth()->id());
-        $order->update(['status' => 'confirmed']);
+        $order->logStatus($targetStatus, $notes, auth()->id());
+        $order->update(['status' => $targetStatus]);
 
         $this->closeStockAlert();
         $this->refreshSelectedOrder($order->id);
 
         $sumReplace = collect($this->stockDecisions)->filter(fn($d) => $d === 'replace')->count();
-        $msg = 'Order confirmed.';
-        if ($partialRefundAmount > 0) $msg .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' refunded for short items.';
-        if ($sumReplace > 0) $msg .= " {$sumReplace} item(s) flagged for product replacement — check Backorders.";
-        if ($partialRefundAmount === 0.0 && $sumReplace === 0) $msg .= ' Backorders created for short items.';
+        if ($fullyBackordered) {
+            $msg = 'All items backordered — order marked as Sourcing. Check Backorders page.';
+        } else {
+            $msg = 'Order confirmed.';
+            if ($partialRefundAmount > 0) $msg .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' refunded for short items.';
+            if ($sumReplace > 0) $msg .= " {$sumReplace} item(s) flagged for replacement — check Backorders.";
+            if ($partialRefundAmount === 0.0 && $sumReplace === 0) $msg .= ' Backorders created for short items.';
+        }
         session()->flash('success', $msg);
     }
 

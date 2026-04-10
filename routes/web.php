@@ -72,6 +72,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/payments',             App\Livewire\Admin\Payment::class)->name('payments');
     Route::get('/payment-integration', App\Livewire\Admin\PaymentIntegration::class)->name('payment-integration');
     Route::get('/reports',              App\Livewire\Admin\Report::class)->name('reports');
+    Route::get('/finance',              App\Livewire\Admin\Finance::class)->name('finance');
     Route::get('/manual-order',         App\Livewire\Admin\ManualOrder::class)->name('manual-order');
     Route::get('/suppliers',            App\Livewire\Admin\Supplier::class)->name('suppliers');
     Route::get('/purchasing',           App\Livewire\Admin\Purchasing::class)->name('purchasing');

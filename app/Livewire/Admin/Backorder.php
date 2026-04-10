@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
+use App\Models\Order;
 use App\Models\OrderBackorder;
 use App\Models\Product;
 use App\Services\WhatsappService;
@@ -19,9 +20,9 @@ class Backorder extends Component
     public string $search       = '';
     public string $filterStatus = '';
 
-    // ── Detail slide-over ─────────────────────────────────────────────
-    public bool            $showDetail        = false;
-    public ?OrderBackorder $selectedBackorder = null;
+    // ── Order detail slide-over ───────────────────────────────────────
+    public bool   $showDetail   = false;
+    public ?Order $selectedOrder = null;
 
     // ── Dispatch modal ────────────────────────────────────────────────
     public bool   $showDispatchModal = false;
@@ -29,50 +30,56 @@ class Backorder extends Component
     public string $dispatchNotes     = '';
 
     // ── Replace modal ─────────────────────────────────────────────────
-    public bool   $showReplaceModal          = false;
-    public int    $replacingBoId             = 0;
-    public string $replacementProductSearch  = '';
-    public ?int   $selectedReplacementId     = null;
-    public string $replaceNotes              = '';
+    public bool   $showReplaceModal         = false;
+    public int    $replacingBoId            = 0;
+    public string $replacementProductSearch = '';
+    public ?int   $selectedReplacementId    = null;
+    public string $replaceNotes             = '';
 
     // ─────────────────────────────────────────────────────────────────
 
     public function updatingSearch(): void       { $this->resetPage(); }
     public function updatingFilterStatus(): void { $this->resetPage(); }
 
-    // ── Detail Panel ──────────────────────────────────────────────────
+    // ── Detail Panel (order-level) ────────────────────────────────────
 
-    public function viewBackorder(int $id): void
+    public function viewOrder(int $orderId): void
     {
-        $this->selectedBackorder = OrderBackorder::with([
-            'order.user',
-            'order.items.product',
-            'product',
-            'replacementProduct',
-            'creator',
-            'dispatcher',
-        ])->findOrFail($id);
+        $this->selectedOrder = Order::with([
+            'user',
+            'backorders' => fn($q) => $q->with(['product', 'replacementProduct', 'creator', 'dispatcher'])
+                                        ->orderBy('id'),
+        ])->findOrFail($orderId);
         $this->showDetail = true;
     }
 
     public function closeDetail(): void
     {
-        $this->showDetail        = false;
-        $this->selectedBackorder = null;
+        $this->showDetail    = false;
+        $this->selectedOrder = null;
     }
 
-    // ── Status Transitions ────────────────────────────────────────────
+    private function refreshDetail(): void
+    {
+        if ($this->showDetail && $this->selectedOrder) {
+            $this->selectedOrder = Order::with([
+                'user',
+                'backorders' => fn($q) => $q->with(['product', 'replacementProduct', 'creator', 'dispatcher'])
+                                            ->orderBy('id'),
+            ])->find($this->selectedOrder->id);
+        }
+    }
 
-    /** Mark a 'repurchasing' backorder as ready (stock confirmed arrived). */
+    // ── Status Transitions (per individual backorder) ─────────────────
+
     public function markReady(int $id): void
     {
         $bo = OrderBackorder::findOrFail($id);
         $bo->update(['status' => 'ready']);
-        $this->refreshSelected($id);
-        session()->flash('success', "Backorder {$bo->backorder_number} marked as ready to dispatch.");
+        $this->refreshDetail();
+        session()->flash('success', "{$bo->backorder_number} marked ready to dispatch.");
     }
 
-    /** Open dispatch modal. */
     public function openDispatch(int $id): void
     {
         $this->dispatchBoId      = $id;
@@ -80,18 +87,15 @@ class Backorder extends Component
         $this->showDispatchModal = true;
     }
 
-    /** Confirm dispatch — deduct stock and mark as dispatched. */
     public function confirmDispatch(): void
     {
         $bo = OrderBackorder::with(['order', 'product', 'replacementProduct'])->findOrFail($this->dispatchBoId);
 
-        // If this is a replacement, deduct from replacement product stock
         if ($bo->isReplacement() && $bo->replacementProduct) {
             if ($bo->replacementProduct->stock >= $bo->short_qty) {
                 $bo->replacementProduct->decrement('stock', $bo->short_qty);
             }
         } else {
-            // Normal backorder — deduct from original product
             if ($bo->product && $bo->product->stock >= $bo->short_qty) {
                 $bo->product->decrement('stock', $bo->short_qty);
             }
@@ -104,7 +108,6 @@ class Backorder extends Component
             'notes'         => $this->dispatchNotes ?: $bo->notes,
         ]);
 
-        // WhatsApp notification (best effort)
         try {
             $order = $bo->order->load('user', 'whatsappToken');
             WhatsappService::backorderDispatched($order, $bo);
@@ -112,16 +115,16 @@ class Backorder extends Component
 
         $this->showDispatchModal = false;
         $this->dispatchBoId      = 0;
-        $this->refreshSelected($bo->id);
-        session()->flash('success', "Backorder {$bo->backorder_number} dispatched.");
+        $this->refreshDetail();
+        session()->flash('success', "{$bo->backorder_number} dispatched.");
     }
 
     public function markDelivered(int $id): void
     {
         $bo = OrderBackorder::findOrFail($id);
         $bo->update(['status' => 'delivered', 'delivered_at' => now()]);
-        $this->refreshSelected($id);
-        session()->flash('success', "Backorder {$bo->backorder_number} marked as delivered.");
+        $this->refreshDetail();
+        session()->flash('success', "{$bo->backorder_number} marked as delivered.");
     }
 
     public function markCompleted(int $id): void
@@ -139,18 +142,22 @@ class Backorder extends Component
                 'All backorders completed — order fully fulfilled.',
                 auth()->id()
             );
+            // Also update order to 'delivered' if it was still in sourcing/confirmed
+            if (in_array($bo->order->status, ['sourcing', 'confirmed'])) {
+                $bo->order->update(['status' => 'delivered']);
+            }
         }
 
-        $this->refreshSelected($bo->id);
-        session()->flash('success', "Backorder {$bo->backorder_number} completed.");
+        $this->refreshDetail();
+        session()->flash('success', "{$bo->backorder_number} completed.");
     }
 
     public function cancelBackorder(int $id): void
     {
         $bo = OrderBackorder::findOrFail($id);
         $bo->update(['status' => 'cancelled']);
-        $this->refreshSelected($id);
-        session()->flash('success', "Backorder {$bo->backorder_number} cancelled.");
+        $this->refreshDetail();
+        session()->flash('success', "{$bo->backorder_number} cancelled.");
     }
 
     // ── Replace Product ───────────────────────────────────────────────
@@ -173,7 +180,6 @@ class Backorder extends Component
     {
         $this->validate([
             'selectedReplacementId' => ['required', 'integer', 'exists:products,id'],
-            'replaceNotes'          => ['nullable', 'string', 'max:500'],
         ], [
             'selectedReplacementId.required' => 'Please select a replacement product.',
         ]);
@@ -198,43 +204,30 @@ class Backorder extends Component
         $this->showReplaceModal      = false;
         $this->replacingBoId         = 0;
         $this->selectedReplacementId = null;
-        $this->refreshSelected($bo->id);
-
-        session()->flash('success',
-            "Backorder {$bo->backorder_number} set to replace with \"{$replacement->name}\". Ready to dispatch.");
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────
-
-    private function refreshSelected(int $id): void
-    {
-        if ($this->showDetail && $this->selectedBackorder?->id === $id) {
-            $this->selectedBackorder = OrderBackorder::with([
-                'order.user',
-                'order.items.product',
-                'product',
-                'replacementProduct',
-                'creator',
-                'dispatcher',
-            ])->find($id);
-        }
+        $this->refreshDetail();
+        session()->flash('success', "{$bo->backorder_number} set to replace with \"{$replacement->name}\". Ready to dispatch.");
     }
 
     // ── Render ────────────────────────────────────────────────────────
 
     public function render()
     {
-        $backorders = OrderBackorder::with(['order.user', 'product', 'replacementProduct'])
-            ->when($this->search, function ($q) {
-                $q->where(function ($inner) {
-                    $inner->where('backorder_number', 'like', "%{$this->search}%")
-                          ->orWhere('product_name', 'like', "%{$this->search}%")
-                          ->orWhereHas('order', fn($o) => $o->where('order_number', 'like', "%{$this->search}%"));
-                });
-            })
-            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
-            ->latest()
-            ->paginate(20);
+        // Query orders that have active backorders — grouped at order level
+        $ordersQuery = Order::with([
+            'user',
+            'backorders' => fn($q) => $q->with(['product', 'replacementProduct'])->orderBy('id'),
+        ])
+        ->whereHas('backorders', fn($q) => $q->whereNotIn('status', ['completed', 'cancelled']))
+        ->when($this->filterStatus, fn($q) => $q->whereHas('backorders',
+            fn($b) => $b->where('status', $this->filterStatus)
+        ))
+        ->when($this->search, fn($q) => $q
+            ->where('order_number', 'like', "%{$this->search}%")
+            ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$this->search}%"))
+            ->orWhereHas('backorders', fn($b) => $b->where('product_name', 'like', "%{$this->search}%"))
+        )
+        ->latest()
+        ->paginate(15);
 
         $stats = [
             'pending'      => OrderBackorder::where('status', 'pending')->count(),
@@ -244,15 +237,14 @@ class Backorder extends Component
             'active'       => OrderBackorder::whereNotIn('status', ['completed', 'cancelled'])->count(),
         ];
 
-        // Products for replacement search
         $replacementProducts = ($this->showReplaceModal && strlen($this->replacementProductSearch) >= 2)
             ? Product::where('name', 'like', "%{$this->replacementProductSearch}%")
-                     ->orWhere('sku', 'like', "%{$this->replacementProductSearch}%")
+                     ->orWhere('sku',  'like', "%{$this->replacementProductSearch}%")
                      ->orderBy('name')
                      ->limit(20)
                      ->get()
             : collect();
 
-        return view('livewire.admin.backorder', compact('backorders', 'stats', 'replacementProducts'));
+        return view('livewire.admin.backorder', compact('ordersQuery', 'stats', 'replacementProducts'));
     }
 }

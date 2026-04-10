@@ -125,12 +125,85 @@ class Shipment extends Component
         $newStatus = $statuses[$idx + 1];
         $data      = ['status' => $newStatus];
 
-        if ($newStatus === 'shipped') $data['shipped_at'] = now();
-        if ($newStatus === 'arrived') $data['arrived_at'] = now();
+        if ($newStatus === 'shipped')  $data['shipped_at'] = now();
+        if ($newStatus === 'arrived')  $data['arrived_at'] = now();
 
         $batch->update($data);
         $batch->refresh();
+
+        // ── Sync orders & backorders in this batch ────────────────────
+        $this->syncBatchOrderStatuses($batch, $newStatus);
+
         session()->flash('success', "Batch advanced to: {$batch->statusLabel()}");
+    }
+
+    /**
+     * When a batch status changes, cascade to the orders and backorders inside it.
+     *
+     * Batch status  →  Order status   (Backorder status)
+     * purchased     →  sourcing
+     * shipped       →  dispatched
+     * completed     →  delivered      (dispatched backorders → delivered)
+     */
+    private function syncBatchOrderStatuses(ShipmentBatch $batch, string $newStatus): void
+    {
+        // Map batch status → order status
+        $orderStatusMap = [
+            'purchased'    => 'sourcing',
+            'shipped'      => 'dispatched',
+            'completed'    => 'delivered',
+        ];
+
+        if (isset($orderStatusMap[$newStatus])) {
+            $targetOrderStatus = $orderStatusMap[$newStatus];
+
+            // Only update orders that are still "behind" the new status
+            $eligibleOrderStatuses = match ($targetOrderStatus) {
+                'sourcing'   => ['confirmed'],
+                'dispatched' => ['confirmed', 'sourcing'],
+                'delivered'  => ['confirmed', 'sourcing', 'dispatched'],
+                default      => [],
+            };
+
+            if (!empty($eligibleOrderStatuses)) {
+                $batch->orders()
+                    ->whereIn('status', $eligibleOrderStatuses)
+                    ->each(function ($order) use ($targetOrderStatus) {
+                        $order->logStatus(
+                            $targetOrderStatus,
+                            "Auto-updated: shipment batch advanced to {$targetOrderStatus}.",
+                            auth()->id()
+                        );
+                        $order->update(['status' => $targetOrderStatus]);
+                    });
+            }
+        }
+
+        // Backorder sync
+        if ($newStatus === 'distributing') {
+            // Backorders that are ready → dispatched when we start distributing locally
+            $batch->backorders()
+                ->where('status', 'ready')
+                ->each(function ($bo) {
+                    $bo->update([
+                        'status'        => 'dispatched',
+                        'dispatched_at' => now(),
+                        'dispatched_by' => auth()->id(),
+                    ]);
+                });
+        }
+
+        if ($newStatus === 'completed') {
+            // Backorders that are dispatched → delivered when batch completes
+            $batch->backorders()
+                ->where('status', 'dispatched')
+                ->each(function ($bo) {
+                    $bo->update([
+                        'status'       => 'delivered',
+                        'delivered_at' => now(),
+                    ]);
+                });
+        }
     }
 
     // ── Toggle Expanded Batch (for waybill sub-table) ─────────────────
