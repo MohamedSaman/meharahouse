@@ -149,6 +149,86 @@
         @apply text-white;
     }
 
+    /* ─────────────────────────────────────────────────────────────
+       WEBPAGE / STOREFRONT COMPONENT CLASSES
+    ───────────────────────────────────────────────────────────── */
+
+    /* ── Page Container ─────────────────────────────────────── */
+    /* Responsive max-width wrapper used on every public page */
+    .container-page {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    /* ── Navy Badge ─────────────────────────────────────────── */
+    .badge-navy {
+        @apply badge bg-slate-800 text-slate-100;
+    }
+
+    /* ── Info / New Badge ───────────────────────────────────── */
+    .badge-info {
+        @apply badge bg-blue-100 text-blue-700;
+    }
+
+    /* ── Large Button Modifier ──────────────────────────────── */
+    .btn-lg {
+        @apply px-6 py-3 text-base;
+    }
+
+    /* ── Form Label ─────────────────────────────────────────── */
+    .form-label {
+        @apply block text-sm font-semibold text-slate-700 mb-1.5;
+    }
+
+    /* ── Section Label (small uppercase tag above headings) ─── */
+    .section-label {
+        @apply inline-block text-xs font-bold uppercase tracking-widest text-amber-500;
+    }
+
+    /* ── Section Title ──────────────────────────────────────── */
+    .section-title {
+        @apply font-[Poppins] font-bold text-2xl md:text-3xl text-slate-900 leading-tight;
+    }
+
+    /* ── Gold Divider ───────────────────────────────────────── */
+    /* Short decorative amber bar used under section headings */
+    .gold-divider {
+        @apply w-12 h-1 rounded-full bg-amber-400 my-4;
+    }
+
+    /* ── Product Card ───────────────────────────────────────── */
+    /* Wrapper for each product tile in grid/list views */
+    .product-card {
+        @apply rounded-2xl border border-slate-200 bg-white shadow-sm
+               overflow-hidden transition-all duration-300
+               hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/80;
+    }
+
+    /* ── Product Image Wrap ─────────────────────────────────── */
+    /* Contains the product image + badge + actions overlay */
+    .product-img-wrap {
+        @apply relative overflow-hidden bg-slate-50;
+    }
+
+    /* ── Product Actions Overlay ────────────────────────────── */
+    /* Slides up on product card hover to show CTA buttons */
+    .product-actions {
+        @apply absolute bottom-0 inset-x-0
+               flex items-center gap-2 px-3 py-3
+               translate-y-full opacity-0
+               transition-all duration-300;
+    }
+
+    .product-card:hover .product-actions {
+        @apply translate-y-0 opacity-100;
+    }
+
+    /* ── Card Hover ─────────────────────────────────────────── */
+    /* Adds lift + shadow to plain .card elements on hover */
+    .card-hover {
+        @apply transition-all duration-300
+               hover:-translate-y-1 hover:shadow-md hover:shadow-slate-200/60;
+    }
+
     /* ── No Scrollbar ───────────────────────────────────────── */
     .no-scrollbar::-webkit-scrollbar {
         display: none;
