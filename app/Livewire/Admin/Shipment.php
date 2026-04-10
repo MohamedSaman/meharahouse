@@ -112,6 +112,15 @@ class Shipment extends Component
 
     // ── Advance Batch Status ──────────────────────────────────────────
 
+    // Bug 11: Track unpaid order count before delivery confirmation
+    public int    $unpaidOrderCount   = 0;
+    public bool   $showUnpaidWarning  = false;
+    public int    $pendingAdvanceBatchId = 0;
+
+    /**
+     * Called from the advance confirm modal in the blade.
+     * When advancing to 'completed' (which delivers all orders), check for unpaid balances first.
+     */
     public function advanceStatus(int $id): void
     {
         $batch    = ShipmentBatch::findOrFail($id);
@@ -123,7 +132,31 @@ class Shipment extends Component
         }
 
         $newStatus = $statuses[$idx + 1];
-        $data      = ['status' => $newStatus];
+
+        // Bug 11: When advancing to 'completed' (which maps orders to 'delivered'),
+        // warn the admin if any orders in the batch have an outstanding balance.
+        if ($newStatus === 'completed') {
+            $unpaid = $batch->orders()
+                ->whereIn('status', ['confirmed', 'sourcing', 'dispatched'])
+                ->where('balance_amount', '>', 0)
+                ->where('payment_status', '!=', 'paid')
+                ->count();
+
+            if ($unpaid > 0 && !$this->showUnpaidWarning) {
+                // Surface the warning; require admin to explicitly re-confirm
+                $this->unpaidOrderCount    = $unpaid;
+                $this->showUnpaidWarning   = true;
+                $this->pendingAdvanceBatchId = $id;
+                return;
+            }
+        }
+
+        // Reset warning state before proceeding
+        $this->showUnpaidWarning     = false;
+        $this->pendingAdvanceBatchId = 0;
+        $this->unpaidOrderCount      = 0;
+
+        $data = ['status' => $newStatus];
 
         if ($newStatus === 'shipped')  $data['shipped_at'] = now();
         if ($newStatus === 'arrived')  $data['arrived_at'] = now();
@@ -135,6 +168,24 @@ class Shipment extends Component
         $this->syncBatchOrderStatuses($batch, $newStatus);
 
         session()->flash('success', "Batch advanced to: {$batch->statusLabel()}");
+    }
+
+    /**
+     * Admin confirmed they want to advance to delivery despite unpaid orders.
+     */
+    public function forceAdvanceDelivery(): void
+    {
+        if (!$this->pendingAdvanceBatchId) return;
+        $id = $this->pendingAdvanceBatchId;
+        $this->showUnpaidWarning     = true; // keep flag set so advanceStatus skips the check
+        $this->advanceStatus($id);
+    }
+
+    public function dismissUnpaidWarning(): void
+    {
+        $this->showUnpaidWarning     = false;
+        $this->pendingAdvanceBatchId = 0;
+        $this->unpaidOrderCount      = 0;
     }
 
     /**

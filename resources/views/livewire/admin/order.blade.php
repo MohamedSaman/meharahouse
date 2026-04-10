@@ -294,7 +294,8 @@
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 {{-- View Detail --}}
                                 <button wire:click="viewOrder({{ $order->id }})"
-                                        class="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-700 transition-all duration-200 hover:-translate-y-0.5" title="View Details">
+                                        class="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-slate-100 hover:bg-blue-100 transition-all duration-200 hover:-translate-y-0.5"
+                                        style="color:#475569;" title="View Details">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                 </button>
 
@@ -303,7 +304,8 @@
                                 {{-- Confirm Receipt: any pending receipt on any non-terminal status --}}
                                 @if($pendingReceipt && !in_array($order->status, ['completed','cancelled','refunded']))
                                 <button wire:click="confirmPayment({{ $pendingReceipt->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-amber-500 text-white hover:bg-amber-600 border border-amber-500 transition-all hover:-translate-y-0.5 shadow-sm">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-amber-500 hover:bg-amber-600 border border-amber-500 transition-all hover:-translate-y-0.5 shadow-sm"
+                                        style="color:#ffffff;">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                     Confirm Receipt
                                 </button>
@@ -315,7 +317,8 @@
                                 @if($order->status === 'payment_received' ||
                                     ($order->status === 'new' && $order->payment_method !== 'bank_transfer'))
                                 <button wire:click="confirmOrder({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-blue-600 text-white hover:bg-blue-700 border border-blue-600 transition-all hover:-translate-y-0.5 shadow-sm">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-blue-600 hover:bg-blue-700 border border-blue-600 transition-all hover:-translate-y-0.5 shadow-sm"
+                                        style="color:#ffffff;">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     Confirm Order
                                 </button>
@@ -324,7 +327,8 @@
                                 {{-- Start Sourcing (from confirmed, not yet ordered) --}}
                                 @if($order->status === 'confirmed' && $order->supplier_status === 'none')
                                 <button wire:click="markSourcing({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-orange-500 text-white hover:bg-orange-600 border border-orange-500 transition-all hover:-translate-y-0.5 shadow-sm">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-orange-500 hover:bg-orange-600 border border-orange-500 transition-all hover:-translate-y-0.5 shadow-sm"
+                                        style="color:#ffffff;">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                                     Sourcing
                                 </button>
@@ -334,7 +338,8 @@
                                 @if(in_array($order->status, ['confirmed']) && $order->supplier_status !== 'ordered' ||
                                     ($order->status === 'sourcing' && $order->supplier_status === 'received'))
                                 <button wire:click="markDispatched({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-indigo-600 text-white hover:bg-indigo-700 border border-indigo-600 transition-all hover:-translate-y-0.5 shadow-sm">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 transition-all hover:-translate-y-0.5 shadow-sm"
+                                        style="color:#ffffff;">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
                                     Dispatch
                                 </button>
@@ -343,11 +348,13 @@
                                 {{-- Sourcing sub-actions --}}
                                 @if($order->status === 'sourcing' && $order->supplier_status === 'ordered')
                                 <button wire:click="markSupplierReceived({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-teal-600 text-white hover:bg-teal-700 border border-teal-600 transition-all hover:-translate-y-0.5 shadow-sm">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-teal-600 hover:bg-teal-700 border border-teal-600 transition-all hover:-translate-y-0.5 shadow-sm"
+                                        style="color:#ffffff;">
                                     Stock In
                                 </button>
                                 <button wire:click="markSupplierUnavailable({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-all hover:-translate-y-0.5">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-50 hover:bg-red-100 border border-red-200 transition-all hover:-translate-y-0.5"
+                                        style="color:#b91c1c;">
                                     Unavailable
                                 </button>
                                 @endif
@@ -355,7 +362,8 @@
                                 {{-- Mark Delivered --}}
                                 @if($order->status === 'dispatched')
                                 <button wire:click="markDelivered({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-teal-600 text-white hover:bg-teal-700 border border-teal-600 transition-all hover:-translate-y-0.5 shadow-sm">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-teal-600 hover:bg-teal-700 border border-teal-600 transition-all hover:-translate-y-0.5 shadow-sm"
+                                        style="color:#ffffff;">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                                     Delivered
                                 </button>
@@ -365,12 +373,14 @@
                                 @if($order->status === 'delivered')
                                     @if($order->isWhatsapp() && $order->balanceDue() > 0)
                                     <button wire:click="sendBalanceReminder({{ $order->id }})"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all hover:-translate-y-0.5">
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all hover:-translate-y-0.5"
+                                            style="color:#047857;">
                                         Reminder
                                     </button>
                                     @endif
                                     <button wire:click="markCompleted({{ $order->id }})"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-green-600 text-white hover:bg-green-700 border border-green-600 transition-all hover:-translate-y-0.5 shadow-sm">
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-green-600 hover:bg-green-700 border border-green-600 transition-all hover:-translate-y-0.5 shadow-sm"
+                                            style="color:#ffffff;">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                         Complete
                                     </button>
@@ -755,8 +765,11 @@
                 <div class="mt-3 rounded-lg bg-red-50 border border-red-200 p-3 text-xs text-red-800">
                     <p class="font-bold">Refund Processed</p>
                     <p class="mt-0.5">Amount: Rs. {{ number_format($selectedOrder->refund->amount, 0) }} via {{ ucfirst(str_replace('_', ' ', $selectedOrder->refund->method)) }}</p>
-                    @if($selectedOrder->refund->reference)
-                    <p class="font-mono mt-0.5">Ref: {{ $selectedOrder->refund->reference }}</p>
+                    @if($selectedOrder->refund->customer_bank_account)
+                    <p class="mt-0.5">Transfer to: <span class="font-mono font-bold">{{ $selectedOrder->refund->customer_bank_account }}</span></p>
+                    @endif
+                    @if($selectedOrder->refund->reference_number)
+                    <p class="font-mono mt-0.5">Ref: {{ $selectedOrder->refund->reference_number }}</p>
                     @endif
                     <p class="mt-0.5 text-red-600">{{ $selectedOrder->refund->processed_at?->format('d M Y') }}</p>
                 </div>
@@ -972,11 +985,33 @@
                     <select wire:model="refundMethod" class="form-input w-full">
                         <option value="bank_transfer">Bank Transfer</option>
                         <option value="online">Online</option>
+                        <option value="cash">Cash</option>
                     </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        Customer Bank Account Number
+                        <span class="text-slate-400 font-normal">(for transfer)</span>
+                    </label>
+                    <input wire:model="refundBankAccount" type="text" class="form-input w-full"
+                           placeholder="e.g. 1234567890">
+                    @error('refundBankAccount') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Reference / Transaction ID <span class="text-slate-400 font-normal">(optional)</span></label>
                     <input wire:model="refundReference" type="text" class="form-input w-full" placeholder="Bank reference or transaction ID">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        Payment Proof
+                        <span class="text-slate-400 font-normal">(screenshot or PDF, optional)</span>
+                    </label>
+                    <input wire:model="refundProofFile" type="file" accept="image/*,.pdf"
+                           class="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer border border-slate-200 rounded-xl p-1.5 bg-white">
+                    @error('refundProofFile') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                    @if($refundProofFile)
+                    <p class="mt-1 text-xs text-green-600 font-medium">File selected: {{ $refundProofFile->getClientOriginalName() }}</p>
+                    @endif
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Notes <span class="text-slate-400 font-normal">(optional)</span></label>

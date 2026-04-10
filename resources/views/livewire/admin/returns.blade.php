@@ -168,8 +168,8 @@
     <div x-show="createOpen" x-transition.opacity
          class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" style="display:none;">
         <div @click.outside="createOpen = false"
-             class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between p-5 border-b border-slate-100">
+             class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between p-5 border-b border-slate-100 shrink-0">
                 <h3 class="text-base font-bold text-slate-800">Create Return Request</h3>
                 <button @click="createOpen = false" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,7 +177,7 @@
                     </svg>
                 </button>
             </div>
-            <div class="p-5 space-y-4">
+            <div class="p-5 space-y-4 overflow-y-auto flex-1">
 
                 {{-- Order Search --}}
                 <div>
@@ -241,14 +241,17 @@
                               class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"></textarea>
                 </div>
             </div>
-            <div class="px-5 pb-5 flex gap-3 justify-end">
+            <div class="px-5 py-4 border-t border-slate-100 flex gap-3 justify-end shrink-0">
                 <button @click="createOpen = false"
                         class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
                     Cancel
                 </button>
                 <button wire:click="createReturn"
+                        wire:loading.attr="disabled"
+                        wire:loading.class="opacity-60 cursor-not-allowed"
                         class="px-4 py-2 text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors">
-                    Create Return
+                    <span wire:loading.remove wire:target="createReturn">Create Return</span>
+                    <span wire:loading wire:target="createReturn">Saving...</span>
                 </button>
             </div>
         </div>

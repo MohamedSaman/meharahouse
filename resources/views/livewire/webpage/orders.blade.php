@@ -243,17 +243,84 @@
                         @else
                         <div class="space-y-2">
                             @foreach($payments as $payment)
-                            <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-slate-50 text-sm">
-                                <div>
-                                    <p class="font-semibold text-[#0F172A]">
-                                        {{ $receiptTypeLabel[$payment->type] ?? ucfirst($payment->type) }} Payment
-                                        &bull; Rs. {{ number_format($payment->amount, 0) }}
-                                    </p>
-                                    <p class="text-xs text-slate-400 mt-0.5">{{ $payment->created_at->format('d M Y, h:i A') }}</p>
+                            <div class="rounded-xl border bg-slate-50 text-sm overflow-hidden" wire:key="pay-{{ $payment->id }}">
+                                <div class="flex items-center justify-between p-3 {{ $payment->status === 'rejected' ? 'border-b border-red-100' : '' }}">
+                                    <div>
+                                        <p class="font-semibold text-[#0F172A]">
+                                            {{ $receiptTypeLabel[$payment->type] ?? ucfirst($payment->type) }} Payment
+                                            &bull; Rs. {{ number_format($payment->amount, 0) }}
+                                        </p>
+                                        <p class="text-xs text-slate-400 mt-0.5">{{ $payment->created_at->format('d M Y, h:i A') }}</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2.5 py-1 rounded-full text-xs font-bold {{ $receiptStatusColor[$payment->status] ?? 'bg-gray-100 text-gray-600' }}">
+                                            {{ ucfirst($payment->status) }}
+                                        </span>
+                                        {{-- Bug 6: Re-upload button for rejected payments --}}
+                                        @if($payment->status === 'rejected' && !in_array($selOrder->status, ['cancelled', 'completed', 'refunded']))
+                                        <button wire:click="openReupload({{ $payment->id }})"
+                                                class="text-xs px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold hover:bg-red-100 transition-colors">
+                                            Re-upload
+                                        </button>
+                                        @endif
+                                    </div>
                                 </div>
-                                <span class="px-2.5 py-1 rounded-full text-xs font-bold {{ $receiptStatusColor[$payment->status] ?? 'bg-gray-100 text-gray-600' }}">
-                                    {{ ucfirst($payment->status) }}
-                                </span>
+
+                                {{-- Re-upload form inline, shown when this payment is selected for re-upload --}}
+                                @if($payment->status === 'rejected' && $reuploadPaymentId === $payment->id)
+                                <div class="p-3 bg-red-50 space-y-3">
+                                    <p class="text-xs font-semibold text-red-700">Your receipt was rejected. Please upload a new, clear photo of your payment receipt.</p>
+
+                                    <div x-data="{ dragging: false }"
+                                         @dragover.prevent="dragging = true"
+                                         @dragleave="dragging = false"
+                                         @drop.prevent="dragging = false; $refs.reInput{{ $payment->id }}.files = $event.dataTransfer.files; $refs.reInput{{ $payment->id }}.dispatchEvent(new Event('change'))"
+                                         :class="dragging ? 'border-red-500 bg-red-100' : 'border-red-300 bg-white'"
+                                         class="border-2 border-dashed rounded-xl p-4 text-center transition-colors cursor-pointer"
+                                         @click="$refs.reInput{{ $payment->id }}.click()">
+                                        <input type="file" x-ref="reInput{{ $payment->id }}" wire:model="reuploadProofFile"
+                                               accept="image/*" class="hidden">
+                                        <template x-if="!$wire.reuploadProofFile">
+                                            <div>
+                                                <svg class="w-8 h-8 text-red-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                                </svg>
+                                                <p class="text-xs text-slate-600 font-medium">Click or drag to upload new receipt</p>
+                                            </div>
+                                        </template>
+                                        <div wire:loading wire:target="reuploadProofFile" class="flex items-center justify-center gap-2 text-red-600">
+                                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                            </svg>
+                                            <span class="text-xs">Processing...</span>
+                                        </div>
+                                    </div>
+
+                                    @if($reuploadProofFile)
+                                    <div class="flex items-center gap-3 bg-white border border-red-200 rounded-xl p-2">
+                                        <img src="{{ $reuploadProofFile->temporaryUrl() }}" class="w-12 h-12 object-cover rounded-lg shrink-0">
+                                        <p class="text-xs text-slate-600 truncate flex-1">{{ $reuploadProofFile->getClientOriginalName() }}</p>
+                                    </div>
+                                    @endif
+
+                                    @error('reuploadProofFile')
+                                    <p class="text-xs text-red-500">{{ $message }}</p>
+                                    @enderror
+
+                                    <div class="flex gap-2">
+                                        <button wire:click="$set('reuploadPaymentId', null)"
+                                                class="flex-1 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                                            Cancel
+                                        </button>
+                                        <button wire:click="submitReupload" wire:loading.attr="disabled"
+                                                class="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors">
+                                            <span wire:loading.remove wire:target="submitReupload">Submit New Receipt</span>
+                                            <span wire:loading wire:target="submitReupload">Uploading...</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                @endif
                             </div>
                             @endforeach
                         </div>

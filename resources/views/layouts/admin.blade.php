@@ -176,7 +176,21 @@
                 <span x-show="!sidebarCollapsed" class="text-sm">Payments</span>
             </a>
 
-         
+            <a href="{{ route('admin.refunds') }}"
+               class="sidebar-nav-item {{ request()->routeIs('admin.refunds*') ? 'active' : '' }}"
+               :title="sidebarCollapsed ? 'Refunds' : ''">
+                {{-- Arrow left + money / refund icon --}}
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                </svg>
+                <span x-show="!sidebarCollapsed" class="text-sm">Refunds</span>
+                @php $pendingRefunds = \App\Models\Refund::where('status', 'pending')->count(); @endphp
+                @if($pendingRefunds > 0)
+                <span x-show="!sidebarCollapsed" class="ml-auto badge badge-gold text-[10px] py-0.5 px-2">{{ $pendingRefunds }}</span>
+                @endif
+            </a>
+
+
 
             {{-- Purchasing --}}
             <p x-show="!sidebarCollapsed" class="sidebar-section-label">Purchasing</p>

@@ -351,7 +351,7 @@
             <div class="text-sm text-red-800">
                 <p class="font-bold">Balance Payment Reminder</p>
                 <p class="mt-0.5 leading-relaxed">
-                    Your balance amount of <strong>Rs. {{ $balanceAmt }}</strong> is due after delivery.
+                    Your balance amount of <strong>Rs. {{ $balanceAmt }}</strong> is due before delivery.
                     Our team will contact you with payment details once your order is dispatched.
                 </p>
             </div>

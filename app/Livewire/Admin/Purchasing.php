@@ -297,11 +297,18 @@ class Purchasing extends Component
         $this->showReceiveModal = false;
         $this->receivingPo      = null;
 
-        // Check for orders that can now be confirmed
+        // Check for orders that can now be confirmed.
+        // If any ready orders exist, the backorder modal is deferred until
+        // after the ready-orders modal is dismissed, so both modals never
+        // overlap at the same time.
         $this->checkReadyOrders();
 
-        // Check if any backorders can now be fulfilled with the new stock
-        $this->checkFulfillableBackorders();
+        if (!$this->showReadyOrdersModal) {
+            // No ready-orders modal — show backorder modal immediately.
+            $this->checkFulfillableBackorders();
+        }
+        // If showReadyOrdersModal IS true, checkFulfillableBackorders() will
+        // be called from autoConfirmReadyOrders() / dismissReadyOrders().
 
         session()->flash('success', 'Goods received and stock updated successfully.');
     }
@@ -347,10 +354,16 @@ class Purchasing extends Component
             $order->update(['status' => 'confirmed']);
         }
 
+        $confirmedCount = $this->readyOrdersCount;
+
         $this->showReadyOrdersModal = false;
         $this->readyOrderIds        = [];
-        session()->flash('success', "{$this->readyOrdersCount} order(s) auto-confirmed.");
-        $this->readyOrdersCount = 0;
+        $this->readyOrdersCount     = 0;
+
+        session()->flash('success', "{$confirmedCount} order(s) auto-confirmed.");
+
+        // Now it is safe to show the backorder fulfillment modal if applicable.
+        $this->checkFulfillableBackorders();
     }
 
     public function dismissReadyOrders(): void
@@ -358,6 +371,9 @@ class Purchasing extends Component
         $this->showReadyOrdersModal = false;
         $this->readyOrderIds        = [];
         $this->readyOrdersCount     = 0;
+
+        // Now it is safe to show the backorder fulfillment modal if applicable.
+        $this->checkFulfillableBackorders();
     }
 
     // ── Backorder Fulfillment After Receiving ─────────────────────────

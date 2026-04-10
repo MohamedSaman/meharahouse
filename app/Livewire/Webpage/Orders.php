@@ -15,9 +15,15 @@ class Orders extends Component
     public bool   $showDetail    = false;
 
     // Balance payment upload state
-    public $balanceProofFile          = null;
-    public bool $balanceProofUploaded = false;
+    public $balanceProofFile             = null;
+    public bool $balanceProofUploaded    = false;
     public ?int $uploadingBalanceOrderId = null;
+
+    // Re-upload state for rejected payments
+    public $reuploadProofFile            = null;
+    public bool $reuploadProofUploaded   = false;
+    public ?int $reuploadPaymentId       = null;  // the rejected OrderPayment ID being replaced
+    public string $reuploadPaymentType   = '';
 
     public function mount(): void
     {
@@ -79,6 +85,71 @@ class Orders extends Component
         $this->selectedOrder = Order::with(['items.product', 'payments'])
             ->where('user_id', auth()->id())
             ->find($order->id);
+    }
+
+    /**
+     * Open the re-upload form for a specific rejected payment record.
+     */
+    public function openReupload(int $paymentId): void
+    {
+        $this->reuploadPaymentId     = $paymentId;
+        $this->reuploadProofFile     = null;
+        $this->reuploadProofUploaded = false;
+
+        $payment = \App\Models\OrderPayment::where('id', $paymentId)
+            ->whereHas('order', fn($q) => $q->where('user_id', auth()->id()))
+            ->where('status', 'rejected')
+            ->firstOrFail();
+
+        $this->reuploadPaymentType = $payment->type;
+    }
+
+    /**
+     * Submit the new receipt for a previously rejected payment.
+     * Creates a fresh pending payment record of the same type.
+     */
+    public function submitReupload(): void
+    {
+        $this->validate([
+            'reuploadProofFile' => 'required|file|image|max:5120',
+        ], [
+            'reuploadProofFile.required' => 'Please select an image.',
+            'reuploadProofFile.image'    => 'Only image files are allowed.',
+            'reuploadProofFile.max'      => 'Image must be under 5MB.',
+        ]);
+
+        if (!$this->reuploadPaymentId) return;
+
+        $rejectedPayment = \App\Models\OrderPayment::where('id', $this->reuploadPaymentId)
+            ->whereHas('order', fn($q) => $q->where('user_id', auth()->id()))
+            ->where('status', 'rejected')
+            ->firstOrFail();
+
+        $order = Order::with('payments')
+            ->where('user_id', auth()->id())
+            ->findOrFail($rejectedPayment->order_id);
+
+        $path = $this->reuploadProofFile->store('payment-proofs', 'public');
+
+        \App\Models\OrderPayment::create([
+            'order_id'     => $order->id,
+            'type'         => $rejectedPayment->type,
+            'amount'       => $rejectedPayment->amount,
+            'method'       => $rejectedPayment->method,
+            'receipt_path' => $path,
+            'status'       => 'pending',
+        ]);
+
+        $this->reuploadProofFile     = null;
+        $this->reuploadProofUploaded = true;
+        $this->reuploadPaymentId     = null;
+
+        // Refresh selected order
+        $this->selectedOrder = Order::with(['items.product', 'payments'])
+            ->where('user_id', auth()->id())
+            ->find($order->id);
+
+        session()->flash('success', 'Receipt re-uploaded. Our team will review it shortly.');
     }
 
     public function cancelOrder(int $id): void

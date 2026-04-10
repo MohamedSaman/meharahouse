@@ -156,10 +156,12 @@
                 @endphp
                 @foreach($statusFilters as $key => $label)
                 <button wire:click="$set('filterStatus', '{{ $key }}')"
+                        wire:loading.class="!text-opacity-100"
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
                             {{ $filterStatus === $key
                                 ? 'bg-slate-800 text-white shadow-md'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}"
+                        style="{{ $filterStatus === $key ? 'color:#ffffff;' : 'color:#475569;' }}">
                     {{ $label }}
                 </button>
                 @endforeach
@@ -867,6 +869,7 @@
          class="fixed inset-0 z-[60] flex items-center justify-center p-4">
 
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+             @click.stop
              @click.outside="advanceConfirm = false">
 
             {{-- Header --}}
@@ -916,17 +919,71 @@
             </div>
 
             {{-- Footer --}}
-            <div class="px-6 pb-5 flex gap-2">
+            <div class="px-6 pt-2 pb-5 flex gap-2">
                 <button @click="advanceConfirm = false"
                         class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
                     Cancel
                 </button>
-                <button @click="$wire.advanceStatus(advanceBatchId); advanceConfirm = false"
-                        class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold hover:from-amber-600 hover:to-orange-600 transition-all shadow-md shadow-amber-500/30">
-                    Advance Stage
+                <button @click.stop="$wire.advanceStatus(advanceBatchId); advanceConfirm = false"
+                        wire:loading.attr="disabled"
+                        wire:target="advanceStatus"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md"
+                        style="background: linear-gradient(to right, #f59e0b, #f97316); color: #ffffff;">
+                    <span wire:loading.remove wire:target="advanceStatus">Advance Stage</span>
+                    <span wire:loading wire:target="advanceStatus">Processing...</span>
                 </button>
             </div>
         </div>
     </div>
+
+    {{-- ══ BUG 11: UNPAID BALANCE WARNING MODAL (shown before final delivery stage) ══ --}}
+    @if($showUnpaidWarning)
+    <div class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+         style="background:rgba(15,23,42,0.75);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+
+            {{-- Header --}}
+            <div class="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-5 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-white text-base">Payment Not Complete</h3>
+                    <p class="text-red-100 text-xs mt-0.5">Unpaid balances detected</p>
+                </div>
+            </div>
+
+            {{-- Body --}}
+            <div class="px-6 py-5 space-y-3">
+                <div class="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
+                    <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm font-semibold text-red-800">
+                        Product is ready to be delivered but full payment is not paid.
+                        <strong>{{ $unpaidOrderCount }} {{ Str::plural('order', $unpaidOrderCount) }}</strong> in this batch
+                        {{ $unpaidOrderCount === 1 ? 'has' : 'have' }} an outstanding balance.
+                    </p>
+                </div>
+                <p class="text-xs text-slate-500">You can follow up with customers to collect payment, or proceed with delivery and collect later.</p>
+            </div>
+
+            {{-- Footer --}}
+            <div class="px-6 pb-5 flex flex-col gap-2">
+                <button wire:click="forceAdvanceDelivery" wire:loading.attr="disabled"
+                        class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors">
+                    <span wire:loading.remove wire:target="forceAdvanceDelivery">Deliver Anyway (Collect Payment Later)</span>
+                    <span wire:loading wire:target="forceAdvanceDelivery">Processing...</span>
+                </button>
+                <button wire:click="dismissUnpaidWarning"
+                        class="w-full py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
+                    Cancel — Collect Payment First
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 
 </div>

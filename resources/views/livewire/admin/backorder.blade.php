@@ -38,25 +38,29 @@
         <div class="flex flex-wrap items-center gap-2">
             <button wire:click="$set('filterStatus', 'pending')"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all
-                        {{ $filterStatus === 'pending' ? 'bg-amber-500 text-white border-amber-600 shadow-md shadow-amber-500/25' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' }}">
+                        {{ $filterStatus === 'pending' ? 'bg-amber-500 border-amber-600 shadow-md shadow-amber-500/25' : 'bg-amber-50 border-amber-200 hover:bg-amber-100' }}"
+                    style="{{ $filterStatus === 'pending' ? 'color:#ffffff;' : 'color:#b45309;' }}">
                 <span class="w-2 h-2 rounded-full bg-amber-400 {{ $stats['pending'] > 0 ? 'animate-pulse' : '' }}"></span>
                 Pending <span class="font-bold">{{ $stats['pending'] }}</span>
             </button>
             <button wire:click="$set('filterStatus', 'repurchasing')"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all
-                        {{ $filterStatus === 'repurchasing' ? 'bg-blue-500 text-white border-blue-600' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' }}">
+                        {{ $filterStatus === 'repurchasing' ? 'bg-blue-500 border-blue-600' : 'bg-blue-50 border-blue-200 hover:bg-blue-100' }}"
+                    style="{{ $filterStatus === 'repurchasing' ? 'color:#ffffff;' : 'color:#1d4ed8;' }}">
                 <span class="w-2 h-2 rounded-full bg-blue-400"></span>
                 Repurchasing <span class="font-bold">{{ $stats['repurchasing'] }}</span>
             </button>
             <button wire:click="$set('filterStatus', 'ready')"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all
-                        {{ $filterStatus === 'ready' ? 'bg-violet-500 text-white border-violet-600' : 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100' }}">
+                        {{ $filterStatus === 'ready' ? 'bg-violet-500 border-violet-600' : 'bg-violet-50 border-violet-200 hover:bg-violet-100' }}"
+                    style="{{ $filterStatus === 'ready' ? 'color:#ffffff;' : 'color:#6d28d9;' }}">
                 <span class="w-2 h-2 rounded-full bg-violet-400 {{ $stats['ready'] > 0 ? 'animate-pulse' : '' }}"></span>
                 Ready <span class="font-bold">{{ $stats['ready'] }}</span>
             </button>
             <button wire:click="$set('filterStatus', 'dispatched')"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all
-                        {{ $filterStatus === 'dispatched' ? 'bg-indigo-500 text-white border-indigo-600' : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' }}">
+                        {{ $filterStatus === 'dispatched' ? 'bg-indigo-500 border-indigo-600' : 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100' }}"
+                    style="{{ $filterStatus === 'dispatched' ? 'color:#ffffff;' : 'color:#4338ca;' }}">
                 <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
                 Dispatched <span class="font-bold">{{ $stats['dispatched'] }}</span>
             </button>
@@ -220,7 +224,8 @@
                     <div class="flex items-center gap-2 shrink-0">
                         @if($bo->status === 'ready')
                         <button wire:click="openDispatch({{ $bo->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold transition-all shadow-sm shadow-violet-600/25">
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-xs font-semibold transition-all shadow-sm shadow-violet-600/25"
+                                style="color:#ffffff;">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                             </svg>
@@ -229,7 +234,8 @@
 
                         @elseif($bo->status === 'dispatched')
                         <button wire:click="markDelivered({{ $bo->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold transition-all shadow-sm shadow-teal-600/25">
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-xs font-semibold transition-all shadow-sm shadow-teal-600/25"
+                                style="color:#ffffff;">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
@@ -238,14 +244,16 @@
 
                         @elseif($bo->status === 'delivered')
                         <button wire:click="markCompleted({{ $bo->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-all shadow-sm shadow-green-600/25">
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-xs font-semibold transition-all shadow-sm shadow-green-600/25"
+                                style="color:#ffffff;">
                             Complete
                         </button>
 
                         @elseif(in_array($bo->status, ['pending', 'repurchasing']))
                             @if($currentStock >= $bo->short_qty)
                             <button wire:click="markReady({{ $bo->id }})"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold transition-all shadow-sm shadow-violet-600/25">
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-xs font-semibold transition-all shadow-sm shadow-violet-600/25"
+                                    style="color:#ffffff;">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
@@ -576,7 +584,7 @@
                         </svg>
                         Confirm Dispatch
                     </span>
-                    <span wire:loading wire:target="confirmDispatch" style="display:none;">Dispatching...</span>
+                    <span wire:loading wire:target="confirmDispatch">Dispatching...</span>
                 </button>
             </div>
         </div>
@@ -684,7 +692,7 @@
                         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md disabled:opacity-50
                             {{ $selectedReplacementId ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/25' : 'bg-slate-200 text-slate-400 cursor-not-allowed' }}">
                     <span wire:loading.remove wire:target="confirmReplacement">Confirm Replacement</span>
-                    <span wire:loading wire:target="confirmReplacement" style="display:none;">Saving...</span>
+                    <span wire:loading wire:target="confirmReplacement">Saving...</span>
                 </button>
             </div>
         </div>

@@ -4,7 +4,9 @@ namespace App\Livewire\Admin;
 
 use Livewire\Component;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Validate;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use App\Models\Order as OrderModel;
 use App\Models\OrderBackorder;
 use App\Models\OrderPayment;
@@ -16,12 +18,15 @@ use App\Mail\OrderConfirmed;
 use App\Mail\OrderDispatched;
 use App\Mail\OrderDelivered;
 use App\Mail\PaymentReceived as PaymentReceivedMail;
+use App\Mail\RefundProcessed as RefundProcessedMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 #[Title('Orders')]
 class Order extends Component
 {
     use WithPagination;
+    use WithFileUploads;
 
     // ── Filters ───────────────────────────────────────────────────────
     public string $search        = '';
@@ -52,12 +57,16 @@ class Order extends Component
     public string $stockReplaceSearch    = '';
 
     // ── Refund Modal ──────────────────────────────────────────────────
-    public bool   $showRefundModal  = false;
-    public int    $refundOrderId    = 0;
-    public string $refundAmount     = '';
-    public string $refundMethod     = 'bank_transfer';
-    public string $refundReference  = '';
-    public string $refundNotes      = '';
+    public bool   $showRefundModal    = false;
+    public int    $refundOrderId      = 0;
+    public string $refundAmount       = '';
+    public string $refundMethod       = 'bank_transfer';
+    public string $refundBankAccount  = '';
+    public string $refundReference    = '';
+    public string $refundNotes        = '';
+
+    #[Validate('nullable|file|mimes:jpg,jpeg,png,pdf|max:5120')]
+    public $refundProofFile = null;
 
     // ── Backorder / Partial Fulfillment ───────────────────────────────
     public bool  $showBackorderModal = false;
@@ -321,9 +330,21 @@ class Order extends Component
         if ($partialRefundAmount > 0) {
             $order->refresh()->load('items');
             $newSubtotal = $order->items->sum('subtotal');
+            $newTotal    = round($newSubtotal + $order->shipping_cost + $order->tax - $order->discount, 2);
+
+            // Recalculate advance/balance split based on the advance percentage
+            $advPct       = (float) ($order->advance_percentage ?? 0);
+            $newAdvance   = $advPct > 0 ? round($newTotal * $advPct / 100, 2) : (float) $order->advance_amount;
+            $newBalance   = max(0, round($newTotal - $newAdvance, 2));
+            // Subtract any already-confirmed balance payments to get actual remaining balance
+            $confirmedBalance = $order->payments()->where('type', 'balance')->where('status', 'confirmed')->sum('amount');
+            $newBalanceDue    = max(0, $newBalance - (float) $confirmedBalance);
+
             $order->update([
-                'subtotal' => $newSubtotal,
-                'total'    => round($newSubtotal + $order->shipping_cost + $order->tax - $order->discount, 2),
+                'subtotal'       => $newSubtotal,
+                'total'          => $newTotal,
+                'advance_amount' => $newAdvance,
+                'balance_amount' => $newBalanceDue,
             ]);
         }
 
@@ -340,17 +361,32 @@ class Order extends Component
             }
         }
 
-        // If nothing was deducted (all items fully backordered with 0 available),
-        // the order is waiting for stock — mark as 'sourcing' not 'confirmed'.
-        $issuedItemIds = array_column($this->stockIssues, 'item_id');
+        // Determine correct order status after decisions are applied.
+        $issuedItemIds     = array_column($this->stockIssues, 'item_id');
         $hasNonIssuedItems = $order->items->whereNotIn('id', $issuedItemIds)->isNotEmpty();
-        $fullyBackordered  = !$hasNonIssuedItems && $totalDeducted === 0;
+        $sumNextBatch      = collect($this->stockDecisions)->filter(fn($d) => $d === 'next_batch')->count();
+        $sumRefundDec      = collect($this->stockDecisions)->filter(fn($d) => $d === 'refund')->count();
 
-        $targetStatus = $fullyBackordered ? 'sourcing' : 'confirmed';
-        $notes = $fullyBackordered
-            ? 'All items on backorder — awaiting stock from next batch.'
-            : 'Order confirmed with partial stock.';
-        if ($partialRefundAmount > 0) {
+        // Truly fully-backordered = nothing deducted AND no refund decisions involved
+        $fullyBackordered = !$hasNonIssuedItems && $totalDeducted === 0 && $sumRefundDec === 0;
+
+        // All items refunded and nothing left in order = mark as refunded
+        $allRefunded = $order->items->isEmpty() && $sumRefundDec > 0 && $sumNextBatch === 0;
+
+        if ($allRefunded) {
+            $targetStatus = 'refunded';
+        } elseif ($fullyBackordered) {
+            $targetStatus = 'sourcing';
+        } else {
+            $targetStatus = 'confirmed';
+        }
+
+        $notes = match($targetStatus) {
+            'refunded' => 'All items refunded — order fully refunded.',
+            'sourcing'  => 'All items on backorder — awaiting stock from next batch.',
+            default     => 'Order confirmed with partial stock.',
+        };
+        if ($partialRefundAmount > 0 && $targetStatus !== 'refunded') {
             $notes .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' refunded for short items.';
         }
         $order->logStatus($targetStatus, $notes, auth()->id());
@@ -360,15 +396,30 @@ class Order extends Component
         $this->refreshSelectedOrder($order->id);
 
         $sumReplace = collect($this->stockDecisions)->filter(fn($d) => $d === 'replace')->count();
-        if ($fullyBackordered) {
+        if ($targetStatus === 'refunded') {
+            $msg = 'All items refunded. Please fill in the refund payment details below.';
+        } elseif ($fullyBackordered) {
             $msg = 'All items backordered — order marked as Sourcing. Check Backorders page.';
         } else {
             $msg = 'Order confirmed.';
-            if ($partialRefundAmount > 0) $msg .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' refunded for short items.';
+            if ($partialRefundAmount > 0) $msg .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' to be refunded — please fill in the refund details below.';
             if ($sumReplace > 0) $msg .= " {$sumReplace} item(s) flagged for replacement — check Backorders.";
             if ($partialRefundAmount === 0.0 && $sumReplace === 0) $msg .= ' Backorders created for short items.';
         }
         session()->flash('success', $msg);
+
+        // If any items were refunded, open the refund modal so admin can
+        // record the payment method, bank account, reference and proof.
+        if ($partialRefundAmount > 0) {
+            $this->refundOrderId     = $order->id;
+            $this->refundAmount      = (string) $partialRefundAmount;
+            $this->refundMethod      = 'bank_transfer';
+            $this->refundBankAccount = '';
+            $this->refundReference   = '';
+            $this->refundNotes       = 'Partial refund for out-of-stock item(s).';
+            $this->refundProofFile   = null;
+            $this->showRefundModal   = true;
+        }
     }
 
     /**
@@ -703,37 +754,95 @@ class Order extends Component
     public function openRefundModal(int $orderId): void
     {
         $order = OrderModel::findOrFail($orderId);
-        $this->refundOrderId   = $orderId;
-        $this->refundAmount    = (string) $order->advance_amount;
-        $this->refundMethod    = 'bank_transfer';
-        $this->refundReference = '';
-        $this->refundNotes     = '';
-        $this->showRefundModal = true;
+        $this->refundOrderId      = $orderId;
+        $this->refundAmount       = (string) $order->advance_amount;
+        $this->refundMethod       = 'bank_transfer';
+        $this->refundBankAccount  = '';
+        $this->refundReference    = '';
+        $this->refundNotes        = '';
+        $this->refundProofFile    = null;
+        $this->showRefundModal    = true;
     }
 
     public function processRefund(): void
     {
         $this->validate([
-            'refundAmount'    => ['required', 'numeric', 'min:0.01'],
-            'refundMethod'    => ['required', 'in:bank_transfer,online'],
-            'refundReference' => ['nullable', 'string', 'max:255'],
-            'refundNotes'     => ['nullable', 'string', 'max:1000'],
+            'refundAmount'      => ['required', 'numeric', 'min:0.01'],
+            'refundMethod'      => ['required', 'in:bank_transfer,online,cash'],
+            'refundBankAccount' => ['nullable', 'string', 'max:100'],
+            'refundReference'   => ['nullable', 'string', 'max:255'],
+            'refundNotes'       => ['nullable', 'string', 'max:1000'],
+            'refundProofFile'   => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
 
         $order = OrderModel::findOrFail($this->refundOrderId);
 
-        Refund::create([
+        // Store proof of payment file if uploaded
+        $proofPath = null;
+        if ($this->refundProofFile) {
+            $proofPath = $this->refundProofFile->store('refunds', 'public');
+        }
+
+        $refund = Refund::create([
+            'order_id'              => $order->id,
+            'customer_id'           => $order->user_id,
+            'amount'                => $this->refundAmount,
+            'method'                => $this->refundMethod,
+            'customer_bank_account' => $this->refundBankAccount ?: null,
+            'reference_number'      => $this->refundReference ?: null,
+            'proof_file'            => $proofPath,
+            'notes'                 => $this->refundNotes ?: null,
+            'status'                => 'processed',
+            'processed_by'          => auth()->id(),
+            'processed_at'          => now(),
+        ]);
+
+        // Reduce balance_amount by the refund amount so balanceDue() reflects the refund
+        $newBalance = max(0, (float) $order->balance_amount - (float) $this->refundAmount);
+        $order->logStatus('refunded', 'Refund of Rs. ' . number_format($this->refundAmount, 0) . ' processed.', auth()->id());
+        $order->update([
+            'status'         => 'refunded',
+            'payment_status' => 'refunded',
+            'balance_amount' => $newBalance,
+        ]);
+
+        // Notify the customer via email
+        try {
+            $fresh = $order->fresh();
+            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
+            if ($email) Mail::to($email)->send(new RefundProcessedMail($fresh, $refund));
+        } catch (\Throwable) {}
+
+        // Build WhatsApp refund notification message for admin to send
+        $address  = $order->shipping_address ?? [];
+        $phone    = preg_replace('/[^0-9+]/', '', $address['phone'] ?? '');
+        $siteName = Setting::get('site_name', 'Meharahouse');
+        if ($phone) {
+            $bankNote = $this->refundBankAccount
+                ? "\n🏦 Transfer to your account: *{$this->refundBankAccount}*"
+                : '';
+            $msg = "💸 *Refund Processed — {$siteName}*\n\n"
+                 . "Dear {$address['full_name']},\n\n"
+                 . "Your refund has been processed for order *{$order->order_number}*.\n\n"
+                 . "💰 *Refund Amount:* Rs. " . number_format($this->refundAmount, 0)
+                 . $bankNote . "\n\n"
+                 . "The amount will be transferred within 3–5 business days.\n\n"
+                 . "Thank you for shopping with {$siteName}! 🙏";
+            $this->dispatch('open-whatsapp-prompt', phone: $phone, message: $msg);
+        }
+
+        // Record the refund as a transaction in OrderPayment for payments/finance tracking
+        OrderPayment::create([
             'order_id'     => $order->id,
+            'type'         => 'refund',
             'amount'       => $this->refundAmount,
             'method'       => $this->refundMethod,
             'reference'    => $this->refundReference ?: null,
-            'notes'        => $this->refundNotes ?: null,
-            'processed_by' => auth()->id(),
-            'processed_at' => now(),
+            'notes'        => $this->refundNotes ?: ('Refund to customer' . ($this->refundBankAccount ? ' — Account: ' . $this->refundBankAccount : '')),
+            'status'       => 'confirmed',
+            'confirmed_by' => auth()->id(),
+            'confirmed_at' => now(),
         ]);
-
-        $order->logStatus('refunded', 'Refund of Rs. ' . number_format($this->refundAmount, 0) . ' processed.', auth()->id());
-        $order->update(['status' => 'refunded', 'payment_status' => 'refunded']);
 
         $this->showRefundModal = false;
         $this->refreshSelectedOrder($order->id);

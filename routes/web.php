@@ -86,8 +86,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/supplier-payments', App\Livewire\Admin\SupplierPayments::class)->name('supplier-payments');
     Route::get('/customer-payments', App\Livewire\Admin\CustomerPayments::class)->name('customer-payments');
 
-    Route::get('/returns', App\Livewire\Admin\Returns::class)->name('returns');
-    Route::get('/reviews', App\Livewire\Admin\ReviewManagement::class)->name('reviews');
+    Route::get('/returns',  App\Livewire\Admin\Returns::class)->name('returns');
+    Route::get('/refunds',  App\Livewire\Admin\Refunds::class)->name('refunds');
+    Route::get('/reviews',  App\Livewire\Admin\ReviewManagement::class)->name('reviews');
     Route::get('/profile', App\Livewire\Admin\Profile::class)->name('profile');
 
     // Waybill / Packing Slip — plain print view, not a Livewire component

@@ -1,0 +1,107 @@
+<?php
+
+namespace App\Livewire\Admin;
+
+use Livewire\Component;
+use Livewire\Attributes\Title;
+use Livewire\WithPagination;
+use App\Models\Refund;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+
+#[Title('Refunds')]
+class Refunds extends Component
+{
+    use WithPagination;
+
+    // ── Filters ───────────────────────────────────────────────────────
+    public string $search     = '';
+    public string $filterTab  = '';   // '', 'pending', 'processed', 'completed'
+    public string $dateFrom   = '';
+    public string $dateTo     = '';
+
+    // ── Detail Modal ──────────────────────────────────────────────────
+    public bool    $showDetail  = false;
+    public ?Refund $selected    = null;
+
+    // ── Watchers ──────────────────────────────────────────────────────
+
+    public function updatedSearch(): void  { $this->resetPage(); }
+    public function updatedFilterTab(): void { $this->resetPage(); }
+    public function updatedDateFrom(): void  { $this->resetPage(); }
+    public function updatedDateTo(): void    { $this->resetPage(); }
+
+    public function clearDates(): void
+    {
+        $this->dateFrom = '';
+        $this->dateTo   = '';
+        $this->resetPage();
+    }
+
+    // ── Actions ───────────────────────────────────────────────────────
+
+    /**
+     * Open the detail modal for a specific refund.
+     */
+    public function viewRefund(int $id): void
+    {
+        $this->selected    = Refund::with(['order', 'customer', 'processedBy'])->findOrFail($id);
+        $this->showDetail  = true;
+    }
+
+    public function closeDetail(): void
+    {
+        $this->showDetail = false;
+        $this->selected   = null;
+    }
+
+    /**
+     * Mark a refund as completed (money has been received by customer).
+     */
+    public function markCompleted(int $id): void
+    {
+        $refund = Refund::findOrFail($id);
+        $refund->update(['status' => 'completed']);
+
+        // Refresh selected if the modal is open for this refund
+        if ($this->selected && $this->selected->id === $id) {
+            $this->selected = Refund::with(['order', 'customer', 'processedBy'])->find($id);
+        }
+
+        session()->flash('success', 'Refund marked as completed.');
+    }
+
+    // ── Render ────────────────────────────────────────────────────────
+
+    public function render()
+    {
+        $refunds = Refund::with(['order', 'customer', 'processedBy'])
+            ->when($this->search, function ($q) {
+                $q->whereHas('order', fn($o) =>
+                    $o->where('order_number', 'like', "%{$this->search}%")
+                     ->orWhere(
+                         DB::raw("JSON_UNQUOTE(JSON_EXTRACT(shipping_address, '$.full_name'))"),
+                         'like', "%{$this->search}%"
+                     )
+                )
+                ->orWhereHas('customer', fn($u) =>
+                    $u->where('name', 'like', "%{$this->search}%")
+                );
+            })
+            ->when($this->filterTab, fn($q) => $q->where('status', $this->filterTab))
+            ->when($this->dateFrom, fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo,   fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
+            ->latest()
+            ->paginate(20);
+
+        $counts = [
+            'all'       => Refund::count(),
+            'pending'   => Refund::where('status', 'pending')->count(),
+            'processed' => Refund::where('status', 'processed')->count(),
+            'completed' => Refund::where('status', 'completed')->count(),
+        ];
+
+        $layout = auth()->user()?->isAdmin() ? 'layouts.admin' : 'layouts.staff';
+        return view('livewire.admin.refunds', compact('refunds', 'counts'))->layout($layout);
+    }
+}

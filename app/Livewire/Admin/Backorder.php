@@ -201,6 +201,42 @@ class Backorder extends Component
             'status'                 => 'ready',
         ]);
 
+        // Bug 7 fix: Update the order item to the replacement product so the
+        // order detail reflects the new product and the price difference is captured.
+        $orderItem = \App\Models\OrderItem::find($bo->order_item_id);
+        if ($orderItem) {
+            $newQty      = $bo->short_qty;
+            $newPrice    = (float) $replacement->price;
+            $newSubtotal = round($newPrice * $newQty, 2);
+            $orderItem->update([
+                'product_id'   => $replacement->id,
+                'product_name' => $replacement->name,
+                'price'        => $newPrice,
+                'quantity'     => $newQty,
+                'subtotal'     => $newSubtotal,
+            ]);
+
+            // Recalculate order totals and balance_amount
+            $order = $orderItem->order()->with(['items', 'payments'])->first();
+            if ($order) {
+                $newSubtotalOrder = $order->items()->sum('subtotal');
+                $newTotal         = round($newSubtotalOrder + $order->shipping_cost + $order->tax - $order->discount, 2);
+
+                $advPct           = (float) ($order->advance_percentage ?? 0);
+                $newAdvance       = $advPct > 0 ? round($newTotal * $advPct / 100, 2) : (float) $order->advance_amount;
+                $newBalance       = max(0, round($newTotal - $newAdvance, 2));
+                $confirmedBalance = $order->payments()->where('type', 'balance')->where('status', 'confirmed')->sum('amount');
+                $newBalanceDue    = max(0, $newBalance - (float) $confirmedBalance);
+
+                $order->update([
+                    'subtotal'       => $newSubtotalOrder,
+                    'total'          => $newTotal,
+                    'advance_amount' => $newAdvance,
+                    'balance_amount' => $newBalanceDue,
+                ]);
+            }
+        }
+
         $this->showReplaceModal      = false;
         $this->replacingBoId         = 0;
         $this->selectedReplacementId = null;

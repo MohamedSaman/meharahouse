@@ -170,7 +170,8 @@ class Payment extends Component
     public function render()
     {
         $payments = Order::with(['user', 'payments' => fn($q) => $q->where('status', 'confirmed')])
-            ->whereNotIn('status', ['refunded', 'cancelled'])
+            // When filter is 'refunded', include those orders; otherwise exclude refunded & cancelled
+            ->when($this->filterStatus !== 'refunded', fn($q) => $q->whereNotIn('status', ['refunded', 'cancelled']))
             ->when($this->search, fn($q) => $q
                 ->where('order_number', 'like', "%{$this->search}%")
                 ->orWhere(DB::raw("JSON_UNQUOTE(JSON_EXTRACT(shipping_address, '$.full_name'))"), 'like', "%{$this->search}%")
@@ -180,6 +181,12 @@ class Payment extends Component
                     $q->where('payment_status', 'pending')
                       ->where('advance_amount', '>', 0)
                       ->where('balance_amount', '>', 0);
+                } elseif ($this->filterStatus === 'refunded') {
+                    // Show orders with payment_status = 'refunded' OR those that have a refund record
+                    $q->where(fn($sub) =>
+                        $sub->where('payment_status', 'refunded')
+                            ->orWhereHas('refund')
+                    );
                 } else {
                     $q->where('payment_status', $this->filterStatus);
                 }
