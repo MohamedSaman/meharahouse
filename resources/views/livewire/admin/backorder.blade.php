@@ -4,6 +4,7 @@
     x-data="{
         detailOpen: @entangle('showDetail'),
         dispatchOpen: @entangle('showDispatchModal'),
+        replaceOpen: @entangle('showReplaceModal'),
     }"
 >
 
@@ -181,11 +182,21 @@
 
                         {{-- Product --}}
                         <td class="px-5 py-4">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[#0F172A] font-medium text-xs">{{ $bo->product_name }}</span>
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                                    ×{{ $bo->short_qty }}
-                                </span>
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[#0F172A] font-medium text-xs {{ $bo->isReplacement() ? 'line-through text-slate-400' : '' }}">{{ $bo->product_name }}</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                        ×{{ $bo->short_qty }}
+                                    </span>
+                                </div>
+                                @if($bo->isReplacement())
+                                <div class="flex items-center gap-1.5">
+                                    <svg class="w-3 h-3 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                    </svg>
+                                    <span class="text-[11px] font-semibold text-orange-700">{{ $bo->replacementProduct?->name ?? 'Replacement' }}</span>
+                                </div>
+                                @endif
                             </div>
                         </td>
 
@@ -257,9 +268,20 @@
                                         Stock Arrived — Mark Ready
                                     </button>
                                     @else
-                                    <span class="text-xs text-slate-400 italic">
-                                        Awaiting stock ({{ $currentStock }}/{{ $bo->short_qty }})
-                                    </span>
+                                    <div class="flex flex-col items-end gap-1.5">
+                                        <span class="text-xs text-slate-400 italic">
+                                            Awaiting stock ({{ $currentStock }}/{{ $bo->short_qty }})
+                                        </span>
+                                        <button wire:click="openReplaceModal({{ $bo->id }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="openReplaceModal({{ $bo->id }})"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-300 text-[11px] font-semibold transition-all disabled:opacity-50">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                            </svg>
+                                            Replace Product
+                                        </button>
+                                    </div>
                                     @endif
                                 @endif
 
@@ -456,7 +478,9 @@
                     <div class="flex items-center justify-between py-1.5 border-b border-slate-200">
                         <span class="text-[#64748B] text-xs font-medium">Decision</span>
                         <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold
-                            {{ $selectedBackorder->decision === 'repurchase' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-amber-100 text-amber-700 border border-amber-200' }}">
+                            {{ $selectedBackorder->decision === 'repurchase' ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                             : ($selectedBackorder->decision === 'replace' ? 'bg-orange-100 text-orange-700 border border-orange-200'
+                             : 'bg-amber-100 text-amber-700 border border-amber-200') }}">
                             {{ $selectedBackorder->decisionLabel() }}
                         </span>
                     </div>
@@ -501,6 +525,79 @@
                     @endif
                 </div>
             </div>
+
+            {{-- ── Section 2b: Replacement Info (only when decision=replace) ── --}}
+            @if($selectedBackorder->isReplacement())
+            <div class="bg-orange-50 border border-orange-200 rounded-2xl p-4 space-y-3">
+                <h4 class="font-semibold text-sm text-orange-800 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                    Product Replacement
+                </h4>
+
+                {{-- Original vs Replacement --}}
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white border border-orange-200 rounded-xl p-3 text-center">
+                        <p class="text-[10px] text-orange-500 font-semibold uppercase tracking-wide mb-1">Original</p>
+                        <p class="text-xs font-semibold text-slate-500 line-through">{{ $selectedBackorder->product_name }}</p>
+                        @if($selectedBackorder->orderItem)
+                        <p class="text-xs text-slate-400 mt-0.5">LKR {{ number_format($selectedBackorder->orderItem->price, 2) }}</p>
+                        @endif
+                    </div>
+                    <div class="bg-orange-100 border border-orange-300 rounded-xl p-3 text-center">
+                        <p class="text-[10px] text-orange-600 font-semibold uppercase tracking-wide mb-1">Replacement</p>
+                        <p class="text-xs font-bold text-orange-800">{{ $selectedBackorder->replacementProduct?->name ?? '—' }}</p>
+                        @if($selectedBackorder->replacement_price)
+                        <p class="text-xs text-orange-600 mt-0.5">LKR {{ number_format($selectedBackorder->replacement_price, 2) }}</p>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Price difference notice --}}
+                @if($selectedBackorder->replacementProduct && $selectedBackorder->orderItem)
+                @php
+                    $origPrice    = (float) $selectedBackorder->orderItem->price;
+                    $replacePrice = (float) $selectedBackorder->replacement_price;
+                    $diff         = ($origPrice - $replacePrice) * $selectedBackorder->short_qty;
+                @endphp
+                @if($diff > 0)
+                <div class="flex items-start gap-2.5 p-3 bg-teal-50 border border-teal-200 rounded-xl">
+                    <svg class="w-4 h-4 text-teal-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-xs font-bold text-teal-700">Refund Required: LKR {{ number_format($diff, 2) }}</p>
+                        <p class="text-[11px] text-teal-600 mt-0.5">Replacement is cheaper — issue partial refund to customer.</p>
+                    </div>
+                </div>
+                @elseif($diff < 0)
+                <div class="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                    <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div>
+                        <p class="text-xs font-bold text-amber-700">Price Difference: LKR {{ number_format(abs($diff), 2) }}</p>
+                        <p class="text-[11px] text-amber-600 mt-0.5">Replacement is more expensive — absorb cost or request extra payment from customer.</p>
+                    </div>
+                </div>
+                @else
+                <div class="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-xl">
+                    <svg class="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-xs font-semibold text-green-700">Same price — no refund or extra charge needed.</p>
+                </div>
+                @endif
+                @endif
+
+                @if($selectedBackorder->replacement_notes)
+                <div class="text-xs text-orange-700 bg-white border border-orange-200 rounded-xl p-2.5">
+                    <span class="font-semibold">Note: </span>{{ $selectedBackorder->replacement_notes }}
+                </div>
+                @endif
+            </div>
+            @endif
 
             {{-- ── Section 3: Timeline ── --}}
             <div class="bg-[#F8FAFC] rounded-2xl p-4 space-y-3">
@@ -594,6 +691,14 @@
 
             <div class="flex items-center gap-2">
                 @if($selectedBackorder->status === 'pending' || $selectedBackorder->status === 'repurchasing')
+                <button wire:click="openReplaceModal({{ $selectedBackorder->id }})"
+                        wire:loading.attr="disabled"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-300 text-sm font-semibold transition-all disabled:opacity-50">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                    Replace Product
+                </button>
                 <button wire:click="markReady({{ $selectedBackorder->id }})"
                         wire:loading.attr="disabled"
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition-all shadow-md shadow-violet-600/25 disabled:opacity-50">
@@ -702,19 +807,46 @@
             {{-- Modal Body --}}
             <div class="px-6 py-5 space-y-4">
                 @php
-                    $dispatchBo = $dispatchBoId ? \App\Models\OrderBackorder::with(['order', 'product'])->find($dispatchBoId) : null;
+                    $dispatchBo         = $dispatchBoId ? \App\Models\OrderBackorder::with(['order', 'product', 'replacementProduct'])->find($dispatchBoId) : null;
+                    $isReplacementDispatch = $dispatchBo?->isReplacement();
+                    $stockProduct       = $isReplacementDispatch ? $dispatchBo->replacementProduct : $dispatchBo?->product;
+                    $dispatchProductName = $isReplacementDispatch ? ($dispatchBo->replacementProduct?->name ?? 'Replacement') : $dispatchBo?->product_name;
                 @endphp
                 @if($dispatchBo)
+                {{-- Replacement banner --}}
+                @if($isReplacementDispatch)
+                <div class="flex items-center gap-2.5 p-3 bg-orange-50 border border-orange-200 rounded-xl">
+                    <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                    <div>
+                        <p class="text-xs font-bold text-orange-700">Replacement Dispatch</p>
+                        <p class="text-[11px] text-orange-600">Sending <strong>{{ $dispatchBo->replacementProduct?->name }}</strong> instead of original product.</p>
+                    </div>
+                </div>
+                @endif
+
                 {{-- Dispatch summary --}}
                 <div class="bg-[#F8FAFC] rounded-xl p-4 space-y-2 text-sm">
                     <div class="flex items-center justify-between">
                         <span class="text-slate-500 text-xs font-medium">Backorder #</span>
                         <span class="font-mono font-bold text-[#0F172A] text-xs">{{ $dispatchBo->backorder_number }}</span>
                     </div>
+                    @if($isReplacementDispatch)
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-500 text-xs font-medium">Original Product</span>
+                        <span class="text-slate-400 line-through text-xs">{{ $dispatchBo->product_name }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-500 text-xs font-medium">Sending Instead</span>
+                        <span class="font-semibold text-orange-700 text-xs">{{ $dispatchBo->replacementProduct?->name }}</span>
+                    </div>
+                    @else
                     <div class="flex items-center justify-between">
                         <span class="text-slate-500 text-xs font-medium">Product</span>
                         <span class="font-semibold text-[#0F172A] text-xs">{{ $dispatchBo->product_name }}</span>
                     </div>
+                    @endif
                     <div class="flex items-center justify-between">
                         <span class="text-slate-500 text-xs font-medium">Qty to Dispatch</span>
                         <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold">
@@ -725,11 +857,11 @@
                         <span class="text-slate-500 text-xs font-medium">For Order</span>
                         <span class="font-mono text-blue-600 text-xs font-semibold">{{ $dispatchBo->order?->order_number ?? 'N/A' }}</span>
                     </div>
-                    @if($dispatchBo->product)
+                    @if($stockProduct)
                     <div class="flex items-center justify-between">
-                        <span class="text-slate-500 text-xs font-medium">Current Stock</span>
-                        <span class="font-semibold text-xs {{ $dispatchBo->product->stock >= $dispatchBo->short_qty ? 'text-green-600' : 'text-red-600' }}">
-                            {{ $dispatchBo->product->stock }} units
+                        <span class="text-slate-500 text-xs font-medium">Current Stock ({{ $isReplacementDispatch ? 'Replacement' : 'Product' }})</span>
+                        <span class="font-semibold text-xs {{ $stockProduct->stock >= $dispatchBo->short_qty ? 'text-green-600' : 'text-red-600' }}">
+                            {{ $stockProduct->stock }} units
                         </span>
                     </div>
                     @endif
@@ -741,18 +873,18 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
                     <p class="text-xs text-amber-700 font-medium">
-                        <strong>Stock will be deducted</strong> when you confirm dispatch.
-                        {{ $dispatchBo->short_qty }} unit(s) of "{{ $dispatchBo->product_name }}" will be removed from inventory.
+                        <strong>Stock will be deducted</strong> from <strong>"{{ $dispatchProductName }}"</strong>
+                        when you confirm dispatch ({{ $dispatchBo->short_qty }} unit(s)).
                     </p>
                 </div>
 
-                @if($dispatchBo->product && $dispatchBo->product->stock < $dispatchBo->short_qty)
+                @if($stockProduct && $stockProduct->stock < $dispatchBo->short_qty)
                 <div class="flex items-start gap-3 p-3.5 bg-red-50 border border-red-200 rounded-xl">
                     <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     <p class="text-xs text-red-700 font-medium">
-                        <strong>Insufficient stock:</strong> Current stock ({{ $dispatchBo->product->stock }}) is less than required ({{ $dispatchBo->short_qty }}). Stock deduction will be skipped.
+                        <strong>Insufficient stock:</strong> Current stock ({{ $stockProduct->stock }}) is less than required ({{ $dispatchBo->short_qty }}). Stock deduction will be skipped.
                     </p>
                 </div>
                 @endif
@@ -794,6 +926,240 @@
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                         </svg>
                         Dispatching...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══════════════════════════════════════════════════════════════
+         REPLACE PRODUCT MODAL
+    ══════════════════════════════════════════════════════════════ --}}
+    @if($showReplaceModal)
+    {{-- Backdrop --}}
+    <div
+        x-show="replaceOpen"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50"
+        style="display:none;"
+        wire:ignore.self
+    ></div>
+
+    {{-- Modal --}}
+    <div
+        x-show="replaceOpen"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 scale-95"
+        x-transition:enter-end="opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 scale-100"
+        x-transition:leave-end="opacity-0 scale-95"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="display:none;"
+        @click.self="replaceOpen = false; $wire.set('showReplaceModal', false)"
+    >
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg" @click.stop>
+            {{-- Modal Header --}}
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-[Poppins] font-bold text-[#0F172A] text-base">Replace Product</h3>
+                        <p class="text-xs text-slate-400">Select a substitute product to send instead</p>
+                    </div>
+                </div>
+                <button wire:click="$set('showReplaceModal', false)"
+                        class="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Modal Body --}}
+            <div class="px-6 py-5 space-y-4">
+                @php
+                    $replaceBo = $replacingBoId ? \App\Models\OrderBackorder::with('product')->find($replacingBoId) : null;
+                @endphp
+
+                {{-- Original product info --}}
+                @if($replaceBo)
+                <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div class="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Replacing (Out of Stock)</p>
+                        <p class="text-sm font-bold text-slate-700">{{ $replaceBo->product_name }}</p>
+                        <p class="text-[11px] text-slate-400">Short qty: {{ $replaceBo->short_qty }} unit(s)</p>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Search box --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Search Replacement Product</label>
+                    <div class="flex items-center gap-2 border border-slate-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-orange-400 focus-within:border-transparent transition-all">
+                        <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input wire:model.live.debounce.400ms="replacementProductSearch"
+                               type="text"
+                               placeholder="Type product name or SKU (min 2 chars)..."
+                               class="bg-transparent text-sm outline-none flex-1 placeholder-slate-400">
+                        @if($replacementProductSearch)
+                        <button wire:click="$set('replacementProductSearch', '')" class="text-slate-400 hover:text-slate-600">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Validation error --}}
+                @error('selectedReplacementId')
+                <div class="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                    <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-xs text-red-700 font-medium">{{ $message }}</p>
+                </div>
+                @enderror
+
+                {{-- Product list --}}
+                <div class="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                    @if(strlen($replacementProductSearch) >= 2)
+                        @forelse($replacementProducts as $rp)
+                        <button wire:click="selectReplacement({{ $rp->id }})"
+                                type="button"
+                                class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl border text-left transition-all
+                                    {{ $selectedReplacementId === $rp->id
+                                        ? 'border-orange-400 bg-orange-50 shadow-sm shadow-orange-400/20'
+                                        : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50/50' }}">
+                            <div class="flex items-center gap-3 min-w-0">
+                                {{-- Selected indicator --}}
+                                <div class="w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all
+                                    {{ $selectedReplacementId === $rp->id ? 'border-orange-500 bg-orange-500' : 'border-slate-300' }}">
+                                    @if($selectedReplacementId === $rp->id)
+                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                    @endif
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-sm text-[#0F172A] truncate">{{ $rp->name }}</p>
+                                    @if($rp->sku)
+                                    <p class="text-[11px] text-slate-400 font-mono">{{ $rp->sku }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0 ml-3">
+                                <p class="font-bold text-sm text-[#0F172A]">LKR {{ number_format($rp->price, 2) }}</p>
+                                <p class="text-[11px] {{ $rp->stock >= ($replaceBo?->short_qty ?? 1) ? 'text-green-600' : 'text-red-500' }} font-semibold">
+                                    {{ $rp->stock }} in stock
+                                </p>
+                            </div>
+                        </button>
+                        @empty
+                        <div class="text-center py-6 text-slate-400 text-xs">
+                            No products found matching "{{ $replacementProductSearch }}"
+                        </div>
+                        @endforelse
+                    @elseif(strlen($replacementProductSearch) > 0)
+                    <div class="text-center py-4 text-slate-400 text-xs">
+                        Type at least 2 characters to search...
+                    </div>
+                    @else
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        Start typing to find a replacement product
+                    </div>
+                    @endif
+                </div>
+
+                {{-- Price comparison (shown once product is selected) --}}
+                @if($selectedReplacementId && $replaceBo)
+                @php
+                    $selProduct = $replacementProducts->firstWhere('id', $selectedReplacementId)
+                                  ?? \App\Models\Product::find($selectedReplacementId);
+                    $origItemPrice = $replaceBo->orderItem?->price ?? 0;
+                    $selPrice      = $selProduct?->price ?? 0;
+                    $priceDiff     = ((float)$origItemPrice - (float)$selPrice) * $replaceBo->short_qty;
+                @endphp
+                @if($selProduct)
+                <div class="p-3.5 border border-orange-200 bg-orange-50 rounded-xl text-xs space-y-1.5">
+                    <div class="flex items-center justify-between text-orange-700">
+                        <span>Original price/unit:</span>
+                        <span class="font-semibold line-through text-slate-400">LKR {{ number_format($origItemPrice, 2) }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-orange-700">
+                        <span>Replacement price/unit:</span>
+                        <span class="font-bold">LKR {{ number_format($selPrice, 2) }}</span>
+                    </div>
+                    <div class="border-t border-orange-200 pt-1.5 flex items-center justify-between font-bold">
+                        <span class="text-orange-800">Price difference (×{{ $replaceBo->short_qty }}):</span>
+                        @if($priceDiff > 0)
+                        <span class="text-teal-600">Refund LKR {{ number_format($priceDiff, 2) }}</span>
+                        @elseif($priceDiff < 0)
+                        <span class="text-amber-700">+LKR {{ number_format(abs($priceDiff), 2) }} extra cost</span>
+                        @else
+                        <span class="text-green-600">No difference</span>
+                        @endif
+                    </div>
+                </div>
+                @endif
+                @endif
+
+                {{-- Notes --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Notes <span class="text-slate-400 font-normal">(optional — e.g. "Customer agreed to Product 3")</span>
+                    </label>
+                    <textarea wire:model="replaceNotes"
+                              rows="2"
+                              placeholder="Note about replacement agreement..."
+                              class="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent placeholder-slate-400"></textarea>
+                </div>
+            </div>
+
+            {{-- Modal Footer --}}
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-[#F8FAFC] rounded-b-2xl">
+                <button wire:click="$set('showReplaceModal', false)"
+                        class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">
+                    Cancel
+                </button>
+                <button wire:click="confirmReplacement"
+                        wire:loading.attr="disabled"
+                        wire:target="confirmReplacement"
+                        @if(!$selectedReplacementId) disabled @endif
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md disabled:opacity-50
+                            {{ $selectedReplacementId ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/25' : 'bg-slate-200 text-slate-400 cursor-not-allowed' }}">
+                    <span wire:loading.remove wire:target="confirmReplacement"
+                          class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        </svg>
+                        Confirm Replacement
+                    </span>
+                    <span wire:loading wire:target="confirmReplacement"
+                          class="flex items-center gap-2" style="display:none;">
+                        <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Saving...
                     </span>
                 </button>
             </div>

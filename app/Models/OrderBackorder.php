@@ -13,6 +13,9 @@ class OrderBackorder extends Model
         'shipment_batch_id',
         'order_item_id',
         'product_id',
+        'replacement_product_id',
+        'replacement_price',
+        'replacement_notes',
         'product_name',
         'ordered_qty',
         'available_qty',
@@ -28,9 +31,10 @@ class OrderBackorder extends Model
     ];
 
     protected $casts = [
-        'fulfilled_at'  => 'datetime',
-        'dispatched_at' => 'datetime',
-        'delivered_at'  => 'datetime',
+        'fulfilled_at'     => 'datetime',
+        'dispatched_at'    => 'datetime',
+        'delivered_at'     => 'datetime',
+        'replacement_price'=> 'decimal:2',
     ];
 
     protected static function booted(): void
@@ -78,6 +82,11 @@ class OrderBackorder extends Model
         return $this->belongsTo(ShipmentBatch::class);
     }
 
+    public function replacementProduct(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'replacement_product_id');
+    }
+
     public function dispatcher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dispatched_by');
@@ -90,8 +99,14 @@ class OrderBackorder extends Model
         return match ($this->decision) {
             'repurchase' => 'Repurchase',
             'waitlist'   => 'Waitlist',
+            'replace'    => 'Replace',
             default      => 'Pending',
         };
+    }
+
+    public function isReplacement(): bool
+    {
+        return $this->decision === 'replace' && $this->replacement_product_id !== null;
     }
 
     public function statusLabel(): string

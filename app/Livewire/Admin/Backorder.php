@@ -7,6 +7,7 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
 use App\Models\OrderBackorder;
+use App\Models\Product;
 use App\Services\WhatsappService;
 
 #[Title('Backorders')]
@@ -27,6 +28,13 @@ class Backorder extends Component
     public int    $dispatchBoId      = 0;
     public string $dispatchNotes     = '';
 
+    // ── Replace modal ─────────────────────────────────────────────────
+    public bool   $showReplaceModal          = false;
+    public int    $replacingBoId             = 0;
+    public string $replacementProductSearch  = '';
+    public ?int   $selectedReplacementId     = null;
+    public string $replaceNotes              = '';
+
     // ─────────────────────────────────────────────────────────────────
 
     public function updatingSearch(): void       { $this->resetPage(); }
@@ -40,6 +48,7 @@ class Backorder extends Component
             'order.user',
             'order.items.product',
             'product',
+            'replacementProduct',
             'creator',
             'dispatcher',
         ])->findOrFail($id);
@@ -74,11 +83,18 @@ class Backorder extends Component
     /** Confirm dispatch — deduct stock and mark as dispatched. */
     public function confirmDispatch(): void
     {
-        $bo = OrderBackorder::with(['order', 'product'])->findOrFail($this->dispatchBoId);
+        $bo = OrderBackorder::with(['order', 'product', 'replacementProduct'])->findOrFail($this->dispatchBoId);
 
-        // Deduct stock for the items being dispatched now
-        if ($bo->product && $bo->product->stock >= $bo->short_qty) {
-            $bo->product->decrement('stock', $bo->short_qty);
+        // If this is a replacement, deduct from replacement product stock
+        if ($bo->isReplacement() && $bo->replacementProduct) {
+            if ($bo->replacementProduct->stock >= $bo->short_qty) {
+                $bo->replacementProduct->decrement('stock', $bo->short_qty);
+            }
+        } else {
+            // Normal backorder — deduct from original product
+            if ($bo->product && $bo->product->stock >= $bo->short_qty) {
+                $bo->product->decrement('stock', $bo->short_qty);
+            }
         }
 
         $bo->update([
@@ -88,7 +104,7 @@ class Backorder extends Component
             'notes'         => $this->dispatchNotes ?: $bo->notes,
         ]);
 
-        // WhatsApp notification (best effort — method may not exist yet)
+        // WhatsApp notification (best effort)
         try {
             $order = $bo->order->load('user', 'whatsappToken');
             WhatsappService::backorderDispatched($order, $bo);
@@ -97,7 +113,7 @@ class Backorder extends Component
         $this->showDispatchModal = false;
         $this->dispatchBoId      = 0;
         $this->refreshSelected($bo->id);
-        session()->flash('success', "Backorder {$bo->backorder_number} dispatched. Stock deducted.");
+        session()->flash('success', "Backorder {$bo->backorder_number} dispatched.");
     }
 
     public function markDelivered(int $id): void
@@ -113,7 +129,6 @@ class Backorder extends Component
         $bo = OrderBackorder::with('order')->findOrFail($id);
         $bo->update(['status' => 'completed', 'fulfilled_at' => now()]);
 
-        // If all backorders for the original order are now done, log it
         $remaining = OrderBackorder::where('order_id', $bo->order_id)
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->count();
@@ -138,6 +153,59 @@ class Backorder extends Component
         session()->flash('success', "Backorder {$bo->backorder_number} cancelled.");
     }
 
+    // ── Replace Product ───────────────────────────────────────────────
+
+    public function openReplaceModal(int $id): void
+    {
+        $this->replacingBoId            = $id;
+        $this->replacementProductSearch = '';
+        $this->selectedReplacementId    = null;
+        $this->replaceNotes             = '';
+        $this->showReplaceModal         = true;
+    }
+
+    public function selectReplacement(int $productId): void
+    {
+        $this->selectedReplacementId = $productId;
+    }
+
+    public function confirmReplacement(): void
+    {
+        $this->validate([
+            'selectedReplacementId' => ['required', 'integer', 'exists:products,id'],
+            'replaceNotes'          => ['nullable', 'string', 'max:500'],
+        ], [
+            'selectedReplacementId.required' => 'Please select a replacement product.',
+        ]);
+
+        $bo          = OrderBackorder::with(['product'])->findOrFail($this->replacingBoId);
+        $replacement = Product::findOrFail($this->selectedReplacementId);
+
+        if ($replacement->stock < $bo->short_qty) {
+            $this->addError('selectedReplacementId',
+                "Not enough stock. Need {$bo->short_qty}, only {$replacement->stock} available.");
+            return;
+        }
+
+        $bo->update([
+            'decision'               => 'replace',
+            'replacement_product_id' => $replacement->id,
+            'replacement_price'      => $replacement->price,
+            'replacement_notes'      => $this->replaceNotes ?: null,
+            'status'                 => 'ready',
+        ]);
+
+        $this->showReplaceModal      = false;
+        $this->replacingBoId         = 0;
+        $this->selectedReplacementId = null;
+        $this->refreshSelected($bo->id);
+
+        session()->flash('success',
+            "Backorder {$bo->backorder_number} set to replace with \"{$replacement->name}\". Ready to dispatch.");
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────
+
     private function refreshSelected(int $id): void
     {
         if ($this->showDetail && $this->selectedBackorder?->id === $id) {
@@ -145,6 +213,7 @@ class Backorder extends Component
                 'order.user',
                 'order.items.product',
                 'product',
+                'replacementProduct',
                 'creator',
                 'dispatcher',
             ])->find($id);
@@ -155,7 +224,7 @@ class Backorder extends Component
 
     public function render()
     {
-        $backorders = OrderBackorder::with(['order.user', 'product'])
+        $backorders = OrderBackorder::with(['order.user', 'product', 'replacementProduct'])
             ->when($this->search, function ($q) {
                 $q->where(function ($inner) {
                     $inner->where('backorder_number', 'like', "%{$this->search}%")
@@ -175,6 +244,15 @@ class Backorder extends Component
             'active'       => OrderBackorder::whereNotIn('status', ['completed', 'cancelled'])->count(),
         ];
 
-        return view('livewire.admin.backorder', compact('backorders', 'stats'));
+        // Products for replacement search
+        $replacementProducts = ($this->showReplaceModal && strlen($this->replacementProductSearch) >= 2)
+            ? Product::where('name', 'like', "%{$this->replacementProductSearch}%")
+                     ->orWhere('sku', 'like', "%{$this->replacementProductSearch}%")
+                     ->orderBy('name')
+                     ->limit(20)
+                     ->get()
+            : collect();
+
+        return view('livewire.admin.backorder', compact('backorders', 'stats', 'replacementProducts'));
     }
 }
