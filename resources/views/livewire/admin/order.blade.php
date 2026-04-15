@@ -12,6 +12,10 @@
         dispatchData: {},
         deliverAlert: false,
         deliverData: {},
+        completeAlert: false,
+        completeData: {},
+        confirmAlert: false,
+        confirmData: {},
         copyText(text) {
             navigator.clipboard.writeText(text).then(() => {
                 this.copyDone = true;
@@ -23,8 +27,10 @@
         waLink = 'https://wa.me/' + $event.detail.phone + '?text=' + encodeURIComponent($event.detail.message);
         waPrompt = true;
     "
+    @no-payment-on-confirm.window="confirmAlert = true; confirmData = $event.detail[0]"
     @payment-due-on-dispatch.window="dispatchAlert = true; dispatchData = $event.detail[0]"
     @payment-due-on-deliver.window="deliverAlert = true; deliverData = $event.detail[0]"
+    @payment-due-on-complete.window="completeAlert = true; completeData = $event.detail[0]"
 >
 
     {{-- ══════════════════════ FLASH MESSAGES ══════════════════════ --}}
@@ -1712,48 +1718,41 @@
     </div>
     @endif
 
-    {{-- ══════════════════════ PAYMENT DUE ON DELIVER WARNING ══════════════════════ --}}
-    <div x-show="deliverAlert" x-cloak
+    {{-- ══════════════════════ NO PAYMENT ON CONFIRM WARNING ══════════════════════ --}}
+    <div x-show="confirmAlert" x-cloak
          class="fixed inset-0 z-[70] flex items-center justify-center p-4"
          style="display:none;background:rgba(0,0,0,0.55);">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div class="flex items-center gap-3 px-6 py-4 bg-amber-50 border-b border-amber-100">
-                <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center gap-3 px-6 py-4 bg-red-50 border-b border-red-100">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                     </svg>
                 </div>
                 <div>
-                    <h3 class="font-[Poppins] font-bold text-base text-amber-800">Balance Not Cleared</h3>
-                    <p class="text-xs text-amber-600" x-text="'Order ' + (deliverData.orderNum || '')"></p>
+                    <h3 class="font-[Poppins] font-bold text-base text-red-800">No Payment Received</h3>
+                    <p class="text-xs text-red-500" x-text="'Order ' + (confirmData.orderNum || '')"></p>
                 </div>
             </div>
             <div class="px-6 py-5 space-y-3">
-                <div class="grid grid-cols-3 gap-3">
-                    <div class="bg-[#F8FAFC] rounded-xl p-3 text-center">
-                        <p class="text-xs text-[#94A3B8] mb-1">Order Total</p>
-                        <p class="font-bold text-sm text-[#0F172A]">Rs. <span x-text="deliverData.total ? Number(deliverData.total).toLocaleString() : '0'"></span></p>
-                    </div>
-                    <div class="bg-green-50 rounded-xl p-3 text-center">
-                        <p class="text-xs text-[#94A3B8] mb-1">Paid</p>
-                        <p class="font-bold text-sm text-green-600">Rs. <span x-text="deliverData.paid ? Number(deliverData.paid).toLocaleString() : '0'"></span></p>
-                    </div>
-                    <div class="bg-red-50 rounded-xl p-3 text-center">
-                        <p class="text-xs text-[#94A3B8] mb-1">Still Due</p>
-                        <p class="font-bold text-sm text-red-600">Rs. <span x-text="deliverData.due ? Number(deliverData.due).toLocaleString() : '0'"></span></p>
-                    </div>
-                </div>
-                <p class="text-sm text-[#64748B]">This customer's balance is not yet cleared. Mark delivered anyway? You must collect the remaining payment before completing the order.</p>
+                <p class="text-sm text-slate-600">This order has <strong class="text-red-600">no confirmed payment</strong> on record. You should collect payment before confirming.</p>
+                <p class="text-xs text-slate-400">Go to the Payments page to confirm the customer's receipt, then come back to confirm the order.</p>
             </div>
-            <div class="flex items-center gap-3 px-6 pb-5">
-                <button @click="deliverAlert = false"
-                        class="flex-1 py-2.5 rounded-xl border border-[#E2E8F0] text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-colors">
-                    Hold — Collect Payment First
-                </button>
-                <button @click="$wire.forceDeliver(deliverData.orderId); deliverAlert = false"
-                        class="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors">
-                    Deliver Anyway
-                </button>
+            <div class="flex flex-col gap-2 px-6 pb-5">
+                <a href="{{ route('admin.payments') }}"
+                   class="w-full text-center py-2.5 rounded-xl bg-[#0F172A] hover:bg-slate-700 text-white text-sm font-bold transition-colors">
+                    Go to Payments Page
+                </a>
+                <div class="flex gap-2">
+                    <button @click="confirmAlert = false"
+                            class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button @click="$wire.confirmOrderAnyway(confirmData.orderId); confirmAlert = false"
+                            class="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold transition-colors">
+                        Confirm Anyway
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1799,6 +1798,98 @@
                 <button @click="$wire.forceDispatch(dispatchData.orderId); dispatchAlert = false"
                         class="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors">
                     Dispatch Anyway
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ══════════════════════ PAYMENT DUE ON DELIVER WARNING ══════════════════════ --}}
+    <div x-show="deliverAlert" x-cloak
+         class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+         style="display:none;background:rgba(0,0,0,0.55);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="flex items-center gap-3 px-6 py-4 bg-amber-50 border-b border-amber-100">
+                <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-base text-amber-800">Balance Not Cleared</h3>
+                    <p class="text-xs text-amber-600" x-text="'Order ' + (deliverData.orderNum || '')"></p>
+                </div>
+            </div>
+            <div class="px-6 py-5 space-y-3">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-[#F8FAFC] rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Order Total</p>
+                        <p class="font-bold text-sm text-[#0F172A]">Rs. <span x-text="deliverData.total ? Number(deliverData.total).toLocaleString() : '0'"></span></p>
+                    </div>
+                    <div class="bg-green-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Paid</p>
+                        <p class="font-bold text-sm text-green-600">Rs. <span x-text="deliverData.paid ? Number(deliverData.paid).toLocaleString() : '0'"></span></p>
+                    </div>
+                    <div class="bg-red-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Still Due</p>
+                        <p class="font-bold text-sm text-red-600">Rs. <span x-text="deliverData.due ? Number(deliverData.due).toLocaleString() : '0'"></span></p>
+                    </div>
+                </div>
+                <p class="text-sm text-[#64748B]">This customer still has an outstanding balance. Are you sure you want to mark as delivered?</p>
+            </div>
+            <div class="flex items-center gap-3 px-6 pb-5">
+                <button @click="deliverAlert = false"
+                        class="flex-1 py-2.5 rounded-xl border border-[#E2E8F0] text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-colors">
+                    Hold — Collect Payment First
+                </button>
+                <button @click="$wire.forceDeliver(deliverData.orderId); deliverAlert = false"
+                        class="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors">
+                    Deliver Anyway
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ══════════════════════ PAYMENT DUE ON COMPLETE WARNING ══════════════════════ --}}
+    <div x-show="completeAlert" x-cloak
+         class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+         style="display:none;background:rgba(0,0,0,0.55);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="flex items-center gap-3 px-6 py-4 bg-red-50 border-b border-red-100">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-base text-red-800">Payment Incomplete</h3>
+                    <p class="text-xs text-red-600" x-text="'Order ' + (completeData.orderNum || '')"></p>
+                </div>
+            </div>
+            <div class="px-6 py-5 space-y-3">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-[#F8FAFC] rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Order Total</p>
+                        <p class="font-bold text-sm text-[#0F172A]">Rs. <span x-text="completeData.total ? Number(completeData.total).toLocaleString() : '0'"></span></p>
+                    </div>
+                    <div class="bg-green-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Paid</p>
+                        <p class="font-bold text-sm text-green-600">Rs. <span x-text="completeData.paid ? Number(completeData.paid).toLocaleString() : '0'"></span></p>
+                    </div>
+                    <div class="bg-red-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Still Due</p>
+                        <p class="font-bold text-sm text-red-600">Rs. <span x-text="completeData.due ? Number(completeData.due).toLocaleString() : '0'"></span></p>
+                    </div>
+                </div>
+                <p class="text-sm text-[#64748B]">This order has an unpaid balance. Completing it will mark the payment status as partial. Are you sure?</p>
+            </div>
+            <div class="flex items-center gap-3 px-6 pb-5">
+                <button @click="completeAlert = false"
+                        class="flex-1 py-2.5 rounded-xl border border-[#E2E8F0] text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-colors">
+                    Hold — Collect Payment First
+                </button>
+                <button @click="$wire.forceComplete(completeData.orderId); completeAlert = false"
+                        class="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">
+                    Complete Anyway
                 </button>
             </div>
         </div>

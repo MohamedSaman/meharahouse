@@ -124,13 +124,16 @@ class Order extends Component
     {
         $order = OrderModel::with(['items.product', 'payments'])->findOrFail($orderId);
 
-        // Payment gate — must have at least a confirmed advance/full payment
+        // Payment warning — show modal if no confirmed payment, let admin decide
         $hasPaid = $order->payments
             ->whereIn('type', ['advance', 'full', 'balance'])
             ->where('status', 'confirmed')
             ->isNotEmpty();
         if (!$hasPaid) {
-            session()->flash('error', 'Cannot confirm order — no payment has been received yet.');
+            $this->dispatch('no-payment-on-confirm', [
+                'orderId'  => $orderId,
+                'orderNum' => $order->order_number,
+            ]);
             return;
         }
 
@@ -193,6 +196,47 @@ class Order extends Component
         $this->showStockReplaceModal   = false;
         $this->stockReplaceIdx         = -1;
         $this->stockReplaceSearch      = '';
+    }
+
+    /**
+     * Confirm order even though no payment is on record (admin override).
+     */
+    public function confirmOrderAnyway(int $orderId): void
+    {
+        $order = OrderModel::with('items.product')->findOrFail($orderId);
+        // Skip payment check — proceed directly to stock check & confirm
+        $issues = [];
+        foreach ($order->items as $item) {
+            $product = $item->product;
+            if (!$product) continue;
+            if ($product->stock < $item->quantity) {
+                $short = (int) $item->quantity - (int) $product->stock;
+                $issues[] = [
+                    'item_id'      => $item->id,
+                    'product_id'   => $item->product_id,
+                    'name'         => $item->product_name,
+                    'needed'       => (int) $item->quantity,
+                    'available'    => (int) $product->stock,
+                    'short'        => $short,
+                    'unit_price'   => (float) $item->price,
+                    'short_amount' => round((float) $item->price * $short, 2),
+                ];
+            }
+        }
+        if (!empty($issues)) {
+            $this->stockIssues     = $issues;
+            $this->stockDecisions  = array_fill(0, count($issues), 'next_batch');
+            $this->stockAlertOrder = $orderId;
+            $this->showStockAlert  = true;
+            return;
+        }
+        foreach ($order->items as $item) {
+            if ($item->product) $item->product->decrement('stock', $item->quantity);
+        }
+        $order->logStatus('confirmed', 'Order confirmed (no payment recorded — admin override).', auth()->id());
+        $order->update(['status' => 'confirmed']);
+        $this->refreshSelectedOrder($orderId);
+        session()->flash('success', 'Order confirmed (payment still pending — collect before dispatch).');
     }
 
     /**
@@ -700,24 +744,12 @@ class Order extends Component
 
     /**
      * Record that the order was delivered to the customer.
-     * Warns admin if balance is still outstanding — requires explicit override.
+     * Warns if balance is outstanding — admin can override.
      */
     public function markDelivered(int $orderId): void
     {
         $order = OrderModel::with(['payments'])->findOrFail($orderId);
 
-        // Payment gate — must have at least one confirmed payment
-        $hasPaid = $order->payments
-            ->whereIn('type', ['advance', 'balance', 'full'])
-            ->where('status', 'confirmed')
-            ->isNotEmpty();
-        if (!$hasPaid) {
-            session()->flash('error', 'Cannot mark delivered — no payment has been received for this order.');
-            $this->refreshSelectedOrder($orderId);
-            return;
-        }
-
-        // Warn if balance is still due (admin can override via forceDeliver)
         if ($order->balanceDue() > 0) {
             $this->dispatch('payment-due-on-deliver', [
                 'orderId'  => $orderId,
@@ -729,6 +761,27 @@ class Order extends Component
             return;
         }
 
+        $this->doDeliver($order);
+    }
+
+    /** Force deliver even if balance is outstanding (admin override). */
+    public function forceDeliver(int $orderId): void
+    {
+        $order = OrderModel::findOrFail($orderId);
+        $order->logStatus('delivered', 'Order delivered — balance still outstanding (admin override).', auth()->id());
+        $order->update(['status' => 'delivered']);
+        $fresh = $order->fresh();
+        try { WhatsappService::orderDelivered($fresh); } catch (\Throwable) {}
+        try {
+            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
+            if ($email) Mail::to($email)->send(new OrderDelivered($fresh));
+        } catch (\Throwable) {}
+        $this->refreshSelectedOrder($orderId);
+        session()->flash('success', 'Order delivered (balance still pending — collect before completing).');
+    }
+
+    private function doDeliver(OrderModel $order): void
+    {
         $order->logStatus('delivered', 'Order delivered to customer.', auth()->id());
         $order->update(['status' => 'delivered']);
         $fresh = $order->fresh();
@@ -737,47 +790,49 @@ class Order extends Component
             $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
             if ($email) Mail::to($email)->send(new OrderDelivered($fresh));
         } catch (\Throwable) {}
-        $this->refreshSelectedOrder($orderId);
+        $this->refreshSelectedOrder($order->id);
         session()->flash('success', 'Order marked as delivered.');
     }
 
     /**
-     * Force deliver even if balance is outstanding (admin override).
-     */
-    public function forceDeliver(int $orderId): void
-    {
-        $order = OrderModel::findOrFail($orderId);
-        $order->logStatus('delivered', 'Order delivered — balance payment still outstanding (admin override).', auth()->id());
-        $order->update(['status' => 'delivered']);
-        $fresh = $order->fresh();
-        try { WhatsappService::orderDelivered($fresh); } catch (\Throwable) {}
-        try {
-            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
-            if ($email) Mail::to($email)->send(new OrderDelivered($fresh));
-        } catch (\Throwable) {}
-        $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Order delivered (balance payment still pending — please follow up).');
-    }
-
-    /**
-     * Mark the order as fully completed (balance paid and received).
-     * Stock is already deducted at confirmOrder — no double-deduction here.
-     * Blocks completion when an outstanding balance is still unpaid.
+     * Mark the order as fully completed.
+     * Warns if balance is still outstanding — admin can override.
      */
     public function markCompleted(int $orderId): void
     {
         $order = OrderModel::with(['payments'])->findOrFail($orderId);
 
-        // Block completion if customer still has an outstanding balance
         if ($order->balanceDue() > 0) {
-            session()->flash('error', 'Cannot complete order — balance of Rs. ' . number_format($order->balanceDue(), 0) . ' is still outstanding. Collect the remaining payment first.');
+            $this->dispatch('payment-due-on-complete', [
+                'orderId'  => $orderId,
+                'due'      => $order->balanceDue(),
+                'total'    => (float) $order->total,
+                'paid'     => $order->totalPaid(),
+                'orderNum' => $order->order_number,
+            ]);
             return;
         }
 
-        $order->logStatus('completed', 'Order fully completed and balance paid.', auth()->id());
-        $order->update(['status' => 'completed', 'payment_status' => 'paid']);
+        $this->doComplete($order);
+    }
+
+    /** Force complete even if balance is outstanding (admin override). */
+    public function forceComplete(int $orderId): void
+    {
+        $order = OrderModel::findOrFail($orderId);
+        $order->logStatus('completed', 'Order completed — balance outstanding (admin override).', auth()->id());
+        $order->update(['status' => 'completed', 'payment_status' => 'partial']);
         try { WhatsappService::orderCompleted($order->fresh()); } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
+        session()->flash('success', 'Order completed (balance still pending — please follow up).');
+    }
+
+    private function doComplete(OrderModel $order): void
+    {
+        $order->logStatus('completed', 'Order fully completed and payment cleared.', auth()->id());
+        $order->update(['status' => 'completed', 'payment_status' => 'paid']);
+        try { WhatsappService::orderCompleted($order->fresh()); } catch (\Throwable) {}
+        $this->refreshSelectedOrder($order->id);
         session()->flash('success', 'Order marked as completed.');
     }
 
