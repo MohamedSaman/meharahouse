@@ -421,33 +421,63 @@ class Order extends Component
             }
         }
 
-        // Recalculate order total if any refunds applied.
+        // Check if any prices changed due to replacement (not just refunds)
+        $hasReplacement = collect($this->stockDecisions)->contains('replace');
+
+        // Recalculate order total if any refunds or replacements applied.
         // Exclude fully-refunded items (status = 'refunded') from the subtotal.
-        if ($partialRefundAmount > 0) {
+        if ($partialRefundAmount > 0 || $hasReplacement) {
             $order->refresh()->load('items');
             $newSubtotal = $order->items->where('status', '!=', 'refunded')->sum('subtotal');
 
             if ($newSubtotal > 0) {
-                // Partial refund — some items still active, update totals normally
-                $newTotal = round($newSubtotal + $order->shipping_cost + $order->tax - $order->discount, 2);
+                // Recalculate tax based on new subtotal
+                $taxRate = (float) \App\Models\Setting::get('tax_rate', '15') / 100;
+                $newTax  = round($newSubtotal * $taxRate, 2);
+
+                // Recalculate percentage-based coupon discount if applicable
+                $newDiscount = (float) $order->discount;
+                if ($order->coupon_code) {
+                    $coupon = \App\Models\Coupon::where('code', $order->coupon_code)->first();
+                    if ($coupon && $coupon->type === 'percentage') {
+                        $newDiscount = round($newSubtotal * ($coupon->value / 100), 2);
+                        if ($coupon->max_discount && $newDiscount > $coupon->max_discount) {
+                            $newDiscount = (float) $coupon->max_discount;
+                        }
+                    }
+                }
+
+                $newTotal = round($newSubtotal + $order->shipping_cost + $newTax - $newDiscount, 2);
 
                 // Recalculate advance/balance split based on the advance percentage
                 $advPct           = (float) ($order->advance_percentage ?? 0);
                 $newAdvance       = $advPct > 0 ? round($newTotal * $advPct / 100, 2) : (float) $order->advance_amount;
-                $newBalance       = max(0, round($newTotal - $newAdvance, 2));
-                $confirmedBalance = $order->payments()->where('type', 'balance')->where('status', 'confirmed')->sum('amount');
-                $newBalanceDue    = max(0, $newBalance - (float) $confirmedBalance);
+
+                // Total confirmed payments (advance + balance + full)
+                $totalPaid = (float) $order->payments()
+                    ->whereIn('type', ['advance', 'balance', 'full'])
+                    ->where('status', 'confirmed')
+                    ->sum('amount');
+                $totalRefunded = (float) $order->refunds()->sum('amount');
+                $newBalanceDue = max(0, round($newTotal - $totalPaid + $totalRefunded, 2));
 
                 $order->update([
                     'subtotal'       => $newSubtotal,
+                    'tax'            => $newTax,
+                    'discount'       => $newDiscount,
                     'total'          => $newTotal,
                     'advance_amount' => $newAdvance,
                     'balance_amount' => $newBalanceDue,
                 ]);
             } else {
-                // All items refunded — preserve original total/subtotal for accounting history.
-                // Only clear the balance due (nothing left to pay).
-                $order->update(['balance_amount' => 0]);
+                // All items refunded — set total to 0 so overpayment calc gives
+                // the full paid amount as refundable.
+                $order->update([
+                    'subtotal'       => 0,
+                    'tax'            => 0,
+                    'total'          => 0,
+                    'balance_amount' => 0,
+                ]);
             }
         }
 
@@ -510,7 +540,21 @@ class Order extends Component
             $msg = 'All items backordered — order marked as Sourcing. Check Backorders page.';
         } else {
             $msg = 'Order confirmed.';
-            if ($partialRefundAmount > 0) $msg .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' to be refunded — please fill in the refund details below.';
+            if ($partialRefundAmount > 0) {
+                // Calculate actual refund (overpayment) for the message
+                $order->load('payments');
+                $paidSoFar    = $order->totalPaid();
+                $currentTotal = (float) $order->total;
+                $actualRefund = max(0, round($paidSoFar - $currentTotal, 2));
+                if ($actualRefund > 0) {
+                    $msg .= ' Item value cancelled: Rs. ' . number_format($partialRefundAmount, 0)
+                          . '. Refund to customer: Rs. ' . number_format($actualRefund, 0)
+                          . ' (overpayment) — please fill in the refund details below.';
+                } else {
+                    $msg .= ' Item value cancelled: Rs. ' . number_format($partialRefundAmount, 0)
+                          . '. No cash refund needed — customer still owes Rs. ' . number_format($currentTotal - $paidSoFar, 0) . '.';
+                }
+            }
             if ($sumReplace > 0) $msg .= " {$sumReplace} item(s) replaced directly in the order — no backorder created.";
             if ($partialRefundAmount === 0.0 && $sumReplace === 0) $msg .= ' Backorders created for short items.';
         }
@@ -519,21 +563,31 @@ class Order extends Component
         // If any items were refunded, open the refund modal so admin can
         // record the payment method, bank account, reference and proof.
         if ($partialRefundAmount > 0) {
-            // Cap the refundable amount at what the customer actually paid —
-            // e.g. if order is Rs. 1,000 but only Rs. 500 advance was received,
-            // we can only refund Rs. 500 maximum.
+            // The refund to the customer is the OVERPAYMENT — the amount they paid
+            // beyond the new (reduced) order total. NOT the full item price.
+            //
+            // Example: Order Rs.2,575, customer paid Rs.1,288 advance (50%).
+            //          p2 (Rs.1,575) refunded → new total = Rs.1,000
+            //          Overpayment = Rs.1,288 - Rs.1,000 = Rs.288 (refund this)
+            //          NOT min(1575, 1288) = Rs.1,288 — that's wrong!
             $order->load('payments');
-            $maxRefundable       = $order->totalPaid();
-            $cappedRefundAmount  = min($partialRefundAmount, $maxRefundable);
+            $totalPaid       = $order->totalPaid();
+            $newOrderTotal   = (float) $order->total;  // Already updated above
+            $overpayment     = max(0, round($totalPaid - $newOrderTotal, 2));
 
-            $this->refundOrderId     = $order->id;
-            $this->refundAmount      = (string) $cappedRefundAmount;
-            $this->refundMethod      = 'bank_transfer';
-            $this->refundBankAccount = '';
-            $this->refundReference   = '';
-            $this->refundNotes       = 'Partial refund for out-of-stock item(s).';
-            $this->refundProofFile   = null;
-            $this->showRefundModal   = true;
+            // Only show refund modal if customer actually overpaid
+            if ($overpayment > 0) {
+                $this->refundOrderId     = $order->id;
+                $this->refundAmount      = (string) $overpayment;
+                $this->refundMethod      = 'bank_transfer';
+                $this->refundBankAccount = '';
+                $this->refundReference   = '';
+                $this->refundNotes       = 'Partial refund for out-of-stock item(s). Item value: Rs. ' . number_format($partialRefundAmount, 0) . '. Overpayment refund: Rs. ' . number_format($overpayment, 0) . '.';
+                $this->refundProofFile   = null;
+                $this->showRefundModal   = true;
+            }
+            // If overpayment = 0 (customer paid less than new total), no refund needed
+            // — balance_amount is already updated above to reflect what they still owe.
         }
     }
 

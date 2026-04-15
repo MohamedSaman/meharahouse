@@ -969,9 +969,9 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                             </svg>
                             @if($item->status === 'refunded')
-                                <span>Product out of stock &mdash; <strong>Rs. {{ number_format($item->refund_amount, 0) }} refunded</strong> to customer</span>
+                                <span>Product out of stock &mdash; <strong>Rs. {{ number_format($item->refund_amount, 0) }} item value cancelled</strong></span>
                             @else
-                                <span>Short by {{ $item->original_qty - $item->quantity }} unit(s) &mdash; <strong>Rs. {{ number_format($item->refund_amount, 0) }} refunded</strong> for the shortage</span>
+                                <span>Short by {{ $item->original_qty - $item->quantity }} unit(s) &mdash; <strong>Rs. {{ number_format($item->refund_amount, 0) }} item value cancelled</strong> for the shortage</span>
                             @endif
                         </div>
                         @endif
