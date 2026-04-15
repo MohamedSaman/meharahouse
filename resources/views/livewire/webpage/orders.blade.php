@@ -129,6 +129,9 @@
             $payments  = $selOrder->payments ?? collect();
             $isBankTransfer = $selOrder->payment_method === 'bank_transfer';
             $balanceDue     = $selOrder->balanceDue();
+            $totalPaid      = $selOrder->totalPaid();
+            // BUG-01 fix: Show balance upload for bank transfer orders when balance > 0,
+            // regardless of advance_amount value (handles replacements that increase the total)
             $canUploadBalance = $isBankTransfer
                 && $balanceDue > 0
                 && !in_array($selOrder->status, ['cancelled', 'completed', 'refunded'])
@@ -256,14 +259,22 @@
                         <div class="flex justify-between font-bold border-t border-[#E2E8F0] pt-2">
                             <span>Total</span><span class="text-[#F59E0B]">Rs. {{ number_format($selOrder->total, 0) }}</span>
                         </div>
-                        @if($isBankTransfer && $selOrder->advance_amount > 0 && $selOrder->balance_amount > 0)
+                        {{-- BUG-01 fix: Show payment summary for ALL orders regardless of payment method --}}
+                        @if($totalPaid > 0)
                         <div class="flex justify-between text-[#64748B] text-xs pt-1 border-t border-[#E2E8F0]">
-                            <span>Advance Paid ({{ $selOrder->advance_percentage }}%)</span>
-                            <span>Rs. {{ number_format($selOrder->advance_amount, 0) }}</span>
+                            <span>Amount Paid</span>
+                            <span class="text-green-600 font-semibold">Rs. {{ number_format($totalPaid, 0) }}</span>
                         </div>
-                        <div class="flex justify-between text-xs font-semibold {{ $balanceDue > 0 ? 'text-amber-600' : 'text-green-600' }}">
+                        @endif
+                        @if($balanceDue > 0 && !in_array($selOrder->status, ['cancelled', 'refunded']))
+                        <div class="flex justify-between text-xs font-semibold text-amber-600">
                             <span>Balance Due</span>
                             <span>Rs. {{ number_format($balanceDue, 0) }}</span>
+                        </div>
+                        @elseif($selOrder->payment_status === 'paid')
+                        <div class="flex justify-between text-xs font-semibold text-green-600">
+                            <span>Payment Status</span>
+                            <span>Fully Paid ✓</span>
                         </div>
                         @endif
                     </div>
@@ -291,7 +302,7 @@
                                         <span class="px-2.5 py-1 rounded-full text-xs font-bold {{ $receiptStatusColor[$payment->status] ?? 'bg-gray-100 text-gray-600' }}">
                                             {{ ucfirst($payment->status) }}
                                         </span>
-                                        {{-- Bug 6: Re-upload button for rejected payments --}}
+                                        {{-- Re-upload button for rejected payments --}}
                                         @if($payment->status === 'rejected' && !in_array($selOrder->status, ['cancelled', 'completed', 'refunded']))
                                         <button wire:click="openReupload({{ $payment->id }})"
                                                 class="text-xs px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold hover:bg-red-100 transition-colors">
@@ -301,7 +312,7 @@
                                     </div>
                                 </div>
 
-                                {{-- Re-upload form inline, shown when this payment is selected for re-upload --}}
+                                {{-- Re-upload form inline --}}
                                 @if($payment->status === 'rejected' && $reuploadPaymentId === $payment->id)
                                 <div class="p-3 bg-red-50 space-y-3">
                                     <p class="text-xs font-semibold text-red-700">Your receipt was rejected. Please upload a new, clear photo of your payment receipt.</p>
@@ -489,6 +500,25 @@
                         </div>
                         @endif
 
+                    </div>
+                    @elseif(!$isBankTransfer && $balanceDue > 0 && !in_array($selOrder->status, ['cancelled', 'refunded']))
+                    {{-- BUG-01 fix: For non-bank-transfer orders (COD etc.) with balance due after replacement --}}
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-4 rounded-xl bg-amber-50 border border-amber-200">
+                            <div>
+                                <p class="text-xs font-semibold text-amber-700 uppercase tracking-wide">Additional Payment Required</p>
+                                <p class="text-xs text-amber-600 mt-0.5">Your order total has been updated (e.g. due to a product replacement). Please contact us to arrange payment.</p>
+                            </div>
+                            <span class="font-bold text-amber-700 text-lg">Rs. {{ number_format($balanceDue, 0) }}</span>
+                        </div>
+                        <div class="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-4 space-y-2">
+                            <p class="text-xs font-semibold text-[#374151]">How to pay:</p>
+                            <ul class="text-xs text-[#64748B] space-y-1 list-disc list-inside">
+                                <li>Contact us via WhatsApp or phone</li>
+                                <li>Pay via bank transfer and share the receipt</li>
+                                <li>Pay the balance amount upon delivery</li>
+                            </ul>
+                        </div>
                     </div>
                     @endif
 

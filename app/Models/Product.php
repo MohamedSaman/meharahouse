@@ -85,7 +85,12 @@ class Product extends Model
     // Computed helpers
     public function effectivePrice(): float
     {
-        return $this->sale_price ?? $this->price;
+        // BUG-08 fix: Only use sale_price if it's set AND less than the regular price
+        // Prevents accidental Rs.0 pricing or inflated sale prices
+        if ($this->sale_price !== null && $this->sale_price > 0 && $this->sale_price < $this->price) {
+            return (float) $this->sale_price;
+        }
+        return (float) $this->price;
     }
 
     public function isOnSale(): bool

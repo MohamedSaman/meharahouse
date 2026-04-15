@@ -254,7 +254,24 @@ class Backorder extends Component
             $order = $orderItem->order()->with(['items', 'payments'])->first();
             if ($order) {
                 $newSubtotalOrder = $order->items()->sum('subtotal');
-                $newTotal         = round($newSubtotalOrder + $order->shipping_cost + $order->tax - $order->discount, 2);
+
+                // BUG-06 fix: Recalculate tax based on new subtotal
+                $taxRate = (float) \App\Models\Setting::get('tax_rate', '15') / 100;
+                $newTax  = round($newSubtotalOrder * $taxRate, 2);
+
+                // Recalculate percentage-based coupon discount if applicable
+                $newDiscount = (float) $order->discount;
+                if ($order->coupon_code) {
+                    $coupon = \App\Models\Coupon::where('code', $order->coupon_code)->first();
+                    if ($coupon && $coupon->type === 'percentage') {
+                        $newDiscount = round($newSubtotalOrder * ($coupon->value / 100), 2);
+                        if ($coupon->max_discount && $newDiscount > $coupon->max_discount) {
+                            $newDiscount = (float) $coupon->max_discount;
+                        }
+                    }
+                }
+
+                $newTotal = round($newSubtotalOrder + $order->shipping_cost + $newTax - $newDiscount, 2);
 
                 $advPct       = (float) ($order->advance_percentage ?? 0);
                 $newAdvance   = $advPct > 0 ? round($newTotal * $advPct / 100, 2) : (float) $order->advance_amount;
@@ -274,6 +291,8 @@ class Backorder extends Component
 
                 $order->update([
                     'subtotal'       => $newSubtotalOrder,
+                    'tax'            => $newTax,
+                    'discount'       => $newDiscount,
                     'total'          => $newTotal,
                     'advance_amount' => $newAdvance,
                     'balance_amount' => $newBalanceDue,

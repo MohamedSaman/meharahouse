@@ -125,11 +125,28 @@ class Finance extends Component
             ->first();
 
         // ── Profit estimate ───────────────────────────────────────────────
+        // BUG-14 fix: Include product cost prices (COGS) for a more accurate profit.
+        // Calculate COGS from completed/delivered order items that have a product with cost_price.
+        $cogsSql = \App\Models\OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->whereIn('orders.status', ['completed', 'delivered', 'dispatched'])
+            ->whereBetween('orders.created_at', [$from, $to])
+            ->whereNotNull('products.cost_price')
+            ->where('products.cost_price', '>', 0)
+            ->selectRaw('SUM(products.cost_price * order_items.quantity) as total_cogs')
+            ->first();
+        $totalCogs = (float) ($cogsSql->total_cogs ?? 0);
+
         $totalCollected  = (float) ($collected->total ?? 0);
         $totalCosts      = (float) ($supplierCosts->total ?? 0)
                          + (float) ($shipmentCosts->total ?? 0)
                          + (float) ($refundsData->total ?? 0);
-        $estimatedProfit = $totalCollected - $totalCosts;
+        // Use the higher of supplier purchase costs or COGS to avoid double-counting
+        $effectiveCogs   = max($totalCogs, (float) ($supplierCosts->total ?? 0));
+        $totalCostsWithCogs = $effectiveCogs
+                         + (float) ($shipmentCosts->total ?? 0)
+                         + (float) ($refundsData->total ?? 0);
+        $estimatedProfit = $totalCollected - $totalCostsWithCogs;
 
         // ── Orders by status breakdown ────────────────────────────────────
         $ordersByStatus = Order::whereBetween('created_at', [$from, $to])

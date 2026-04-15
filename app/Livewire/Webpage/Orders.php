@@ -154,16 +154,18 @@ class Orders extends Component
 
     public function cancelOrder(int $id): void
     {
+        // BUG-04 fix: orders are created with status 'new', not 'pending'
         $order = Order::where('user_id', auth()->id())
-            ->where('status', 'pending')
+            ->where('status', 'new')
             ->findOrFail($id);
 
         $order->update(['status' => 'cancelled']);
 
-        // Restore stock
-        foreach ($order->items as $item) {
-            $item->product?->increment('stock', $item->quantity);
-        }
+        // BUG-05 fix: In the pre-order model, stock is NOT deducted at checkout.
+        // Stock is only deducted when admin confirms the order.
+        // So we should NOT restore stock here — nothing was deducted.
+        // Only restore stock if the order was already confirmed (stock was deducted).
+        // Since we only allow cancel on 'new' orders, stock was never deducted.
 
         if ($this->showDetail) {
             $this->selectedOrder = $order->fresh(['items.product']);

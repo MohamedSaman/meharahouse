@@ -694,19 +694,15 @@ class Order extends Component
     {
         $order = OrderModel::with(['payments' => fn($q) => $q->where('status', 'confirmed')])->findOrFail($orderId);
 
-        // Payment gate — warn if balance is still due.
-        // Only count actual incoming payments (exclude refund outflows).
-        $confirmedTotal = $order->payments
-            ->whereIn('type', ['advance', 'balance', 'full'])
-            ->sum('amount');
-        $due = max(0, (float) $order->total - $confirmedTotal);
+        // BUG-10 fix: Use balance_amount field consistently (same as markDelivered/markCompleted)
+        $due = $order->balanceDue();
 
         if ($due > 0) {
             $this->dispatch('payment-due-on-dispatch', [
                 'orderId'  => $orderId,
                 'due'      => $due,
                 'total'    => (float) $order->total,
-                'paid'     => $confirmedTotal,
+                'paid'     => $order->totalPaid(),
                 'orderNum' => $order->order_number,
             ]);
             return;
@@ -884,10 +880,12 @@ class Order extends Component
                 $order->update(['status' => 'payment_received', 'payment_status' => 'partial']);
             } elseif ($payment->type === 'balance') {
                 // Balance payment confirmed — recalculate total paid and update balance_amount
+                // BUG-09 fix: Account for refunds when calculating remaining balance
                 $totalConfirmed = $order->payments()->where('status', 'confirmed')
                     ->whereIn('type', ['advance', 'balance', 'full'])
                     ->sum('amount');
-                $newBalance     = max(0, (float) $order->total - $totalConfirmed);
+                $totalRefunded  = (float) $order->refunds()->sum('amount');
+                $newBalance     = max(0, (float) $order->total - $totalConfirmed + $totalRefunded);
                 $paymentStatus  = $newBalance <= 0 ? 'paid' : 'partial';
                 $order->update(['payment_status' => $paymentStatus, 'balance_amount' => $newBalance]);
                 if ($paymentStatus === 'paid') {
@@ -938,8 +936,16 @@ class Order extends Component
     {
         $order = OrderModel::with(['payments', 'refunds'])->findOrFail($orderId);
         $this->refundOrderId      = $orderId;
-        // Max refundable = what customer paid minus any refunds already recorded
-        $maxRefundable            = max(0, $order->totalPaid() - $order->totalRefunded());
+        // BUG-13 fix: For COD orders where no payment is recorded in the system,
+        // allow refund up to the order total (admin manually tracks COD payments).
+        $totalPaid                = $order->totalPaid();
+        $totalRefunded            = $order->totalRefunded();
+        if ($totalPaid <= 0 && $order->payment_method === 'cash_on_delivery') {
+            // COD order: assume customer paid the full amount on delivery
+            $maxRefundable = max(0, (float) $order->total - $totalRefunded);
+        } else {
+            $maxRefundable = max(0, $totalPaid - $totalRefunded);
+        }
         $this->refundAmount       = (string) $maxRefundable;
         $this->refundMethod       = 'bank_transfer';
         $this->refundBankAccount  = '';
@@ -964,7 +970,14 @@ class Order extends Component
             return;
         }
 
-        $maxRefundable = max(0, $order->totalPaid() - $order->totalRefunded());
+        // BUG-13 fix: For COD orders, allow refund up to order total
+        $totalPaid     = $order->totalPaid();
+        $totalRefunded = $order->totalRefunded();
+        if ($totalPaid <= 0 && $order->payment_method === 'cash_on_delivery') {
+            $maxRefundable = max(0, (float) $order->total - $totalRefunded);
+        } else {
+            $maxRefundable = max(0, $totalPaid - $totalRefunded);
+        }
 
         $this->validate([
             'refundAmount' => ['required', 'numeric', 'min:0.01', 'max:' . $maxRefundable],

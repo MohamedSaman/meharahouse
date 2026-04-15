@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;  
 use Livewire\Attributes\Layout;
 
-#[Title('Cart Cart')]
+#[Title('Shopping Cart')]
 #[Layout('layouts.webpage')]
 class Cart extends Component
 {
@@ -28,18 +28,23 @@ class Cart extends Component
                 ->get();
         }
 
-        // Guest cart from session
+        // Guest cart from session — supports composite keys (productId_size)
         $sessionCart = session()->get('cart', []);
         if (empty($sessionCart)) return collect();
 
-        $productIds = array_keys($sessionCart);
-        $products   = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        // Collect all product IDs from session cart entries
+        $productIds = collect($sessionCart)->map(function ($item, $key) {
+            return $item['product_id'] ?? (int) explode('_', (string) $key)[0];
+        })->unique()->values()->all();
 
-        return collect($sessionCart)->map(function ($item, $productId) use ($products) {
-            $product = $products->get($productId);
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        return collect($sessionCart)->map(function ($item, $key) use ($products) {
+            $productId = $item['product_id'] ?? (int) explode('_', (string) $key)[0];
+            $product   = $products->get($productId);
             if (!$product) return null;
             return (object)[
-                'id'       => $productId,
+                'id'       => $key, // use the composite key as the cart item ID
                 'product'  => $product,
                 'quantity' => $item['quantity'],
                 'size'     => $item['size'] ?? null,
@@ -47,7 +52,7 @@ class Cart extends Component
         })->filter();
     }
 
-    public function updateQuantity(int $itemId, int $quantity): void
+    public function updateQuantity(int|string $itemId, int $quantity): void
     {
         if ($quantity < 1) {
             $this->remove($itemId);
@@ -57,14 +62,13 @@ class Cart extends Component
         if (auth()->check()) {
             $cart = CartModel::where('user_id', auth()->id())->find($itemId);
             if ($cart) {
-                $maxQty = $cart->product->stock;
-                $cart->update(['quantity' => min($quantity, $maxQty)]);
+                // Pre-order model: no stock cap — customers can order even without stock
+                $cart->update(['quantity' => $quantity]);
             }
         } else {
             $sessionCart = session()->get('cart', []);
             if (isset($sessionCart[$itemId])) {
-                $product = Product::find($itemId);
-                $sessionCart[$itemId]['quantity'] = min($quantity, $product->stock ?? $quantity);
+                $sessionCart[$itemId]['quantity'] = $quantity;
                 session()->put('cart', $sessionCart);
             }
         }
@@ -73,7 +77,7 @@ class Cart extends Component
         $this->dispatch('cart-updated');
     }
 
-    public function remove(int $itemId): void
+    public function remove(int|string $itemId): void
     {
         if (auth()->check()) {
             CartModel::where('user_id', auth()->id())->find($itemId)?->delete();
@@ -131,7 +135,8 @@ class Cart extends Component
     public function getTotal(): float
     {
         $subtotal = $this->getSubtotal();
-        $shipping = $subtotal >= 500 ? 0 : 50;
+        $deliveryEnabled = \App\Models\Setting::get('delivery_fee_enabled', '0') === '1';
+        $shipping = $deliveryEnabled ? (float) \App\Models\Setting::get('delivery_fee_amount', '0') : 0;
         $tax      = $subtotal * ((float) \App\Models\Setting::get('tax_rate', '15') / 100);
         return $subtotal + $shipping + $tax - $this->discountAmount;
     }
@@ -146,8 +151,10 @@ class Cart extends Component
     public function render()
     {
         $subtotal = $this->getSubtotal();
-        $shipping = $subtotal >= 500 ? 0 : 50;
-        $tax      = round($subtotal * 0.15, 2);
+        $deliveryEnabled = \App\Models\Setting::get('delivery_fee_enabled', '0') === '1';
+        $shipping = $deliveryEnabled ? (float) \App\Models\Setting::get('delivery_fee_amount', '0') : 0;
+        $taxRate  = (float) \App\Models\Setting::get('tax_rate', '15') / 100;
+        $tax      = round($subtotal * $taxRate, 2);
         $total    = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
 
         return view('livewire.webpage.cart', compact('subtotal', 'shipping', 'tax', 'total'));

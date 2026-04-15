@@ -118,6 +118,12 @@ class Checkout extends Component
 
     public function nextStep(): void
     {
+        // BUG-11 fix: Check for empty cart before proceeding
+        if ($this->cartItems->isEmpty()) {
+            session()->flash('error', 'Your cart is empty. Please add products before checking out.');
+            return;
+        }
+
         if ($this->step === 1) {
             $this->validate($this->stepOneRules(), $this->stepOneMessages());
             $this->buildFullPhone();
@@ -138,18 +144,22 @@ class Checkout extends Component
                 ->get();
         }
 
-        // Guest cart from session
+        // Guest cart from session — supports composite keys (productId_size)
         $sessionCart = session()->get('cart', []);
         if (empty($sessionCart)) return collect();
 
-        $productIds = array_keys($sessionCart);
-        $products   = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        $productIds = collect($sessionCart)->map(function ($item, $key) {
+            return $item['product_id'] ?? (int) explode('_', (string) $key)[0];
+        })->unique()->values()->all();
 
-        return collect($sessionCart)->map(function ($item, $productId) use ($products) {
-            $product = $products->get($productId);
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        return collect($sessionCart)->map(function ($item, $key) use ($products) {
+            $productId = $item['product_id'] ?? (int) explode('_', (string) $key)[0];
+            $product   = $products->get($productId);
             if (!$product) return null;
             return (object)[
-                'id'         => $productId,
+                'id'         => $key,
                 'product_id' => $productId,
                 'product'    => $product,
                 'quantity'   => $item['quantity'],
@@ -347,7 +357,10 @@ class Checkout extends Component
     public function render()
     {
         $subtotal = $this->getSubtotal();
-        $shipping = $subtotal >= 500 ? 0 : 50;
+        // BUG-03 fix: use same shipping logic as placeOrder()
+        $shipping = Setting::get('delivery_fee_enabled', '0') === '1'
+            ? (float) Setting::get('delivery_fee_amount', '0')
+            : 0;
         $tax      = round($subtotal * ((float) \App\Models\Setting::get('tax_rate', '15') / 100), 2);
         $total    = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
 

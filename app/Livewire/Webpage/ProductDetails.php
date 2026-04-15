@@ -69,11 +69,26 @@ class ProductDetails extends Component
                 ]);
             }
         } else {
-            $sessionCart             = session()->get('cart', []);
-            $sessionCart[$productId] = [
-                'quantity' => ($sessionCart[$productId]['quantity'] ?? 0) + $qty,
-                'size'     => $size,
-            ];
+            // BUG-12 fix: Use composite key (product_id + size) so different sizes
+            // create separate cart entries instead of overwriting each other.
+            $sessionCart = session()->get('cart', []);
+            $cartKey     = $productId . '_' . $size;
+
+            // Check if this exact product+size combo already exists
+            if (isset($sessionCart[$cartKey])) {
+                $sessionCart[$cartKey]['quantity'] += $qty;
+            } else {
+                // Also check for legacy keying by product_id only (migration support)
+                if (isset($sessionCart[$productId]) && ($sessionCart[$productId]['size'] ?? '') === $size) {
+                    $sessionCart[$productId]['quantity'] += $qty;
+                } else {
+                    $sessionCart[$cartKey] = [
+                        'product_id' => $productId,
+                        'quantity'   => $qty,
+                        'size'       => $size,
+                    ];
+                }
+            }
             session()->put('cart', $sessionCart);
         }
 
