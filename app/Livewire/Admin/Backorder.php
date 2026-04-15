@@ -260,9 +260,9 @@ class Backorder extends Component
                 $newAdvance   = $advPct > 0 ? round($newTotal * $advPct / 100, 2) : (float) $order->advance_amount;
                 $newBalance   = max(0, round($newTotal - $newAdvance, 2));
 
-                // Total confirmed payments by customer
+                // Total confirmed payments by customer (including full-payment orders)
                 $totalPaid = (float) $order->payments()
-                    ->whereIn('type', ['advance', 'balance'])
+                    ->whereIn('type', ['advance', 'balance', 'full'])
                     ->where('status', 'confirmed')
                     ->sum('amount');
 

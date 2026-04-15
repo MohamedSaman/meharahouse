@@ -80,13 +80,17 @@ class Finance extends Component
             ->first();
 
         // ── Collected payments (confirmed in period) ──────────────────────
+        // Exclude type='refund' — those are outflows already counted in $refundsData.
+        // Including them here would double-count them and inflate income.
         $collected = OrderPayment::whereBetween('confirmed_at', [$from, $to])
             ->where('status', 'confirmed')
+            ->where('type', '!=', 'refund')
             ->selectRaw('SUM(amount) as total, COUNT(*) as count')
             ->first();
 
         $collectedByType = OrderPayment::whereBetween('confirmed_at', [$from, $to])
             ->where('status', 'confirmed')
+            ->where('type', '!=', 'refund')
             ->selectRaw('type, SUM(amount) as total, COUNT(*) as count')
             ->groupBy('type')
             ->get()

@@ -131,6 +131,13 @@ class Shipment extends Component
             return;
         }
 
+        // Prevent advancing a batch that has no orders assigned
+        $hasOrders = $batch->orders()->exists() || $batch->backorders()->exists();
+        if (!$hasOrders) {
+            session()->flash('error', 'Cannot advance a batch with no orders assigned.');
+            return;
+        }
+
         $newStatus = $statuses[$idx + 1];
 
         // Bug 11: When advancing to 'completed' (which maps orders to 'delivered'),
@@ -374,12 +381,15 @@ class Shipment extends Component
             ->paginate(15);
 
         // Orders for the assign modal — confirmed/sourcing/dispatched not yet in any batch,
-        // or already assigned to the current batch being edited
+        // or already assigned to the current batch being edited.
+        // Exclude orders whose items are fully handled by an active backorder (ready/dispatched)
+        // — those appear separately in the Backorders section to avoid showing the same order twice.
         $assignableOrders = $this->showAssignModal
             ? Order::whereIn('status', ['confirmed', 'sourcing', 'dispatched'])
                 ->where(fn($q) => $q
                     ->whereNull('shipment_batch_id')
                     ->orWhere('shipment_batch_id', $this->assigningBatchId))
+                ->whereDoesntHave('backorders', fn($q) => $q->whereIn('status', ['ready', 'dispatched']))
                 ->when($this->orderSearch, fn($q) => $q
                     ->where('order_number', 'like', "%{$this->orderSearch}%")
                     ->orWhere(

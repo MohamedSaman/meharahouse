@@ -22,7 +22,8 @@
       "Bash(node:*)",
       "Bash(convert --version)",
       "Bash(npx pwa-asset-generator:*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(wc -l /c/Users/MY/Documents/ssh/meharahouse/app/Livewire/Admin/*.php)"
     ]
   }
 }

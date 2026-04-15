@@ -372,22 +372,29 @@ class Order extends Component
         if ($partialRefundAmount > 0) {
             $order->refresh()->load('items');
             $newSubtotal = $order->items->where('status', '!=', 'refunded')->sum('subtotal');
-            $newTotal    = round($newSubtotal + $order->shipping_cost + $order->tax - $order->discount, 2);
 
-            // Recalculate advance/balance split based on the advance percentage
-            $advPct       = (float) ($order->advance_percentage ?? 0);
-            $newAdvance   = $advPct > 0 ? round($newTotal * $advPct / 100, 2) : (float) $order->advance_amount;
-            $newBalance   = max(0, round($newTotal - $newAdvance, 2));
-            // Subtract any already-confirmed balance payments to get actual remaining balance
-            $confirmedBalance = $order->payments()->where('type', 'balance')->where('status', 'confirmed')->sum('amount');
-            $newBalanceDue    = max(0, $newBalance - (float) $confirmedBalance);
+            if ($newSubtotal > 0) {
+                // Partial refund — some items still active, update totals normally
+                $newTotal = round($newSubtotal + $order->shipping_cost + $order->tax - $order->discount, 2);
 
-            $order->update([
-                'subtotal'       => $newSubtotal,
-                'total'          => $newTotal,
-                'advance_amount' => $newAdvance,
-                'balance_amount' => $newBalanceDue,
-            ]);
+                // Recalculate advance/balance split based on the advance percentage
+                $advPct           = (float) ($order->advance_percentage ?? 0);
+                $newAdvance       = $advPct > 0 ? round($newTotal * $advPct / 100, 2) : (float) $order->advance_amount;
+                $newBalance       = max(0, round($newTotal - $newAdvance, 2));
+                $confirmedBalance = $order->payments()->where('type', 'balance')->where('status', 'confirmed')->sum('amount');
+                $newBalanceDue    = max(0, $newBalance - (float) $confirmedBalance);
+
+                $order->update([
+                    'subtotal'       => $newSubtotal,
+                    'total'          => $newTotal,
+                    'advance_amount' => $newAdvance,
+                    'balance_amount' => $newBalanceDue,
+                ]);
+            } else {
+                // All items refunded — preserve original total/subtotal for accounting history.
+                // Only clear the balance due (nothing left to pay).
+                $order->update(['balance_amount' => 0]);
+            }
         }
 
         // Deduct available stock for every non-refunded item
@@ -458,8 +465,15 @@ class Order extends Component
         // If any items were refunded, open the refund modal so admin can
         // record the payment method, bank account, reference and proof.
         if ($partialRefundAmount > 0) {
+            // Cap the refundable amount at what the customer actually paid —
+            // e.g. if order is Rs. 1,000 but only Rs. 500 advance was received,
+            // we can only refund Rs. 500 maximum.
+            $order->load('payments');
+            $maxRefundable       = $order->totalPaid();
+            $cappedRefundAmount  = min($partialRefundAmount, $maxRefundable);
+
             $this->refundOrderId     = $order->id;
-            $this->refundAmount      = (string) $partialRefundAmount;
+            $this->refundAmount      = (string) $cappedRefundAmount;
             $this->refundMethod      = 'bank_transfer';
             $this->refundBankAccount = '';
             $this->refundReference   = '';
@@ -692,10 +706,18 @@ class Order extends Component
     /**
      * Mark the order as fully completed (balance paid and received).
      * Stock is already deducted at confirmOrder — no double-deduction here.
+     * Blocks completion when an outstanding balance is still unpaid.
      */
     public function markCompleted(int $orderId): void
     {
-        $order = OrderModel::findOrFail($orderId);
+        $order = OrderModel::with(['payments'])->findOrFail($orderId);
+
+        // Block completion if customer still has an outstanding balance
+        if ($order->balanceDue() > 0) {
+            session()->flash('error', 'Cannot complete order — balance of Rs. ' . number_format($order->balanceDue(), 0) . ' is still outstanding. Collect the remaining payment first.');
+            return;
+        }
+
         $order->logStatus('completed', 'Order fully completed and balance paid.', auth()->id());
         $order->update(['status' => 'completed', 'payment_status' => 'paid']);
         try { WhatsappService::orderCompleted($order->fresh()); } catch (\Throwable) {}
@@ -750,10 +772,13 @@ class Order extends Component
                 $order->logStatus('payment_received', 'Advance payment confirmed by admin.', auth()->id());
                 $order->update(['status' => 'payment_received', 'payment_status' => 'partial']);
             } elseif ($payment->type === 'balance') {
-                // Balance payment confirmed — recalculate total paid
-                $totalConfirmed = $order->payments()->where('status', 'confirmed')->sum('amount');
-                $paymentStatus  = $totalConfirmed >= $order->total ? 'paid' : 'partial';
-                $order->update(['payment_status' => $paymentStatus]);
+                // Balance payment confirmed — recalculate total paid and update balance_amount
+                $totalConfirmed = $order->payments()->where('status', 'confirmed')
+                    ->whereIn('type', ['advance', 'balance', 'full'])
+                    ->sum('amount');
+                $newBalance     = max(0, (float) $order->total - $totalConfirmed);
+                $paymentStatus  = $newBalance <= 0 ? 'paid' : 'partial';
+                $order->update(['payment_status' => $paymentStatus, 'balance_amount' => $newBalance]);
                 if ($paymentStatus === 'paid') {
                     $order->logStatus($order->status, 'Balance payment confirmed. Order fully paid.', auth()->id());
                 }
@@ -800,9 +825,11 @@ class Order extends Component
 
     public function openRefundModal(int $orderId): void
     {
-        $order = OrderModel::findOrFail($orderId);
+        $order = OrderModel::with(['payments', 'refunds'])->findOrFail($orderId);
         $this->refundOrderId      = $orderId;
-        $this->refundAmount       = (string) $order->advance_amount;
+        // Max refundable = what customer paid minus any refunds already recorded
+        $maxRefundable            = max(0, $order->totalPaid() - $order->totalRefunded());
+        $this->refundAmount       = (string) $maxRefundable;
         $this->refundMethod       = 'bank_transfer';
         $this->refundBankAccount  = '';
         $this->refundReference    = '';
@@ -813,35 +840,35 @@ class Order extends Component
 
     public function processRefund(): void
     {
-        $this->validate([
-            'refundAmount'      => ['required', 'numeric', 'min:0.01'],
-            'refundMethod'      => ['required', 'in:bank_transfer,online,cash'],
-            'refundBankAccount' => ['nullable', 'string', 'max:100'],
-            'refundReference'   => ['nullable', 'string', 'max:255'],
-            'refundNotes'       => ['nullable', 'string', 'max:1000'],
-            'refundProofFile'   => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
-        ]);
+        $order = OrderModel::with(['payments', 'refunds'])->findOrFail($this->refundOrderId);
 
-        $order = OrderModel::findOrFail($this->refundOrderId);
-
-        // Store proof of payment file if uploaded
-        $proofPath = null;
-        if ($this->refundProofFile) {
-            $proofPath = $this->refundProofFile->store('refunds', 'public');
+        // Guard against double-submit: if a refund was already recorded for this
+        // exact amount within the last 10 seconds, silently close and bail out.
+        $alreadyRefunded = $order->refunds()
+            ->where('amount', (float) $this->refundAmount)
+            ->where('created_at', '>=', now()->subSeconds(10))
+            ->exists();
+        if ($alreadyRefunded) {
+            $this->showRefundModal = false;
+            return;
         }
 
+        $maxRefundable = max(0, $order->totalPaid() - $order->totalRefunded());
+
+        $this->validate([
+            'refundAmount' => ['required', 'numeric', 'min:0.01', 'max:' . $maxRefundable],
+            'refundNotes'  => ['nullable', 'string', 'max:1000'],
+        ]);
+
         $refund = Refund::create([
-            'order_id'              => $order->id,
-            'customer_id'           => $order->user_id,
-            'amount'                => $this->refundAmount,
-            'method'                => $this->refundMethod,
-            'customer_bank_account' => $this->refundBankAccount ?: null,
-            'reference_number'      => $this->refundReference ?: null,
-            'proof_file'            => $proofPath,
-            'notes'                 => $this->refundNotes ?: null,
-            'status'                => 'processed',
-            'processed_by'          => auth()->id(),
-            'processed_at'          => now(),
+            'order_id'     => $order->id,
+            'customer_id'  => $order->user_id,
+            'amount'       => $this->refundAmount,
+            'method'       => 'bank_transfer', // placeholder — updated when payment is processed on Refunds page
+            'notes'        => $this->refundNotes ?: null,
+            'status'       => 'pending',
+            'processed_by' => auth()->id(),
+            'processed_at' => now(),
         ]);
 
         // Reduce balance_amount by the refund amount so balanceDue() reflects the refund
@@ -887,22 +914,9 @@ class Order extends Component
             $this->dispatch('open-whatsapp-prompt', phone: $phone, message: $msg);
         }
 
-        // Record the refund as a transaction in OrderPayment for payments/finance tracking
-        OrderPayment::create([
-            'order_id'     => $order->id,
-            'type'         => 'refund',
-            'amount'       => $this->refundAmount,
-            'method'       => $this->refundMethod,
-            'reference'    => $this->refundReference ?: null,
-            'notes'        => $this->refundNotes ?: ('Refund to customer' . ($this->refundBankAccount ? ' — Account: ' . $this->refundBankAccount : '')),
-            'status'       => 'confirmed',
-            'confirmed_by' => auth()->id(),
-            'confirmed_at' => now(),
-        ]);
-
         $this->showRefundModal = false;
         $this->refreshSelectedOrder($order->id);
-        session()->flash('success', 'Refund processed and order marked as refunded.');
+        session()->flash('success', 'Refund recorded as pending. Go to Refunds page to process the payment.');
     }
 
     // ── WhatsApp Balance Reminder ─────────────────────────────────────

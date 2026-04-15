@@ -219,7 +219,7 @@
 
                     // Use already-loaded payments relation (no extra queries)
                     $pendingReceipt      = $order->payments->where('status', 'pending')->whereNotNull('receipt_path')->first();
-                    $hasConfirmedAdvance = $order->payments->where('type', 'advance')->where('status', 'confirmed')->isNotEmpty();
+                    $hasConfirmedAdvance = $order->payments->whereIn('type', ['advance', 'full', 'balance'])->where('status', 'confirmed')->isNotEmpty();
                     @endphp
                     <tr wire:key="order-{{ $order->id }}" class="{{ $pendingReceipt ? 'bg-amber-50/30' : '' }}">
                         <td>
@@ -769,12 +769,12 @@
                     @endif
                 </div>
 
-                @if($selectedOrder->refund_option === 'refund' && !$selectedOrder->refund)
+                @if(($selectedOrder->refund_option === 'refund' || $selectedOrder->status === 'refunded') && $selectedOrder->refunds->isEmpty())
                 <div class="mt-3 pt-3 border-t border-orange-200">
                     <button wire:click="openRefundModal({{ $selectedOrder->id }})"
                             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                        Process Refund
+                        Process Refund Payment
                     </button>
                 </div>
                 @endif
@@ -1166,7 +1166,6 @@
         class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
         style="display:none;"
         wire:ignore.self
-        @click.self="refundOpen = false; $wire.set('showRefundModal', false)"
     >
         <div
             x-show="refundOpen"
@@ -1180,7 +1179,10 @@
             @click.stop
         >
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                <h3 class="font-[Poppins] font-bold text-[#0F172A]">Process Refund</h3>
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-[#0F172A]">Record Refund</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Payment details will be entered on the Refunds page</p>
+                </div>
                 <button @click="refundOpen = false; $wire.set('showRefundModal', false)"
                         class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -1194,41 +1196,9 @@
                     @error('refundAmount') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Refund Method</label>
-                    <select wire:model="refundMethod" class="form-input w-full">
-                        <option value="bank_transfer">Bank Transfer</option>
-                        <option value="online">Online</option>
-                        <option value="cash">Cash</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">
-                        Customer Bank Account Number
-                        <span class="text-slate-400 font-normal">(for transfer)</span>
-                    </label>
-                    <input wire:model="refundBankAccount" type="text" class="form-input w-full"
-                           placeholder="e.g. 1234567890">
-                    @error('refundBankAccount') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Reference / Transaction ID <span class="text-slate-400 font-normal">(optional)</span></label>
-                    <input wire:model="refundReference" type="text" class="form-input w-full" placeholder="Bank reference or transaction ID">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">
-                        Payment Proof
-                        <span class="text-slate-400 font-normal">(screenshot or PDF, optional)</span>
-                    </label>
-                    <input wire:model="refundProofFile" type="file" accept="image/*,.pdf"
-                           class="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer border border-slate-200 rounded-xl p-1.5 bg-white">
-                    @error('refundProofFile') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-                    @if($refundProofFile)
-                    <p class="mt-1 text-xs text-green-600 font-medium">File selected: {{ $refundProofFile->getClientOriginalName() }}</p>
-                    @endif
-                </div>
-                <div>
                     <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Notes <span class="text-slate-400 font-normal">(optional)</span></label>
                     <textarea wire:model="refundNotes" rows="3" class="form-input w-full resize-none" placeholder="Reason for refund..."></textarea>
+                    @error('refundNotes') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
             </div>
             <div class="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50">
@@ -1237,9 +1207,13 @@
                     Cancel
                 </button>
                 <button wire:click="processRefund"
-                        class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                    Process Refund
+                        wire:loading.attr="disabled"
+                        wire:target="processRefund"
+                        class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm transition-colors">
+                    <svg wire:loading.remove wire:target="processRefund" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                    <svg wire:loading wire:target="processRefund" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                    <span wire:loading.remove wire:target="processRefund">Record Refund</span>
+                    <span wire:loading wire:target="processRefund">Saving...</span>
                 </button>
             </div>
         </div>

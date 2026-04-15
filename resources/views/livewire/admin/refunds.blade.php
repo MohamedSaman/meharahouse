@@ -1,5 +1,5 @@
 {{-- resources/views/livewire/admin/refunds.blade.php --}}
-<div x-data="{ detailOpen: @entangle('showDetail') }">
+<div x-data="{ detailOpen: @entangle('showDetail'), paymentOpen: @entangle('showPaymentModal') }">
 
     {{-- Flash Messages --}}
     @if(session('success'))
@@ -219,14 +219,25 @@
                         </td>
                         {{-- Actions --}}
                         <td class="px-4 py-3 text-center">
-                            <button wire:click="viewRefund({{ $refund->id }})"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-amber-500 text-white text-xs font-semibold transition-colors">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                                Details
-                            </button>
+                            <div class="flex items-center justify-center gap-1.5">
+                                @if($refund->status !== 'completed')
+                                <button wire:click="openPaymentModal({{ $refund->id }})"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                    </svg>
+                                    Process Payment
+                                </button>
+                                @endif
+                                <button wire:click="viewRefund({{ $refund->id }})"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-amber-500 text-white text-xs font-semibold transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                    Details
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     @empty
@@ -426,12 +437,13 @@
                     Close
                 </button>
                 @if($selected->status !== 'completed')
-                <button wire:click="markCompleted({{ $selected->id }})"
+                <button wire:click="openPaymentModal({{ $selected->id }})"
+                        @click="detailOpen = false; $wire.closeDetail()"
                         class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                     </svg>
-                    Mark as Completed
+                    Process Payment
                 </button>
                 @else
                 <span class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-semibold text-sm border border-emerald-200">
@@ -443,6 +455,116 @@
                 @endif
             </div>
             @endif
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════════════════════════
+         PROCESS PAYMENT MODAL
+    ══════════════════════════════════════════════════════════════ --}}
+    <div
+        x-show="paymentOpen"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        style="display:none;"
+        wire:ignore.self
+    >
+        <div
+            x-show="paymentOpen"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200/80 w-full max-w-md"
+            @click.stop
+        >
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-[#0F172A]">Process Refund Payment</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Enter the payment details sent to the customer</p>
+                </div>
+                <button @click="paymentOpen = false; $wire.closePaymentModal()"
+                        class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Payment Method</label>
+                    <select wire:model="paymentMethod" class="form-input w-full">
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="online">Online</option>
+                        <option value="cash">Cash</option>
+                    </select>
+                    @error('paymentMethod') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        Customer Bank Account
+                        <span class="text-slate-400 font-normal">(for transfer)</span>
+                    </label>
+                    <input wire:model="paymentBankAccount" type="text" class="form-input w-full"
+                           placeholder="e.g. 1234567890">
+                    @error('paymentBankAccount') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        Reference / Transaction ID
+                        <span class="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <input wire:model="paymentReference" type="text" class="form-input w-full"
+                           placeholder="Bank ref or transaction ID">
+                    @error('paymentReference') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        Payment Proof
+                        <span class="text-slate-400 font-normal">(screenshot or PDF)</span>
+                    </label>
+                    <input wire:model="paymentProofFile" type="file" accept="image/*,.pdf"
+                           class="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-xl p-1.5 bg-white">
+                    @error('paymentProofFile') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                    @if($paymentProofFile)
+                    <p class="mt-1 text-xs text-green-600 font-medium">File selected: {{ $paymentProofFile->getClientOriginalName() }}</p>
+                    @endif
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">
+                        Notes
+                        <span class="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <textarea wire:model="paymentNotes" rows="2" class="form-input w-full resize-none"
+                              placeholder="Payment notes..."></textarea>
+                </div>
+            </div>
+            <div class="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
+                <button @click="paymentOpen = false; $wire.closePaymentModal()"
+                        class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-100 transition-colors">
+                    Cancel
+                </button>
+                <button wire:click="processPayment"
+                        wire:loading.attr="disabled"
+                        wire:target="processPayment"
+                        class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm transition-colors">
+                    <svg wire:loading.remove wire:target="processPayment" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <svg wire:loading wire:target="processPayment" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    <span wire:loading.remove wire:target="processPayment">Mark as Paid</span>
+                    <span wire:loading wire:target="processPayment">Processing...</span>
+                </button>
+            </div>
         </div>
     </div>
 

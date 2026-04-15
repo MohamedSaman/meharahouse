@@ -4,7 +4,10 @@ namespace App\Livewire\Admin;
 
 use Livewire\Component;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Validate;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
+use App\Models\OrderPayment;
 use App\Models\Refund;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +16,7 @@ use Illuminate\Support\Facades\Storage;
 class Refunds extends Component
 {
     use WithPagination;
+    use WithFileUploads;
 
     // ── Filters ───────────────────────────────────────────────────────
     public string $search     = '';
@@ -23,6 +27,17 @@ class Refunds extends Component
     // ── Detail Modal ──────────────────────────────────────────────────
     public bool    $showDetail  = false;
     public ?Refund $selected    = null;
+
+    // ── Payment Modal ─────────────────────────────────────────────────
+    public bool   $showPaymentModal   = false;
+    public int    $paymentRefundId    = 0;
+    public string $paymentMethod      = 'bank_transfer';
+    public string $paymentBankAccount = '';
+    public string $paymentReference   = '';
+    public string $paymentNotes       = '';
+
+    #[Validate('nullable|file|mimes:jpg,jpeg,png,pdf|max:5120')]
+    public $paymentProofFile = null;
 
     // ── Watchers ──────────────────────────────────────────────────────
 
@@ -57,6 +72,7 @@ class Refunds extends Component
 
     /**
      * Mark a refund as completed (money has been received by customer).
+     * Kept for backward compatibility; UI now uses processPayment() instead.
      */
     public function markCompleted(int $id): void
     {
@@ -69,6 +85,81 @@ class Refunds extends Component
         }
 
         session()->flash('success', 'Refund marked as completed.');
+    }
+
+    // ── Payment Modal ─────────────────────────────────────────────────
+
+    public function openPaymentModal(int $id): void
+    {
+        $refund = Refund::findOrFail($id);
+        $this->paymentRefundId    = $id;
+        $this->paymentMethod      = 'bank_transfer';
+        $this->paymentBankAccount = $refund->customer_bank_account ?? '';
+        $this->paymentReference   = '';
+        $this->paymentNotes       = '';
+        $this->paymentProofFile   = null;
+        $this->showPaymentModal   = true;
+    }
+
+    public function closePaymentModal(): void
+    {
+        $this->showPaymentModal = false;
+        $this->paymentRefundId  = 0;
+        $this->reset(['paymentMethod', 'paymentBankAccount', 'paymentReference', 'paymentNotes', 'paymentProofFile']);
+    }
+
+    public function processPayment(): void
+    {
+        $this->validate([
+            'paymentMethod'      => ['required', 'in:bank_transfer,online,cash'],
+            'paymentBankAccount' => ['nullable', 'string', 'max:100'],
+            'paymentReference'   => ['nullable', 'string', 'max:255'],
+            'paymentNotes'       => ['nullable', 'string', 'max:1000'],
+            'paymentProofFile'   => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+        ]);
+
+        $refund = Refund::with(['order'])->findOrFail($this->paymentRefundId);
+
+        $proofPath = null;
+        if ($this->paymentProofFile) {
+            $proofPath = $this->paymentProofFile->store('refunds', 'public');
+        }
+
+        $refund->update([
+            'method'                => $this->paymentMethod,
+            'customer_bank_account' => $this->paymentBankAccount ?: null,
+            'reference_number'      => $this->paymentReference ?: null,
+            'notes'                 => $this->paymentNotes ?: $refund->notes,
+            'proof_file'            => $proofPath ?? $refund->proof_file,
+            'status'                => 'completed',
+            'processed_by'          => auth()->id(),
+            'processed_at'          => now(),
+        ]);
+
+        // Record the refund as an outflow in OrderPayment for finance tracking
+        OrderPayment::create([
+            'order_id'     => $refund->order_id,
+            'type'         => 'refund',
+            'amount'       => $refund->amount,
+            'method'       => $this->paymentMethod,
+            'reference'    => $this->paymentReference ?: null,
+            'notes'        => $this->paymentNotes ?: ('Refund payment to customer' . ($this->paymentBankAccount ? ' — Account: ' . $this->paymentBankAccount : '')),
+            'status'       => 'confirmed',
+            'confirmed_by' => auth()->id(),
+            'confirmed_at' => now(),
+        ]);
+
+        // Capture ID before closePaymentModal() resets paymentRefundId to 0
+        $processedId = $this->paymentRefundId;
+
+        $this->closePaymentModal();
+
+        // Refresh selected if the detail modal is still open for this refund
+        if ($this->selected && $this->selected->id === $processedId) {
+            $this->selected = Refund::with(['order', 'customer', 'processedBy'])->find($processedId);
+        }
+
+        session()->flash('success', 'Refund payment processed and marked as completed.');
     }
 
     // ── Render ────────────────────────────────────────────────────────
