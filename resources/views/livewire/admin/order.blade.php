@@ -10,6 +10,8 @@
         copyDone: false,
         dispatchAlert: false,
         dispatchData: {},
+        deliverAlert: false,
+        deliverData: {},
         copyText(text) {
             navigator.clipboard.writeText(text).then(() => {
                 this.copyDone = true;
@@ -22,6 +24,7 @@
         waPrompt = true;
     "
     @payment-due-on-dispatch.window="dispatchAlert = true; dispatchData = $event.detail[0]"
+    @payment-due-on-deliver.window="deliverAlert = true; deliverData = $event.detail[0]"
 >
 
     {{-- ══════════════════════ FLASH MESSAGES ══════════════════════ --}}
@@ -1708,6 +1711,52 @@
 
     </div>
     @endif
+
+    {{-- ══════════════════════ PAYMENT DUE ON DELIVER WARNING ══════════════════════ --}}
+    <div x-show="deliverAlert" x-cloak
+         class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+         style="display:none;background:rgba(0,0,0,0.55);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="flex items-center gap-3 px-6 py-4 bg-amber-50 border-b border-amber-100">
+                <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-[Poppins] font-bold text-base text-amber-800">Balance Not Cleared</h3>
+                    <p class="text-xs text-amber-600" x-text="'Order ' + (deliverData.orderNum || '')"></p>
+                </div>
+            </div>
+            <div class="px-6 py-5 space-y-3">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-[#F8FAFC] rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Order Total</p>
+                        <p class="font-bold text-sm text-[#0F172A]">Rs. <span x-text="deliverData.total ? Number(deliverData.total).toLocaleString() : '0'"></span></p>
+                    </div>
+                    <div class="bg-green-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Paid</p>
+                        <p class="font-bold text-sm text-green-600">Rs. <span x-text="deliverData.paid ? Number(deliverData.paid).toLocaleString() : '0'"></span></p>
+                    </div>
+                    <div class="bg-red-50 rounded-xl p-3 text-center">
+                        <p class="text-xs text-[#94A3B8] mb-1">Still Due</p>
+                        <p class="font-bold text-sm text-red-600">Rs. <span x-text="deliverData.due ? Number(deliverData.due).toLocaleString() : '0'"></span></p>
+                    </div>
+                </div>
+                <p class="text-sm text-[#64748B]">This customer's balance is not yet cleared. Mark delivered anyway? You must collect the remaining payment before completing the order.</p>
+            </div>
+            <div class="flex items-center gap-3 px-6 pb-5">
+                <button @click="deliverAlert = false"
+                        class="flex-1 py-2.5 rounded-xl border border-[#E2E8F0] text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC] transition-colors">
+                    Hold — Collect Payment First
+                </button>
+                <button @click="$wire.forceDeliver(deliverData.orderId); deliverAlert = false"
+                        class="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors">
+                    Deliver Anyway
+                </button>
+            </div>
+        </div>
+    </div>
 
     {{-- ══════════════════════ PAYMENT DUE ON DISPATCH WARNING ══════════════════════ --}}
     <div x-show="dispatchAlert" x-cloak

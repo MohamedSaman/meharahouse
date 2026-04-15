@@ -122,7 +122,17 @@ class Order extends Component
      */
     public function confirmOrder(int $orderId): void
     {
-        $order = OrderModel::with('items.product')->findOrFail($orderId);
+        $order = OrderModel::with(['items.product', 'payments'])->findOrFail($orderId);
+
+        // Payment gate — must have at least a confirmed advance/full payment
+        $hasPaid = $order->payments
+            ->whereIn('type', ['advance', 'full', 'balance'])
+            ->where('status', 'confirmed')
+            ->isNotEmpty();
+        if (!$hasPaid) {
+            session()->flash('error', 'Cannot confirm order — no payment has been received yet.');
+            return;
+        }
 
         // ── Stock check ───────────────────────────────────────────────
         $issues = [];
@@ -640,8 +650,11 @@ class Order extends Component
     {
         $order = OrderModel::with(['payments' => fn($q) => $q->where('status', 'confirmed')])->findOrFail($orderId);
 
-        // Payment gate — warn if balance is still due
-        $confirmedTotal = $order->payments->sum('amount');
+        // Payment gate — warn if balance is still due.
+        // Only count actual incoming payments (exclude refund outflows).
+        $confirmedTotal = $order->payments
+            ->whereIn('type', ['advance', 'balance', 'full'])
+            ->sum('amount');
         $due = max(0, (float) $order->total - $confirmedTotal);
 
         if ($due > 0) {
@@ -687,10 +700,35 @@ class Order extends Component
 
     /**
      * Record that the order was delivered to the customer.
+     * Warns admin if balance is still outstanding — requires explicit override.
      */
     public function markDelivered(int $orderId): void
     {
-        $order = OrderModel::findOrFail($orderId);
+        $order = OrderModel::with(['payments'])->findOrFail($orderId);
+
+        // Payment gate — must have at least one confirmed payment
+        $hasPaid = $order->payments
+            ->whereIn('type', ['advance', 'balance', 'full'])
+            ->where('status', 'confirmed')
+            ->isNotEmpty();
+        if (!$hasPaid) {
+            session()->flash('error', 'Cannot mark delivered — no payment has been received for this order.');
+            $this->refreshSelectedOrder($orderId);
+            return;
+        }
+
+        // Warn if balance is still due (admin can override via forceDeliver)
+        if ($order->balanceDue() > 0) {
+            $this->dispatch('payment-due-on-deliver', [
+                'orderId'  => $orderId,
+                'due'      => $order->balanceDue(),
+                'total'    => (float) $order->total,
+                'paid'     => $order->totalPaid(),
+                'orderNum' => $order->order_number,
+            ]);
+            return;
+        }
+
         $order->logStatus('delivered', 'Order delivered to customer.', auth()->id());
         $order->update(['status' => 'delivered']);
         $fresh = $order->fresh();
@@ -701,6 +739,24 @@ class Order extends Component
         } catch (\Throwable) {}
         $this->refreshSelectedOrder($orderId);
         session()->flash('success', 'Order marked as delivered.');
+    }
+
+    /**
+     * Force deliver even if balance is outstanding (admin override).
+     */
+    public function forceDeliver(int $orderId): void
+    {
+        $order = OrderModel::findOrFail($orderId);
+        $order->logStatus('delivered', 'Order delivered — balance payment still outstanding (admin override).', auth()->id());
+        $order->update(['status' => 'delivered']);
+        $fresh = $order->fresh();
+        try { WhatsappService::orderDelivered($fresh); } catch (\Throwable) {}
+        try {
+            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
+            if ($email) Mail::to($email)->send(new OrderDelivered($fresh));
+        } catch (\Throwable) {}
+        $this->refreshSelectedOrder($orderId);
+        session()->flash('success', 'Order delivered (balance payment still pending — please follow up).');
     }
 
     /**
