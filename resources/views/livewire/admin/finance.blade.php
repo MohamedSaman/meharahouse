@@ -267,10 +267,10 @@
             <div class="mt-3">
                 <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">
                     Estimated Profit
-                    <span class="ml-1 text-[10px] font-normal text-slate-400 normal-case tracking-normal">(collected &minus; costs)</span>
+                    <span class="ml-1 text-[10px] font-normal text-slate-400 normal-case tracking-normal">(collected - costs)</span>
                 </p>
                 <p class="font-[Poppins] font-bold text-2xl {{ $profitPositive ? 'text-teal-600' : 'text-red-600' }}">
-                    {{ $profitPositive ? '' : '&minus;' }}LKR {{ number_format(abs($estimatedProfit), 2) }}
+                    {{ $profitPositive ? '' : '-' }}LKR {{ number_format(abs($estimatedProfit), 2) }}
                 </p>
                 <p class="text-xs text-slate-400 mt-1">
                     Based on confirmed payments minus PO + courier + refund costs
