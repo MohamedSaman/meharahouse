@@ -42,6 +42,7 @@ class Cart extends Component
                 'id'       => $productId,
                 'product'  => $product,
                 'quantity' => $item['quantity'],
+                'size'     => $item['size'] ?? null,
             ];
         })->filter();
     }

@@ -12,6 +12,7 @@ class ProductDetails extends Component
 {
     public Product $product;
     public int $quantity = 1;
+    public string $size = '';
     public int $activeImage = 0;
     public string $reviewComment = '';
     public int $reviewRating = 5;
@@ -37,10 +38,20 @@ class ProductDetails extends Component
         }
     }
 
+    private function validateSize(): void
+    {
+        $this->validate([
+            'size' => ['required', 'string', 'max:20'],
+        ], [
+            'size.required' => 'Please enter your size before continuing.',
+        ]);
+    }
+
     private function putInCart(): void
     {
         $productId = $this->product->id;
         $qty       = max(1, $this->quantity);
+        $size      = trim($this->size);
 
         if (auth()->check()) {
             $cart = Cart::where('user_id', auth()->id())
@@ -48,17 +59,21 @@ class ProductDetails extends Component
                 ->first();
 
             if ($cart) {
-                $cart->increment('quantity', $qty);
+                $cart->update(['quantity' => $cart->quantity + $qty, 'size' => $size]);
             } else {
                 Cart::create([
                     'user_id'    => auth()->id(),
                     'product_id' => $productId,
                     'quantity'   => $qty,
+                    'size'       => $size,
                 ]);
             }
         } else {
-            $sessionCart              = session()->get('cart', []);
-            $sessionCart[$productId]  = ['quantity' => ($sessionCart[$productId]['quantity'] ?? 0) + $qty];
+            $sessionCart             = session()->get('cart', []);
+            $sessionCart[$productId] = [
+                'quantity' => ($sessionCart[$productId]['quantity'] ?? 0) + $qty,
+                'size'     => $size,
+            ];
             session()->put('cart', $sessionCart);
         }
 
@@ -67,12 +82,14 @@ class ProductDetails extends Component
 
     public function addToCart(): void
     {
+        $this->validateSize();
         $this->putInCart();
         session()->flash('success', 'Added to cart!');
     }
 
     public function preOrderNow(): void
     {
+        $this->validateSize();
         $this->putInCart();
         $this->redirect(route('webpage.checkout'));
     }

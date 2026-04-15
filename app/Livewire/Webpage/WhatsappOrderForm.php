@@ -40,9 +40,8 @@ class WhatsappOrderForm extends Component
     // ── Alternate Contact ─────────────────────────────────────────────
     public string $altPhone    = '';
 
-    // ── Abaya Details ─────────────────────────────────────────────────
-    public string $abayas      = ''; // size
-    public string $abayaModel  = '';
+    // ── Per-product sizes (numeric, keyed by product index) ───────────
+    public array $productSizes = [];
 
     // ── Payment ───────────────────────────────────────────────────────
     public $receiptFile = null;
@@ -60,6 +59,9 @@ class WhatsappOrderForm extends Component
 
         if (!$this->tokenModel || !$this->tokenModel->isUsable()) {
             $this->tokenInvalid = true;
+        } else {
+            // Initialize one size slot per product
+            $this->productSizes = array_fill(0, count($this->tokenModel->products ?? []), '');
         }
     }
 
@@ -72,18 +74,18 @@ class WhatsappOrderForm extends Component
         }
 
         $this->validate([
-            'customerName'  => ['required', 'string', 'max:150'],
-            'customerPhone' => ['required', 'string', 'max:30'],
-            'altPhone'      => ['nullable', 'string', 'max:30'],
-            'customerEmail' => ['nullable', 'email', 'max:255'],
-            'addressLine'   => ['required', 'string', 'max:500'],
-            'city'          => ['required', 'string', 'max:100'],
-            'district'      => ['nullable', 'string', 'max:100'],
-            'region'        => ['required', 'string', 'max:100'],
-            'abayas'        => ['nullable', 'string', 'max:100'],
-            'abayaModel'    => ['nullable', 'string', 'max:200'],
-            'notes'         => ['nullable', 'string', 'max:1000'],
-            'receiptFile'   => ['required', 'image', 'max:30720'], // 30MB — iPhone Pro Max photos
+            'customerName'   => ['required', 'string', 'max:150'],
+            'customerPhone'  => ['required', 'string', 'max:30'],
+            'altPhone'       => ['nullable', 'string', 'max:30'],
+            'customerEmail'  => ['nullable', 'email', 'max:255'],
+            'addressLine'    => ['required', 'string', 'max:500'],
+            'city'           => ['required', 'string', 'max:100'],
+            'district'       => ['nullable', 'string', 'max:100'],
+            'region'         => ['required', 'string', 'max:100'],
+            'productSizes'   => ['nullable', 'array'],
+            'productSizes.*' => ['nullable', 'numeric', 'min:1', 'max:999'],
+            'notes'          => ['nullable', 'string', 'max:1000'],
+            'receiptFile'    => ['required', 'image', 'max:30720'], // 30MB — iPhone Pro Max photos
         ]);
 
         // Store the uploaded receipt
@@ -106,16 +108,21 @@ class WhatsappOrderForm extends Component
             'payment_method'     => 'bank_transfer',
             'payment_status'     => 'pending',
             'shipping_address'   => [
-                'full_name'   => $this->customerName,
-                'phone'       => $this->customerPhone,
-                'alt_phone'   => $this->altPhone ?: null,
-                'email'       => $this->customerEmail ?: null,
-                'address'     => $this->addressLine,
-                'city'        => $this->city,
-                'district'    => $this->district ?: null,
-                'region'      => $this->region,
-                'abaya_size'  => $this->abayas ?: null,
-                'abaya_model' => $this->abayaModel ?: null,
+                'full_name'     => $this->customerName,
+                'phone'         => $this->customerPhone,
+                'alt_phone'     => $this->altPhone ?: null,
+                'email'         => $this->customerEmail ?: null,
+                'address'       => $this->addressLine,
+                'city'          => $this->city,
+                'district'      => $this->district ?: null,
+                'region'        => $this->region,
+                'product_sizes' => collect($this->tokenModel->products)
+                    ->map(fn($p, $i) => [
+                        'product_name' => $p['product_name'],
+                        'size'         => $this->productSizes[$i] ?? null,
+                    ])
+                    ->values()
+                    ->toArray(),
             ],
             'notes' => $this->notes ?: null,
         ]);

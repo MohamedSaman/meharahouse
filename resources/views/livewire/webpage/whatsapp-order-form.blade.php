@@ -83,19 +83,38 @@
                 </div>
                 <h3 class="font-[Poppins] font-bold text-sm text-[#0F172A]">Your Order Items</h3>
             </div>
-            <div class="divide-y divide-slate-50">
-                @foreach($tokenModel->products as $product)
-                <div class="flex items-center justify-between px-4 py-3">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-[#0F172A] truncate">{{ $product['product_name'] }}</p>
-                        <p class="text-xs text-[#94A3B8] mt-0.5">
-                            Rs. {{ number_format($product['price'], 0) }}
-                            &times; {{ $product['quantity'] }}
-                        </p>
+            <div class="divide-y divide-slate-100">
+                @foreach($tokenModel->products as $index => $product)
+                <div class="px-4 py-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-[#0F172A] truncate">{{ $product['product_name'] }}</p>
+                            <p class="text-xs text-[#94A3B8] mt-0.5">
+                                Rs. {{ number_format($product['price'], 0) }}
+                                &times; {{ $product['quantity'] }}
+                            </p>
+                        </div>
+                        <span class="font-bold text-sm text-[#0F172A] ml-4 shrink-0">
+                            Rs. {{ number_format($product['price'] * $product['quantity'], 0) }}
+                        </span>
                     </div>
-                    <span class="font-bold text-sm text-[#0F172A] ml-4 shrink-0">
-                        Rs. {{ number_format($product['price'] * $product['quantity'], 0) }}
-                    </span>
+                    {{-- Per-product size input --}}
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold text-[#475569] shrink-0 flex items-center gap-1">
+                            <span class="text-base">📏</span> Size
+                        </label>
+                        <input
+                            wire:model="productSizes.{{ $index }}"
+                            type="number"
+                            min="1"
+                            max="999"
+                            placeholder="e.g. 52"
+                            class="w-28 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all @error('productSizes.'.$index) border-red-400 bg-red-50 @enderror"
+                        >
+                        @error('productSizes.'.$index)
+                            <p class="text-xs text-red-500">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
                 @endforeach
             </div>
@@ -286,48 +305,6 @@
                     </label>
                     <input wire:model="altPhone" type="tel" placeholder="+94 71 000 0000"
                            class="{{ $inputClass }}">
-                </div>
-
-                {{-- 👗 Abaya Size --}}
-                <div>
-                    <label class="{{ $labelClass }}">
-                        <span class="text-base">👗</span> Abaya Size
-                        <span class="text-slate-400 font-normal">(optional)</span>
-                    </label>
-                    <select wire:model="abayas" class="{{ $inputClass }}">
-                        <option value="">— Select Size —</option>
-                        <option>XS</option>
-                        <option>S</option>
-                        <option>M</option>
-                        <option>L</option>
-                        <option>XL</option>
-                        <option>XXL</option>
-                        <option>XXXL</option>
-                        <option>Custom / Other</option>
-                    </select>
-                </div>
-
-                {{-- 🧵 Abaya Model --}}
-                <div>
-                    <label class="{{ $labelClass }}">
-                        <span class="text-base">🧵</span> Abaya Model
-                        <span class="text-slate-400 font-normal">(optional)</span>
-                    </label>
-                    <input wire:model="abayaModel" type="text" placeholder="e.g. Classic Black, Butterfly Navy..."
-                           class="{{ $inputClass }}">
-                </div>
-
-                {{-- 📦 Quantity note (read-only, from token) --}}
-                <div class="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-2">
-                    <span class="text-base mt-0.5">📦</span>
-                    <div class="text-xs text-amber-800">
-                        <p class="font-semibold mb-0.5">Abaya Quantity</p>
-                        <p>
-                            @foreach($tokenModel->products as $p)
-                                {{ $p['product_name'] }} &times; {{ $p['quantity'] }}@if(!$loop->last), @endif
-                            @endforeach
-                        </p>
-                    </div>
                 </div>
 
                 {{-- 💬 Notes --}}

@@ -13,6 +13,7 @@ class OrderItem extends Model
         'product_name',
         'price',
         'quantity',
+        'size',
         'subtotal',
         'status',
         'refund_amount',

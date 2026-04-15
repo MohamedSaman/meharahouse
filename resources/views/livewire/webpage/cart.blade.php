@@ -62,6 +62,9 @@
                                     {{ $item->product->name }}
                                 </a>
                                 <p class="text-xs text-[#64748B] mt-0.5">{{ $item->product->category?->name ?? '' }}</p>
+                                @if(!empty($item->size))
+                                <p class="text-xs text-[#475569] mt-0.5">Size: <span class="font-semibold">{{ $item->size }}</span></p>
+                                @endif
                                 <p class="font-semibold text-sm text-[#0F172A] mt-1">Rs. {{ number_format($item->product->effectivePrice(), 0) }}</p>
                                 {{-- Remove (mobile) --}}
                                 <button wire:click="remove({{ $item->id ?? $item->product->id }})"

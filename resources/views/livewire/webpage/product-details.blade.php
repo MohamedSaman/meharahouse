@@ -111,16 +111,34 @@
                 <p class="text-xs text-[#94A3B8] mb-4">SKU: <span class="font-mono text-[#64748B]">{{ $product->sku }}</span></p>
                 @endif
 
-                {{-- Quantity --}}
-                <div class="mb-6">
-                    <label class="block text-sm font-semibold text-[#374151] mb-2">Quantity</label>
-                    <div class="flex items-center gap-4">
-                        <div class="flex items-center border-2 border-[#E2E8F0] rounded-xl overflow-hidden">
+                <div class="flex items-start gap-4 mb-6">
+                    {{-- Size --}}
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-sm font-semibold text-[#374151] mb-2 truncate">
+                            Size <span class="text-red-500">*</span>
+                            <span class="text-[10px] sm:text-xs font-normal text-[#94A3B8] ml-0.5 sm:ml-1">(required)</span>
+                        </label>
+                        <input wire:model="size" type="text" placeholder="e.g. 52, M, XL..."
+                               class="w-full rounded-xl border-2 @error('size') border-red-400 bg-red-50 @else border-[#E2E8F0] @enderror px-4 py-2.5 text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#F59E0B] focus:ring-2 focus:ring-[#F59E0B]/20 transition-all">
+                        @error('size')
+                            <p class="mt-1.5 text-xs text-red-500 flex items-start gap-1">
+                                <svg class="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>{{ $message }}</span>
+                            </p>
+                        @enderror
+                    </div>
+
+                    {{-- Quantity --}}
+                    <div class="shrink-0">
+                        <label class="block text-sm font-semibold text-[#374151] mb-2">Quantity</label>
+                        <div class="flex items-center border-2 border-[#E2E8F0] rounded-xl overflow-hidden h-11">
                             <button wire:click="decrementQty"
-                                    class="w-10 h-10 flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] text-xl font-bold transition-colors">-</button>
+                                    class="w-10 h-full flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] text-xl font-bold transition-colors">-</button>
                             <span class="w-10 text-center font-bold text-[#0F172A]">{{ $quantity }}</span>
                             <button wire:click="incrementQty"
-                                    class="w-10 h-10 flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] text-xl font-bold transition-colors">+</button>
+                                    class="w-10 h-full flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] text-xl font-bold transition-colors">+</button>
                         </div>
                     </div>
                 </div>

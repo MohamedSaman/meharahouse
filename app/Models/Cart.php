@@ -12,6 +12,7 @@ class Cart extends Model
         'session_id',
         'product_id',
         'quantity',
+        'size',
     ];
 
     public function user(): BelongsTo

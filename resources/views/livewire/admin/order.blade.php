@@ -939,10 +939,12 @@
                                 <p class="text-xs text-slate-500 mt-0.5">
                                     Ordered: {{ $item->original_qty }} unit(s)
                                     @if($item->quantity > 0) &middot; Fulfilled: {{ $item->quantity }} unit(s) @endif
+                                    @if(!empty($item->size)) &middot; Size: <span class="font-semibold">{{ $item->size }}</span> @endif
                                 </p>
                                 @else
                                 <p class="text-xs text-slate-500 mt-0.5">
                                     Rs. {{ number_format($item->price, 0) }} &times; {{ $item->quantity }}
+                                    @if(!empty($item->size)) &middot; Size: <span class="font-semibold">{{ $item->size }}</span> @endif
                                 </p>
                                 @endif
                             </div>

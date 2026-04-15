@@ -153,6 +153,7 @@ class Checkout extends Component
                 'product_id' => $productId,
                 'product'    => $product,
                 'quantity'   => $item['quantity'],
+                'size'       => $item['size'] ?? null,
             ];
         })->filter()->values();
     }
@@ -270,6 +271,7 @@ class Checkout extends Component
                     'product_name' => $item->product->name,
                     'price'        => $item->product->effectivePrice(),
                     'quantity'     => $item->quantity,
+                    'size'         => $item->size ?? null,
                     'subtotal'     => $item->product->effectivePrice() * $item->quantity,
                 ]);
 

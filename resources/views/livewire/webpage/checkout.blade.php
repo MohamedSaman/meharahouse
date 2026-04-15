@@ -409,7 +409,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-[#0F172A] truncate">{{ $item->product->name }}</p>
-                                    <p class="text-xs text-[#64748B]">Qty: {{ $item->quantity }}</p>
+                                    <p class="text-xs text-[#64748B]">Qty: {{ $item->quantity }}@if(!empty($item->size)) &bull; Size: {{ $item->size }}@endif</p>
                                 </div>
                                 <span class="text-sm font-semibold text-[#0F172A] shrink-0">Rs. {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}</span>
                             </div>
@@ -457,7 +457,7 @@
                                 <p class="text-sm font-semibold text-[#0F172A] truncate group-hover:text-[#F59E0B] transition-colors">
                                     {{ $item->product->name }}
                                 </p>
-                                <p class="text-xs text-[#94A3B8] mt-0.5">Qty: {{ $item->quantity }}</p>
+                                <p class="text-xs text-[#94A3B8] mt-0.5">Qty: {{ $item->quantity }}@if(!empty($item->size)) &bull; Size: {{ $item->size }}@endif</p>
                             </div>
                             {{-- Price --}}
                             <span class="text-sm font-bold text-[#0F172A] shrink-0">
