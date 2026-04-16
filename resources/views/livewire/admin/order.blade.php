@@ -344,8 +344,13 @@
                                 @endif
 
                                 {{-- Dispatch: from confirmed (skip sourcing) or sourcing+received --}}
-                                @if(in_array($order->status, ['confirmed']) && $order->supplier_status !== 'ordered' ||
-                                    ($order->status === 'sourcing' && $order->supplier_status === 'received'))
+                                @php
+                                    $hasDispatchable = $order->items->whereIn('status', ['active', 'replaced'])->isNotEmpty();
+                                @endphp
+                                @if($hasDispatchable && (
+                                    (in_array($order->status, ['confirmed']) && $order->supplier_status !== 'ordered') ||
+                                    ($order->status === 'sourcing' && $order->supplier_status === 'received')
+                                ))
                                 <button wire:click="markDispatched({{ $order->id }})"
                                         class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 transition-all hover:-translate-y-0.5 shadow-sm"
                                         style="color:#ffffff;">

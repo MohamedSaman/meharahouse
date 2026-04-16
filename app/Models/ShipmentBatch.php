@@ -43,7 +43,6 @@ class ShipmentBatch extends Model
     {
         return match ($this->status) {
             'collecting'   => 'Collecting Orders',
-            'purchased'    => 'Purchased',
             'packed'       => 'Packed in Dubai',
             'shipped'      => 'Shipped from Dubai',
             'in_transit'   => 'In Transit',
@@ -58,7 +57,6 @@ class ShipmentBatch extends Model
     {
         return match ($this->status) {
             'collecting'   => 'bg-slate-100 text-slate-600',
-            'purchased'    => 'bg-yellow-100 text-yellow-700',
             'packed'       => 'bg-orange-100 text-orange-700',
             'shipped'      => 'bg-blue-100 text-blue-700',
             'in_transit'   => 'bg-indigo-100 text-indigo-700',

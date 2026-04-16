@@ -124,7 +124,7 @@ class Shipment extends Component
     public function advanceStatus(int $id): void
     {
         $batch    = ShipmentBatch::findOrFail($id);
-        $statuses = ['collecting', 'purchased', 'packed', 'shipped', 'in_transit', 'arrived', 'distributing', 'completed'];
+        $statuses = ['collecting', 'packed', 'shipped', 'in_transit', 'arrived', 'distributing', 'completed'];
         $idx      = array_search($batch->status, $statuses);
 
         if ($idx === false || $idx >= count($statuses) - 1) {
@@ -140,8 +140,6 @@ class Shipment extends Component
 
         $newStatus = $statuses[$idx + 1];
 
-        // Bug 11: When advancing to 'completed' (which maps orders to 'delivered'),
-        // warn the admin if any orders in the batch have an outstanding balance.
         if ($newStatus === 'completed') {
             $unpaid = $batch->orders()
                 ->whereIn('status', ['confirmed', 'sourcing', 'dispatched'])
@@ -149,18 +147,16 @@ class Shipment extends Component
                 ->where('payment_status', '!=', 'paid')
                 ->count();
 
-            if ($unpaid > 0 && !$this->showUnpaidWarning) {
-                // Surface the warning; require admin to explicitly re-confirm
+            if ($unpaid > 0) {
+                // Hard block: do not allow delivery if orders have due balance
                 $this->unpaidOrderCount    = $unpaid;
                 $this->showUnpaidWarning   = true;
-                $this->pendingAdvanceBatchId = $id;
                 return;
             }
         }
 
         // Reset warning state before proceeding
         $this->showUnpaidWarning     = false;
-        $this->pendingAdvanceBatchId = 0;
         $this->unpaidOrderCount      = 0;
 
         $data = ['status' => $newStatus];
@@ -177,16 +173,7 @@ class Shipment extends Component
         session()->flash('success', "Batch advanced to: {$batch->statusLabel()}");
     }
 
-    /**
-     * Admin confirmed they want to advance to delivery despite unpaid orders.
-     */
-    public function forceAdvanceDelivery(): void
-    {
-        if (!$this->pendingAdvanceBatchId) return;
-        $id = $this->pendingAdvanceBatchId;
-        $this->showUnpaidWarning     = true; // keep flag set so advanceStatus skips the check
-        $this->advanceStatus($id);
-    }
+
 
     public function dismissUnpaidWarning(): void
     {
@@ -207,7 +194,6 @@ class Shipment extends Component
     {
         // Map batch status → order status
         $orderStatusMap = [
-            'purchased'    => 'sourcing',
             'shipped'      => 'dispatched',
             'completed'    => 'delivered',
         ];
@@ -385,11 +371,13 @@ class Shipment extends Component
         // Exclude orders whose items are fully handled by an active backorder (ready/dispatched)
         // — those appear separately in the Backorders section to avoid showing the same order twice.
         $assignableOrders = $this->showAssignModal
-            ? Order::whereIn('status', ['confirmed', 'sourcing', 'dispatched'])
-                ->where(fn($q) => $q
-                    ->whereNull('shipment_batch_id')
-                    ->orWhere('shipment_batch_id', $this->assigningBatchId))
-                ->whereDoesntHave('backorders', fn($q) => $q->whereIn('status', ['ready', 'dispatched']))
+            ? Order::where(function($q) {
+                    $q->whereNull('shipment_batch_id')
+                      ->where('status', 'confirmed')
+                      ->orWhere('shipment_batch_id', $this->assigningBatchId);
+                })
+                ->whereHas('items', fn($q) => $q->whereIn('status', ['active', 'replaced']))
+                ->whereDoesntHave('backorders', fn($q) => $q->where('status', 'repurchasing'))
                 ->when($this->orderSearch, fn($q) => $q
                     ->where('order_number', 'like', "%{$this->orderSearch}%")
                     ->orWhere(

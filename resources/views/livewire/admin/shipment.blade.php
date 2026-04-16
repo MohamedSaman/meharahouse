@@ -145,7 +145,6 @@
                 $statusFilters = [
                     ''             => 'All',
                     'collecting'   => 'Collecting',
-                    'purchased'    => 'Purchased',
                     'packed'       => 'Packed',
                     'shipped'      => 'Shipped',
                     'in_transit'   => 'In Transit',
@@ -270,7 +269,7 @@
                         {{-- Progress Bar --}}
                         <td class="min-w-[140px]">
                             @php
-                            $stages   = ['collecting','purchased','packed','shipped','in_transit','arrived','distributing','completed'];
+                            $stages   = ['collecting','packed','shipped','in_transit','arrived','distributing','completed'];
                             $stageIdx = array_search($batch->status, $stages);
                             $progress = $stageIdx !== false ? round((($stageIdx + 1) / count($stages)) * 100) : 0;
                             @endphp
@@ -315,7 +314,7 @@
                                 {{-- Advance Status --}}
                                 @if($batch->status !== 'completed')
                                 @php
-                                    $statusLabels = ['collecting'=>'Collecting Orders','purchased'=>'Purchased','packed'=>'Packed in Dubai','shipped'=>'Shipped from Dubai','in_transit'=>'In Transit','arrived'=>'Arrived in Sri Lanka','distributing'=>'Distributing Locally','completed'=>'Completed'];
+                                    $statusLabels = ['collecting'=>'Collecting Orders','packed'=>'Packed in Dubai','shipped'=>'Shipped from Dubai','in_transit'=>'In Transit','arrived'=>'Arrived in Sri Lanka','distributing'=>'Distributing Locally','completed'=>'Completed'];
                                     $allStatuses  = array_keys($statusLabels);
                                     $nextIdx      = array_search($batch->status, $allStatuses) + 1;
                                     $nextStatus   = $allStatuses[$nextIdx] ?? null;
@@ -967,19 +966,14 @@
                         {{ $unpaidOrderCount === 1 ? 'has' : 'have' }} an outstanding balance.
                     </p>
                 </div>
-                <p class="text-xs text-slate-500">You can follow up with customers to collect payment, or proceed with delivery and collect later.</p>
+                <p class="text-xs text-slate-500">You must check and confirm the payments before you can deliver this batch.</p>
             </div>
 
             {{-- Footer --}}
             <div class="px-6 pb-5 flex flex-col gap-2">
-                <button wire:click="forceAdvanceDelivery" wire:loading.attr="disabled"
-                        class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold transition-colors">
-                    <span wire:loading.remove wire:target="forceAdvanceDelivery">Deliver Anyway (Collect Payment Later)</span>
-                    <span wire:loading wire:target="forceAdvanceDelivery">Processing...</span>
-                </button>
                 <button wire:click="dismissUnpaidWarning"
                         class="w-full py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
-                    Cancel — Collect Payment First
+                    Close — Collect Payment First
                 </button>
             </div>
         </div>
