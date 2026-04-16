@@ -220,58 +220,9 @@
                         </div>
                     </div>
 
-                    {{-- Action button --}}
+                    {{-- Manual action buttons removed to enforce automated Shipment/Purchasing workflow --}}
                     <div class="flex items-center gap-2 shrink-0">
-                        @if($bo->status === 'ready')
-                        <button wire:click="openDispatch({{ $bo->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-xs font-semibold transition-all shadow-sm shadow-violet-600/25"
-                                style="color:#ffffff;">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                            Dispatch
-                        </button>
-
-                        @elseif($bo->status === 'dispatched')
-                        <button wire:click="markDelivered({{ $bo->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-xs font-semibold transition-all shadow-sm shadow-teal-600/25"
-                                style="color:#ffffff;">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                            Delivered
-                        </button>
-
-                        @elseif($bo->status === 'delivered')
-                        <button wire:click="markCompleted({{ $bo->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-xs font-semibold transition-all shadow-sm shadow-green-600/25"
-                                style="color:#ffffff;">
-                            Complete
-                        </button>
-
-                        @elseif(in_array($bo->status, ['pending', 'repurchasing']))
-                            @if($currentStock >= $bo->short_qty)
-                            <button wire:click="markReady({{ $bo->id }})"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-xs font-semibold transition-all shadow-sm shadow-violet-600/25"
-                                    style="color:#ffffff;">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                                Stock Arrived — Mark Ready
-                            </button>
-                            @else
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-xs text-slate-400 italic">Awaiting stock ({{ $currentStock }}/{{ $bo->short_qty }})</span>
-                                <button wire:click="openReplaceModal({{ $bo->id }})"
-                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-300 text-[11px] font-semibold transition-all">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                    </svg>
-                                    Replace
-                                </button>
-                            </div>
-                            @endif
-                        @endif
+                        <span class="text-[10px] text-slate-400 font-medium italic">Managed via Shipments / Purchasing</span>
                     </div>
                 </div>
                 @endforeach
@@ -429,39 +380,6 @@
                         @if($bo->dispatcher) · Dispatched by {{ $bo->dispatcher->name }}@endif
                     </div>
                     <div class="flex items-center gap-2">
-                        @if($bo->status === 'ready')
-                        <button wire:click="openDispatch({{ $bo->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold transition-all">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                            </svg>
-                            Dispatch
-                        </button>
-                        @elseif($bo->status === 'dispatched')
-                        <button wire:click="markDelivered({{ $bo->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold transition-all">
-                            Mark Delivered
-                        </button>
-                        @elseif($bo->status === 'delivered')
-                        <button wire:click="markCompleted({{ $bo->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-all">
-                            Complete
-                        </button>
-                        @elseif(in_array($bo->status, ['pending', 'repurchasing']))
-                            @if($currentStock2 >= $bo->short_qty)
-                            <button wire:click="markReady({{ $bo->id }})"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold transition-all">
-                                Stock Arrived — Ready
-                            </button>
-                            @else
-                            <span class="text-xs text-slate-400 italic">Awaiting stock ({{ $currentStock2 }}/{{ $bo->short_qty }})</span>
-                            <button wire:click="openReplaceModal({{ $bo->id }})"
-                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-300 text-xs font-semibold transition-all">
-                                Replace
-                            </button>
-                            @endif
-                        @endif
-
                         @if($bo->isActive())
                         <button wire:click="cancelBackorder({{ $bo->id }})"
                                 wire:confirm="Cancel this backorder?"
@@ -469,6 +387,7 @@
                             Cancel
                         </button>
                         @endif
+                        <span class="text-[10px] text-slate-400 italic">Process via Shipments</span>
                     </div>
                 </div>
             </div>

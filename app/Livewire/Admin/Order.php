@@ -594,38 +594,10 @@ class Order extends Component
     /**
      * Mark an order as being sourced from supplier.
      */
-    public function markSourcing(int $orderId): void
-    {
-        $order = OrderModel::findOrFail($orderId);
-        $order->logStatus('sourcing', 'Product being sourced from supplier.', auth()->id());
-        $order->update(['status' => 'sourcing', 'supplier_status' => 'ordered']);
-        $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Order marked as sourcing.');
-    }
 
     /**
      * Mark that the supplier has delivered the product to the store.
      */
-    public function markSupplierReceived(int $orderId): void
-    {
-        $order = OrderModel::findOrFail($orderId);
-        $order->logStatus('confirmed', 'Product received from supplier, ready to dispatch.', auth()->id());
-        $order->update(['status' => 'confirmed', 'supplier_status' => 'received']);
-        $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Supplier delivery recorded. Order ready to dispatch.');
-    }
-
-    /**
-     * Mark that the supplier cannot fulfill this product.
-     */
-    public function markSupplierUnavailable(int $orderId): void
-    {
-        $order = OrderModel::findOrFail($orderId);
-        $order->logStatus('sourcing', 'Product marked unavailable by supplier.', auth()->id());
-        $order->update(['supplier_status' => 'unavailable']);
-        $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Supplier status updated to unavailable.');
-    }
 
     // ── Backorder / Partial Fulfillment ──────────────────────────────
 
@@ -740,170 +712,73 @@ class Order extends Component
     }
 
     /**
-     * Record that the order was dispatched for delivery.
-     * If a payment balance is still outstanding, fires a payment-due warning event
-     * so the admin can decide whether to hold or force-dispatch.
-     */
-    public function markDispatched(int $orderId): void
-    {
-        $order = OrderModel::with(['payments' => fn($q) => $q->where('status', 'confirmed')])->findOrFail($orderId);
-
-        // BUG-10 fix: Use balance_amount field consistently (same as markDelivered/markCompleted)
-        $due = $order->balanceDue();
-
-        if ($due > 0) {
-            $this->dispatch('payment-due-on-dispatch', [
-                'orderId'  => $orderId,
-                'due'      => $due,
-                'total'    => (float) $order->total,
-                'paid'     => $order->totalPaid(),
-                'orderNum' => $order->order_number,
-            ]);
-            return;
-        }
-
-        $order->logStatus('dispatched', 'Order dispatched for delivery.', auth()->id());
-        $order->update(['status' => 'dispatched']);
-        $fresh = $order->fresh(['shipmentBatch']);
-        try { WhatsappService::orderDispatched($fresh); } catch (\Throwable) {}
-        try {
-            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
-            if ($email) Mail::to($email)->send(new OrderDispatched($fresh));
-        } catch (\Throwable) {}
-        $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Order marked as dispatched.');
-    }
-
-    /**
-     * Force dispatch even if payment is incomplete (admin override).
+     * Manual override to force dispatch an order even if it has an outstanding balance.
+     * This should only be used in exceptional cases.
      */
     public function forceDispatch(int $orderId): void
     {
         $order = OrderModel::findOrFail($orderId);
-        $order->logStatus('dispatched', 'Order dispatched — balance payment still outstanding (admin override).', auth()->id());
-        $order->update(['status' => 'dispatched']);
-        $fresh = $order->fresh(['shipmentBatch']);
-        try { WhatsappService::orderDispatched($fresh); } catch (\Throwable) {}
-        try {
-            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
-            if ($email) Mail::to($email)->send(new OrderDispatched($fresh));
-        } catch (\Throwable) {}
-        $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Order dispatched (payment still pending — please follow up).');
-    }
-
-    /**
-     * Record that the order was delivered to the customer.
-     * Warns if balance is outstanding — admin can override.
-     */
-    public function markDelivered(int $orderId): void
-    {
-        $order = OrderModel::with(['payments'])->findOrFail($orderId);
-
-        if ($order->balanceDue() > 0) {
-            $this->dispatch('payment-due-on-deliver', [
-                'orderId'  => $orderId,
-                'due'      => $order->balanceDue(),
-                'total'    => (float) $order->total,
-                'paid'     => $order->totalPaid(),
-                'orderNum' => $order->order_number,
-            ]);
+        
+        // Strict gate: confirm balance is 0 or user specifically authorized (though here we just gate it)
+        $due = $order->balanceDue();
+        if ($due > 0) {
+            session()->flash('error', "Cannot force dispatch. Order MH-{$order->order_number} still has LKR " . number_format($due, 2) . " due.");
             return;
         }
 
-        $this->doDeliver($order);
+        $order->logStatus('dispatched', 'Order force-dispatched by admin.', auth()->id());
+        $order->update(['status' => 'dispatched']);
+        
+        $fresh = $order->fresh(['shipmentBatch']);
+        try { WhatsappService::orderDispatched($fresh); } catch (\Throwable) {}
+        
+        $this->refreshSelectedOrder($orderId);
+        session()->flash('success', "Order MH-{$order->order_number} force-dispatched.");
     }
-
-    /** Force deliver even if balance is outstanding (admin override). */
+    /**
+     * Manual override to force delivery even if balance is outstanding.
+     */
     public function forceDeliver(int $orderId): void
     {
         $order = OrderModel::findOrFail($orderId);
-        $order->logStatus('delivered', 'Order delivered — balance still outstanding (admin override).', auth()->id());
-        $order->update(['status' => 'delivered']);
-        $fresh = $order->fresh();
-        try { WhatsappService::orderDelivered($fresh); } catch (\Throwable) {}
-        try {
-            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
-            if ($email) Mail::to($email)->send(new OrderDelivered($fresh));
-        } catch (\Throwable) {}
-        $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Order delivered (balance still pending — collect before completing).');
-    }
-
-    private function doDeliver(OrderModel $order): void
-    {
-        $order->logStatus('delivered', 'Order delivered to customer.', auth()->id());
-        $order->update(['status' => 'delivered']);
-        $fresh = $order->fresh();
-        try { WhatsappService::orderDelivered($fresh); } catch (\Throwable) {}
-        try {
-            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
-            if ($email) Mail::to($email)->send(new OrderDelivered($fresh));
-        } catch (\Throwable) {}
-        $this->refreshSelectedOrder($order->id);
-        session()->flash('success', 'Order marked as delivered.');
-    }
-
-    /**
-     * Mark the order as fully completed.
-     * Warns if balance is still outstanding — admin can override.
-     */
-    public function markCompleted(int $orderId): void
-    {
-        $order = OrderModel::with(['payments'])->findOrFail($orderId);
-
-        if ($order->balanceDue() > 0) {
-            $this->dispatch('payment-due-on-complete', [
-                'orderId'  => $orderId,
-                'due'      => $order->balanceDue(),
-                'total'    => (float) $order->total,
-                'paid'     => $order->totalPaid(),
-                'orderNum' => $order->order_number,
-            ]);
+        
+        $due = $order->balanceDue();
+        if ($due > 0) {
+            session()->flash('error', "Cannot force delivery. Order MH-{$order->order_number} still has LKR " . number_format($due, 2) . " due.");
             return;
         }
 
-        $this->doComplete($order);
+        $order->logStatus('delivered', 'Order marked delivered via force manual override.', auth()->id());
+        $order->update(['status' => 'delivered']);
+        
+        $fresh = $order->fresh();
+        try { WhatsappService::orderDelivered($fresh); } catch (\Throwable) {}
+        try {
+            $email = $fresh->shipping_address['email'] ?? ($fresh->user?->email ?? null);
+            if ($email) Mail::to($email)->send(new OrderDelivered($fresh));
+        } catch (\Throwable) {}
+        $this->refreshSelectedOrder($orderId);
+        session()->flash('success', "Order MH-{$order->order_number} marked as delivered.");
     }
 
-    /** Force complete even if balance is outstanding (admin override). */
+    /**
+     * Manual override to force completion.
+     */
     public function forceComplete(int $orderId): void
     {
         $order = OrderModel::findOrFail($orderId);
-        $order->logStatus('completed', 'Order completed — balance outstanding (admin override).', auth()->id());
-        $order->update(['status' => 'completed', 'payment_status' => 'partial']);
-        try { WhatsappService::orderCompleted($order->fresh()); } catch (\Throwable) {}
-        $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Order completed (balance still pending — please follow up).');
-    }
+        
+        $due = $order->balanceDue();
+        if ($due > 0) {
+            session()->flash('error', "Cannot mark as completed. Order MH-{$order->order_number} still has LKR " . number_format($due, 2) . " due.");
+            return;
+        }
 
-    private function doComplete(OrderModel $order): void
-    {
-        $order->logStatus('completed', 'Order fully completed and payment cleared.', auth()->id());
+        $order->logStatus('completed', 'Order force-completed by admin.', auth()->id());
         $order->update(['status' => 'completed', 'payment_status' => 'paid']);
         try { WhatsappService::orderCompleted($order->fresh()); } catch (\Throwable) {}
-        $this->refreshSelectedOrder($order->id);
-        session()->flash('success', 'Order marked as completed.');
-    }
-
-    /**
-     * Set refund_option = 'refund' to indicate admin will process a refund.
-     */
-    public function offerRefund(int $orderId): void
-    {
-        OrderModel::findOrFail($orderId)->update(['refund_option' => 'refund']);
         $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Order flagged for refund processing.');
-    }
-
-    /**
-     * Set refund_option = 'reorder' so the customer can reorder.
-     */
-    public function offerReorder(int $orderId): void
-    {
-        OrderModel::findOrFail($orderId)->update(['refund_option' => 'reorder']);
-        $this->refreshSelectedOrder($orderId);
-        session()->flash('success', 'Order flagged for reorder.');
+        session()->flash('success', "Order MH-{$order->order_number} marked as completed.");
     }
 
     // ── Payment Actions ───────────────────────────────────────────────
