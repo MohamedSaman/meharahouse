@@ -335,46 +335,7 @@
 
 
 
-                                {{-- Sourcing sub-actions --}}
-                                @if($order->status === 'sourcing' && $order->supplier_status === 'ordered')
-                                <button wire:click="markSupplierReceived({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-teal-600 hover:bg-teal-700 border border-teal-600 transition-all hover:-translate-y-0.5 shadow-sm"
-                                        style="color:#ffffff;">
-                                    Stock In
-                                </button>
-                                <button wire:click="markSupplierUnavailable({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-50 hover:bg-red-100 border border-red-200 transition-all hover:-translate-y-0.5"
-                                        style="color:#b91c1c;">
-                                    Unavailable
-                                </button>
-                                @endif
 
-                                {{-- Mark Delivered --}}
-                                @if($order->status === 'dispatched')
-                                <button wire:click="markDelivered({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-teal-600 hover:bg-teal-700 border border-teal-600 transition-all hover:-translate-y-0.5 shadow-sm"
-                                        style="color:#ffffff;">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                                    Delivered
-                                </button>
-                                @endif
-
-                                {{-- Complete --}}
-                                @if($order->status === 'delivered')
-                                    @if($order->isWhatsapp() && $order->balanceDue() > 0)
-                                    <button wire:click="sendBalanceReminder({{ $order->id }})"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all hover:-translate-y-0.5"
-                                            style="color:#047857;">
-                                        Reminder
-                                    </button>
-                                    @endif
-                                    <button wire:click="markCompleted({{ $order->id }})"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-green-600 hover:bg-green-700 border border-green-600 transition-all hover:-translate-y-0.5 shadow-sm"
-                                            style="color:#ffffff;">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                                        Complete
-                                    </button>
-                                @endif
                             </div>
                         </td>
                     </tr>
@@ -692,25 +653,7 @@
                 </div>
                 @endif
 
-                {{-- Balance reminder / complete buttons --}}
-                @if(in_array($selectedOrder->status, ['delivered', 'completed']))
-                <div class="mt-3 flex flex-wrap gap-2">
-                    @if($selectedOrder->isWhatsapp() && $selectedOrder->balanceDue() > 0)
-                    <button wire:click="sendBalanceReminder({{ $selectedOrder->id }})"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413A11.815 11.815 0 0012.05 0z"/></svg>
-                        Send Balance Reminder
-                    </button>
-                    @endif
-                    @if($selectedOrder->status !== 'completed')
-                    <button wire:click="markCompleted({{ $selectedOrder->id }})"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-all">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Mark Completed
-                    </button>
-                    @endif
-                </div>
-                @endif
+
             </div>
 
             {{-- ── Supplier Status ── --}}
@@ -732,26 +675,6 @@
                     <span class="px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wide {{ $supplierBadge }}">
                         {{ ucfirst($selectedOrder->supplier_status) }}
                     </span>
-                    @if($selectedOrder->supplier_status === 'ordered')
-                    <button wire:click="markSupplierReceived({{ $selectedOrder->id }})"
-                            class="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-colors">
-                        Mark Received from Supplier
-                    </button>
-                    <button wire:click="markSupplierUnavailable({{ $selectedOrder->id }})"
-                            class="px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 text-xs font-bold transition-colors">
-                        Mark Unavailable
-                    </button>
-                    @endif
-                    @if($selectedOrder->supplier_status === 'unavailable' && !$selectedOrder->refund_option)
-                    <button wire:click="offerRefund({{ $selectedOrder->id }})"
-                            class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors">
-                        Offer Refund
-                    </button>
-                    <button wire:click="offerReorder({{ $selectedOrder->id }})"
-                            class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors">
-                        Offer Reorder
-                    </button>
-                    @endif
                     @if($selectedOrder->refund_option)
                     <div class="text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-lg">
                         Resolution: <span class="uppercase text-amber-600">{{ $selectedOrder->refund_option }}</span>
@@ -759,15 +682,7 @@
                     @endif
                 </div>
 
-                @if(($selectedOrder->refund_option === 'refund' || $selectedOrder->status === 'refunded') && $selectedOrder->refunds->isEmpty())
-                <div class="mt-3 pt-3 border-t border-orange-200">
-                    <button wire:click="openRefundModal({{ $selectedOrder->id }})"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                        Process Refund Payment
-                    </button>
-                </div>
-                @endif
+
 
                 @if($selectedOrder->refund)
                 <div class="mt-3 rounded-lg bg-red-50 border border-red-200 p-3 text-xs text-red-800">
@@ -805,8 +720,6 @@
                 $activeBackorders  = $selectedOrder->backorders->whereNotIn('status', ['completed', 'cancelled'])->values();
                 $fulfilledBackorders = $selectedOrder->backorders->where('status', 'completed')->values();
             @endphp
-
-            @endif
 
             {{-- Show active backorders when they exist --}}
             @if($activeBackorders->isNotEmpty())
