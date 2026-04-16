@@ -298,7 +298,7 @@
                                 {{ $order->statusLabel() }}
                             </span>
                         </td>
-                        <td><span class="text-xs text-[#94A3B8]">{{ $order->created_at->format('d M Y') }}</span></td>
+                        <td><span class="text-xs text-[#94A3B8]">{{ $order->created_at->timezone('Asia/Colombo')->format('d M Y') }}</span></td>
                         <td>
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 {{-- View Detail --}}
@@ -450,7 +450,7 @@
             <div class="flex items-center gap-3">
                 <div>
                     <h3 class="font-[Poppins] font-bold text-white text-base">{{ $selectedOrder->order_number }}</h3>
-                    <p class="text-xs text-slate-400">{{ $selectedOrder->created_at->format('d M Y, h:i A') }}</p>
+                    <p class="text-xs text-slate-400">{{ $selectedOrder->created_at->timezone('Asia/Colombo')->format('d M Y, h:i A') }}</p>
                 </div>
                 {{-- Source badge --}}
                 @if($selectedOrder->isWhatsapp())
@@ -569,7 +569,7 @@
                             {{-- Meta --}}
                             <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                <span>{{ $log->created_at->format('d M Y, h:i A') }}</span>
+                                <span>{{ $log->created_at->timezone('Asia/Colombo')->format('d M Y, h:i A') }}</span>
                                 @if($log->createdBy)
                                 <span class="text-slate-300">·</span>
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -671,7 +671,7 @@
                                 @endif
                                 @if($payment->confirmedBy && $payment->confirmed_at)
                                 <p class="text-[10px] text-slate-400 mt-1">
-                                    Confirmed by {{ $payment->confirmedBy->name }} on {{ $payment->confirmed_at->format('d M Y') }}
+                                    Confirmed by {{ $payment->confirmedBy->name }} on {{ $payment->confirmed_at->timezone('Asia/Colombo')->format('d M Y, h:i A') }}
                                 </p>
                                 @endif
                             </div>
@@ -803,7 +803,7 @@
                     @if($selectedOrder->refund->reference_number)
                     <p class="font-mono mt-0.5">Ref: {{ $selectedOrder->refund->reference_number }}</p>
                     @endif
-                    <p class="mt-0.5 text-red-600">{{ $selectedOrder->refund->processed_at?->format('d M Y') }}</p>
+                    <p class="mt-0.5 text-red-600">{{ $selectedOrder->refund->processed_at?->timezone('Asia/Colombo')->format('d M Y, h:i A') }}</p>
                 </div>
                 @endif
             </div>

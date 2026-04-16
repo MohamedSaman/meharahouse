@@ -152,7 +152,7 @@
                     <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border {{ $statusColors[$worstStatus] ?? 'bg-slate-100 text-slate-600 border-slate-200' }}">
                         {{ $statusLabels[$worstStatus] ?? ucfirst($worstStatus) }}
                     </span>
-                    <span class="text-xs text-slate-500">{{ $order->created_at->format('d M Y') }}</span>
+                    <span class="text-xs text-slate-500">{{ $order->created_at->timezone('Asia/Colombo')->format('d M Y') }}</span>
                 </div>
                 <div class="flex items-center gap-3">
                     <div class="text-right">
@@ -425,7 +425,7 @@
                 {{-- Action row --}}
                 <div class="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-white">
                     <div class="text-xs text-slate-400">
-                        {{ $bo->created_at->format('d M Y') }}
+                        {{ $bo->created_at->timezone('Asia/Colombo')->format('d M Y') }}
                         @if($bo->dispatcher) · Dispatched by {{ $bo->dispatcher->name }}@endif
                     </div>
                     <div class="flex items-center gap-2">

@@ -546,7 +546,7 @@
                             </span>
                         </div>
                         <p class="text-[11px] text-slate-400">
-                            {{ $payment->confirmed_at ? $payment->confirmed_at->format('M j, g:i a') : '—' }}
+                            {{ $payment->confirmed_at ? $payment->confirmed_at->timezone('Asia/Colombo')->format('M j, g:i a') : '—' }}
                         </p>
                     </div>
                     <span class="font-[Poppins] font-semibold text-sm text-slate-800 shrink-0">
@@ -608,8 +608,8 @@
                         </div>
                         <p class="text-[11px] text-slate-400">
                             {{ $refund->processed_at
-                                ? $refund->processed_at->format('M j, g:i a')
-                                : $refund->created_at->format('M j, g:i a') }}
+                                ? $refund->processed_at->timezone('Asia/Colombo')->format('M j, g:i a')
+                                : $refund->created_at->timezone('Asia/Colombo')->format('M j, g:i a') }}
                         </p>
                     </div>
                     <span class="font-[Poppins] font-semibold text-sm text-red-600 shrink-0">

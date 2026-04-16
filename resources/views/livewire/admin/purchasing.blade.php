@@ -799,7 +799,7 @@
                         @if($detailPo->ordered_at)
                         <div>
                             <p class="text-xs text-slate-500 font-medium uppercase tracking-wide">Ordered At</p>
-                            <p class="font-medium text-slate-800 mt-0.5">{{ $detailPo->ordered_at->format('M d, Y H:i') }}</p>
+                            <p class="font-medium text-slate-800 mt-0.5">{{ $detailPo->ordered_at?->timezone('Asia/Colombo')->format('M d, Y H:i') }}</p>
                         </div>
                         @endif
                         @if($detailPo->expected_date)
@@ -813,7 +813,7 @@
                         @if($detailPo->received_at)
                         <div>
                             <p class="text-xs text-slate-500 font-medium uppercase tracking-wide">Received At</p>
-                            <p class="font-medium text-slate-800 mt-0.5">{{ $detailPo->received_at->format('M d, Y H:i') }}</p>
+                            <p class="font-medium text-slate-800 mt-0.5">{{ $detailPo->received_at?->timezone('Asia/Colombo')->format('M d, Y H:i') }}</p>
                         </div>
                         @endif
                     </div>

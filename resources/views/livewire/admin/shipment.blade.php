@@ -253,10 +253,10 @@
                         {{-- Expected Arrival --}}
                         <td>
                             @if($batch->expected_arrival)
-                            <div class="text-sm text-[#0F172A]">{{ $batch->expected_arrival->format('d M Y') }}</div>
+                            <div class="text-sm text-[#0F172A]">{{ $batch->expected_arrival?->timezone('Asia/Colombo')->format('d M Y') }}</div>
                             @if($batch->arrived_at)
                             <div class="text-xs text-teal-600 mt-0.5">
-                                Arrived {{ $batch->arrived_at->format('d M') }}
+                                Arrived {{ $batch->arrived_at?->timezone('Asia/Colombo')->format('d M') }}
                             </div>
                             @elseif($batch->expected_arrival->isPast() && !in_array($batch->status, ['arrived','distributing','completed']))
                             <div class="text-xs text-red-500 mt-0.5">Overdue</div>
