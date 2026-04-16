@@ -140,12 +140,21 @@ class Shipment extends Component
 
         $newStatus = $statuses[$idx + 1];
 
-        if ($newStatus === 'completed') {
-            $unpaid = $batch->orders()
+        if (in_array($newStatus, ['distributing', 'completed'])) {
+            $unpaidOrders = $batch->orders()
                 ->whereIn('status', ['confirmed', 'sourcing', 'dispatched'])
                 ->where('balance_amount', '>', 0)
                 ->where('payment_status', '!=', 'paid')
                 ->count();
+
+            $unpaidBackorderParents = $batch->backorders()
+                ->whereHas('order', function ($query) {
+                    $query->where('balance_amount', '>', 0)
+                          ->where('payment_status', '!=', 'paid');
+                })
+                ->count();
+
+            $unpaid = $unpaidOrders + $unpaidBackorderParents;
 
             if ($unpaid > 0) {
                 // Hard block: do not allow delivery if orders have due balance

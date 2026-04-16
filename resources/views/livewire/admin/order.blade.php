@@ -844,10 +844,10 @@
                     &bull; {{ $s['name'] }}: ordered <strong>{{ $s['ordered'] }}</strong>, in stock <strong>{{ $s['stock'] }}</strong>, <span class="font-bold text-red-600">short {{ $s['short'] }}</span>
                 </p>
                 @endforeach
-                <button wire:click="openBackorderModal({{ $selectedOrder->id }})"
+                <!-- <button wire:click="openBackorderModal({{ $selectedOrder->id }})"
                         class="w-full mt-1 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-colors">
                     Handle Stock Shortage
-                </button>
+                </button> -->
             </div>
             @endif
 

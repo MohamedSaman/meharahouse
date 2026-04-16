@@ -79,6 +79,19 @@ class Backorder extends Component
     public function markReady(int $id): void
     {
         $bo = OrderBackorder::findOrFail($id);
+        
+        if ($bo->status !== 'ready') {
+            if ($bo->isReplacement() && $bo->replacementProduct) {
+                if ($bo->replacementProduct->stock >= $bo->short_qty) {
+                    $bo->replacementProduct->decrement('stock', $bo->short_qty);
+                }
+            } else {
+                if ($bo->product && $bo->product->stock >= $bo->short_qty) {
+                    $bo->product->decrement('stock', $bo->short_qty);
+                }
+            }
+        }
+
         $bo->update(['status' => 'ready']);
         $this->refreshDetail();
         session()->flash('success', "{$bo->backorder_number} marked ready to dispatch.");
@@ -94,16 +107,6 @@ class Backorder extends Component
     public function confirmDispatch(): void
     {
         $bo = OrderBackorder::with(['order', 'product', 'replacementProduct'])->findOrFail($this->dispatchBoId);
-
-        if ($bo->isReplacement() && $bo->replacementProduct) {
-            if ($bo->replacementProduct->stock >= $bo->short_qty) {
-                $bo->replacementProduct->decrement('stock', $bo->short_qty);
-            }
-        } else {
-            if ($bo->product && $bo->product->stock >= $bo->short_qty) {
-                $bo->product->decrement('stock', $bo->short_qty);
-            }
-        }
 
         $bo->update([
             'status'        => 'dispatched',
@@ -159,6 +162,15 @@ class Backorder extends Component
     public function cancelBackorder(int $id): void
     {
         $bo = OrderBackorder::findOrFail($id);
+        
+        if (in_array($bo->status, ['ready', 'dispatched', 'delivered', 'completed'])) {
+            if ($bo->isReplacement() && $bo->replacementProduct) {
+                $bo->replacementProduct->increment('stock', $bo->short_qty);
+            } else if ($bo->product) {
+                $bo->product->increment('stock', $bo->short_qty);
+            }
+        }
+
         $bo->update(['status' => 'cancelled']);
         $this->refreshDetail();
         session()->flash('success', "{$bo->backorder_number} cancelled.");
@@ -213,6 +225,10 @@ class Backorder extends Component
         $newUnitPrice   = (float) $replacement->price;
         $qty            = (int) $bo->short_qty;
         $priceDiff      = round(($newUnitPrice - $origUnitPrice) * $qty, 2); // + = more expensive, - = cheaper
+
+        if ($replacement->stock >= $bo->short_qty) {
+            $replacement->decrement('stock', $bo->short_qty);
+        }
 
         $bo->update([
             'decision'               => 'replace',

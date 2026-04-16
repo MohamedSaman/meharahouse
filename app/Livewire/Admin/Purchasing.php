@@ -411,7 +411,19 @@ class Purchasing extends Component
             $bo = OrderBackorder::find($item['id']);
             if (!$bo) continue;
 
-            // Mark as ready — stock is deducted when dispatched from the Backorders page
+            if ($bo->status !== 'ready') {
+                if ($bo->isReplacement() && $bo->replacementProduct) {
+                    if ($bo->replacementProduct->stock >= $bo->short_qty) {
+                        $bo->replacementProduct->decrement('stock', $bo->short_qty);
+                    }
+                } else {
+                    if ($bo->product && $bo->product->stock >= $bo->short_qty) {
+                        $bo->product->decrement('stock', $bo->short_qty);
+                    }
+                }
+            }
+
+            // Mark as ready and deduct stock immediately so it is reserved
             $bo->update(['status' => 'ready']);
         }
 
@@ -436,8 +448,21 @@ class Purchasing extends Component
     public function fulfillBackorder(int $backorderId): void
     {
         $backorder = OrderBackorder::findOrFail($backorderId);
+
+        if ($backorder->status !== 'ready') {
+            if ($backorder->isReplacement() && $backorder->replacementProduct) {
+                if ($backorder->replacementProduct->stock >= $backorder->short_qty) {
+                    $backorder->replacementProduct->decrement('stock', $backorder->short_qty);
+                }
+            } else {
+                if ($backorder->product && $backorder->product->stock >= $backorder->short_qty) {
+                    $backorder->product->decrement('stock', $backorder->short_qty);
+                }
+            }
+        }
+
         $backorder->update(['status' => 'ready']);
-        session()->flash('success', 'Backorder marked as ready. Go to Back Orders to dispatch it.');
+        session()->flash('success', 'Backorder marked as ready. Stock is now reserved. Go to Back Orders to dispatch it.');
     }
 
     // ── Detail Modal ──────────────────────────────────────────────────
