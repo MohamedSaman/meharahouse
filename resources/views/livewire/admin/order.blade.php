@@ -838,7 +838,7 @@
                     </span>
                 </div>
                 @endforeach
-            @endif
+                </div>
             @endif
 
             {{-- Completed backorders summary --}}
