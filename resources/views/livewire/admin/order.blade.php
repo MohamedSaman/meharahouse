@@ -333,31 +333,7 @@
                                 </button>
                                 @endif
 
-                                {{-- Start Sourcing (from confirmed, not yet ordered) --}}
-                                @if($order->status === 'confirmed' && $order->supplier_status === 'none')
-                                <button wire:click="markSourcing({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-orange-500 hover:bg-orange-600 border border-orange-500 transition-all hover:-translate-y-0.5 shadow-sm"
-                                        style="color:#ffffff;">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                                    Sourcing
-                                </button>
-                                @endif
 
-                                {{-- Dispatch: from confirmed (skip sourcing) or sourcing+received --}}
-                                @php
-                                    $hasDispatchable = $order->items->whereIn('status', ['active', 'replaced'])->isNotEmpty();
-                                @endphp
-                                @if($hasDispatchable && (
-                                    (in_array($order->status, ['confirmed']) && $order->supplier_status !== 'ordered') ||
-                                    ($order->status === 'sourcing' && $order->supplier_status === 'received')
-                                ))
-                                <button wire:click="markDispatched({{ $order->id }})"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-indigo-600 hover:bg-indigo-700 border border-indigo-600 transition-all hover:-translate-y-0.5 shadow-sm"
-                                        style="color:#ffffff;">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
-                                    Dispatch
-                                </button>
-                                @endif
 
                                 {{-- Sourcing sub-actions --}}
                                 @if($order->status === 'sourcing' && $order->supplier_status === 'ordered')
@@ -830,25 +806,6 @@
                 $fulfilledBackorders = $selectedOrder->backorders->where('status', 'completed')->values();
             @endphp
 
-            {{-- Show shortage banner + action button when there is a shortage and no active backorder yet --}}
-            @if(count($shortageItems) > 0 && $pendingBackorders->isEmpty())
-            <div class="rounded-xl border border-orange-200 bg-orange-50 p-3 space-y-2">
-                <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    <p class="text-xs font-semibold text-orange-700">Stock shortage — items cannot be fully fulfilled.</p>
-                </div>
-                @foreach($shortageItems as $s)
-                <p class="text-xs text-orange-600 pl-6">
-                    &bull; {{ $s['name'] }}: ordered <strong>{{ $s['ordered'] }}</strong>, in stock <strong>{{ $s['stock'] }}</strong>, <span class="font-bold text-red-600">short {{ $s['short'] }}</span>
-                </p>
-                @endforeach
-                <!-- <button wire:click="openBackorderModal({{ $selectedOrder->id }})"
-                        class="w-full mt-1 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-colors">
-                    Handle Stock Shortage
-                </button> -->
-            </div>
             @endif
 
             {{-- Show active backorders when they exist --}}
@@ -881,17 +838,7 @@
                     </span>
                 </div>
                 @endforeach
-                {{-- Quick action for pending/repurchasing only --}}
-                @if($pendingBackorders->isNotEmpty())
-                @foreach($pendingBackorders as $bo)
-                <button wire:click="fulfillBackorder({{ $bo->id }})"
-                        wire:loading.attr="disabled"
-                        class="w-full py-1.5 rounded-lg border border-blue-200 bg-blue-100 hover:bg-blue-200 text-blue-700 text-[10px] font-bold transition-colors whitespace-nowrap">
-                    Mark "{{ $bo->product_name }}" as Ready
-                </button>
-                @endforeach
-                @endif
-            </div>
+            @endif
             @endif
 
             {{-- Completed backorders summary --}}
