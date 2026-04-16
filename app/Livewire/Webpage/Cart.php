@@ -54,6 +54,7 @@ class Cart extends Component
 
     public function updateQuantity(int|string $itemId, int $quantity): void
     {
+        \Illuminate\Support\Facades\Log::info('updateQuantity called', ['itemId' => $itemId, 'quantity' => $quantity]);
         if ($quantity < 1) {
             $this->remove($itemId);
             return;
