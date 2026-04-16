@@ -72,10 +72,10 @@
                             </div>
                             {{-- Quantity --}}
                             <div class="flex items-center gap-2 shrink-0">
-                                <button wire:click="updateQuantity({{ $item->id ?? $item->product->id }}, {{ $item->quantity - 1 }})"
+                                <button wire:click="decrementQuantity('{{ $item->id ?? $item->product->id }}')"
                                         class="w-7 h-7 rounded-lg border border-[#E2E8F0] flex items-center justify-center text-[#475569] hover:border-[#F59E0B] hover:text-[#F59E0B] transition-colors text-sm font-bold">-</button>
                                 <span class="w-8 text-center text-sm font-bold text-[#0F172A]">{{ $item->quantity }}</span>
-                                <button wire:click="updateQuantity({{ $item->id ?? $item->product->id }}, {{ $item->quantity + 1 }})"
+                                <button wire:click="incrementQuantity('{{ $item->id ?? $item->product->id }}')"
                                         class="w-7 h-7 rounded-lg border border-[#E2E8F0] flex items-center justify-center text-[#475569] hover:border-[#F59E0B] hover:text-[#F59E0B] transition-colors text-sm font-bold">+</button>
                             </div>
                             {{-- Subtotal + Remove --}}

@@ -440,30 +440,31 @@
                     {{-- Product Cards --}}
                     <div class="space-y-3">
                         @foreach($this->cartItems as $item)
-                        <a href="{{ route('webpage.product-details', $item->product->slug) }}"
-                           target="_blank"
-                           class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#F8FAFC] transition-colors group">
+                        <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#F8FAFC] transition-colors group relative">
                             {{-- Product image --}}
-                            <div class="w-14 h-14 rounded-lg overflow-hidden bg-[#F1F5F9] shrink-0 border border-[#E2E8F0]">
+                            <a href="{{ route('webpage.product-details', $item->product->slug) }}" target="_blank" class="w-14 h-14 rounded-lg overflow-hidden bg-[#F1F5F9] shrink-0 border border-[#E2E8F0] block">
                                 @if($item->product->primaryImage())
                                 <img src="{{ $item->product->primaryImage() }}"
                                      alt="{{ $item->product->name }}"
                                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                                      onerror="this.style.display='none'">
                                 @endif
-                            </div>
+                            </a>
                             {{-- Product info --}}
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-[#0F172A] truncate group-hover:text-[#F59E0B] transition-colors">
+                                <a href="{{ route('webpage.product-details', $item->product->slug) }}" target="_blank" class="text-sm font-semibold text-[#0F172A] truncate hover:text-[#F59E0B] transition-colors block">
                                     {{ $item->product->name }}
-                                </p>
+                                </a>
                                 <p class="text-xs text-[#94A3B8] mt-0.5">Qty: {{ $item->quantity }}@if(!empty($item->size)) &bull; Size: {{ $item->size }}@endif</p>
                             </div>
-                            {{-- Price --}}
-                            <span class="text-sm font-bold text-[#0F172A] shrink-0">
-                                Rs. {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}
-                            </span>
-                        </a>
+                            {{-- Price & Actions --}}
+                            <div class="flex flex-col items-end shrink-0 gap-1">
+                                <span class="text-sm font-bold text-[#0F172A]">
+                                    Rs. {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}
+                                </span>
+                                <button type="button" wire:click="remove('{{ $item->id ?? $item->product->id }}')" class="text-[10px] uppercase font-bold text-red-400 hover:text-red-600">Remove</button>
+                            </div>
+                        </div>
                         @endforeach
                     </div>
 

@@ -52,24 +52,37 @@ class Cart extends Component
         })->filter();
     }
 
-    public function updateQuantity(int|string $itemId, int $quantity): void
+    public function incrementQuantity(int|string $itemId): void
     {
-        \Illuminate\Support\Facades\Log::info('updateQuantity called', ['itemId' => $itemId, 'quantity' => $quantity]);
-        if ($quantity < 1) {
-            $this->remove($itemId);
-            return;
-        }
+        $this->changeQuantity($itemId, 1);
+    }
 
+    public function decrementQuantity(int|string $itemId): void
+    {
+        $this->changeQuantity($itemId, -1);
+    }
+
+    private function changeQuantity(int|string $itemId, int $delta): void
+    {
         if (auth()->check()) {
             $cart = CartModel::where('user_id', auth()->id())->find($itemId);
             if ($cart) {
-                // Pre-order model: no stock cap — customers can order even without stock
-                $cart->update(['quantity' => $quantity]);
+                $newQty = $cart->quantity + $delta;
+                if ($newQty < 1) {
+                    $this->remove($itemId);
+                } else {
+                    $cart->update(['quantity' => $newQty]);
+                }
             }
         } else {
             $sessionCart = session()->get('cart', []);
             if (isset($sessionCart[$itemId])) {
-                $sessionCart[$itemId]['quantity'] = $quantity;
+                $newQty = $sessionCart[$itemId]['quantity'] + $delta;
+                if ($newQty < 1) {
+                    unset($sessionCart[$itemId]);
+                } else {
+                    $sessionCart[$itemId]['quantity'] = $newQty;
+                }
                 session()->put('cart', $sessionCart);
             }
         }

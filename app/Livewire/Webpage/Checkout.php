@@ -136,6 +136,24 @@ class Checkout extends Component
         $this->step = max(1, $this->step - 1);
     }
 
+    public function remove(int|string $itemId): void
+    {
+        if (auth()->check()) {
+            CartModel::where('user_id', auth()->id())->find($itemId)?->delete();
+        } else {
+            $sessionCart = session()->get('cart', []);
+            unset($sessionCart[$itemId]);
+            session()->put('cart', $sessionCart);
+        }
+
+        if ($this->cartItems->isEmpty()) {
+            $this->redirect(route('webpage.cart'));
+            return;
+        }
+
+        $this->dispatch('cart-updated');
+    }
+
     public function getCartItemsProperty()
     {
         if (auth()->check()) {
