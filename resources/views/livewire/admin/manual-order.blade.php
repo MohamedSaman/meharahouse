@@ -279,6 +279,7 @@
                             <thead class="bg-slate-50 border-b border-slate-200">
                                 <tr>
                                     <th class="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Product</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Size</th>
                                     <th class="text-center px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty</th>
                                     <th class="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Unit Price</th>
                                     <th class="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Line Total</th>
@@ -286,8 +287,8 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
-                                @foreach($orderItems as $productId => $item)
-                                <tr class="hover:bg-slate-50 transition-colors" wire:key="item-{{ $productId }}">
+                                @foreach($orderItems as $key => $item)
+                                <tr class="hover:bg-slate-50 transition-colors" wire:key="item-{{ $key }}">
                                     <td class="px-4 py-3">
                                         <p class="font-semibold text-[#0F172A]">{{ $item['name'] }}</p>
                                         @if($item['sku'])
@@ -298,17 +299,24 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3">
+                                        <input type="text"
+                                               wire:change="updateSize('{{ $key }}', $event.target.value)"
+                                               value="{{ $item['size'] }}"
+                                               placeholder="e.g. XL, 42..."
+                                               class="w-full text-sm border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-amber-400">
+                                    </td>
+                                    <td class="px-4 py-3">
                                         <div class="flex items-center justify-center gap-1">
-                                            <button wire:click="updateQty({{ $productId }}, {{ $item['qty'] - 1 }})"
+                                            <button wire:click="updateQty('{{ $key }}', {{ $item['qty'] - 1 }})"
                                                     class="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-all font-bold text-base leading-none">
                                                 &minus;
                                             </button>
                                             <input type="number"
                                                    value="{{ $item['qty'] }}"
-                                                   wire:change="updateQty({{ $productId }}, $event.target.value)"
+                                                   wire:change="updateQty('{{ $key }}', $event.target.value)"
                                                    min="1"
                                                    class="w-12 text-center text-sm font-bold border border-slate-200 rounded-lg py-1 outline-none focus:border-amber-400">
-                                            <button wire:click="updateQty({{ $productId }}, {{ $item['qty'] + 1 }})"
+                                            <button wire:click="updateQty('{{ $key }}', {{ $item['qty'] + 1 }})"
                                                     class="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-all font-bold text-base leading-none">
                                                 &#43;
                                             </button>
@@ -321,7 +329,7 @@
                                         <span class="font-bold text-[#0F172A]">Rs. {{ number_format($item['price'] * $item['qty'], 0) }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-center">
-                                        <button wire:click="removeItem({{ $productId }})"
+                                        <button wire:click="removeItem('{{ $key }}')"
                                                 class="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center mx-auto transition-colors">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         </button>

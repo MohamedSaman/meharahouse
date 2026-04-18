@@ -148,6 +148,7 @@ class Order extends Component
                     'item_id'      => $item->id,
                     'product_id'   => $item->product_id,
                     'name'         => $item->product_name,
+                    'size'         => $item->size,
                     'needed'       => (int) $item->quantity,
                     'available'    => (int) $product->stock,
                     'short'        => $short,
@@ -215,6 +216,7 @@ class Order extends Component
                     'item_id'      => $item->id,
                     'product_id'   => $item->product_id,
                     'name'         => $item->product_name,
+                    'size'         => $item->size,
                     'needed'       => (int) $item->quantity,
                     'available'    => (int) $product->stock,
                     'short'        => $short,
@@ -342,6 +344,7 @@ class Order extends Component
                     'order_item_id' => $issue['item_id'],
                     'product_id'    => $issue['product_id'],
                     'product_name'  => $issue['name'],
+                    'size'          => $issue['size'] ?? null,
                     'ordered_qty'   => $issue['needed'],
                     'available_qty' => $issue['available'],
                     'short_qty'     => $issue['short'],
@@ -374,9 +377,8 @@ class Order extends Component
 
                 // Final safety check: ensure the replacement product STILL has enough stock
                 if ($replacementProduct->stock < $newQty) {
-                    $this->stockDecisions[$index] = 'next_batch'; // Revert to backorder
-                    session()->flash('error', "Stock for replacement product ({$replacementProduct->name}) was sold out. Reverted to backorder.");
-                    continue;
+                    session()->flash('error', "Stock for replacement product ({$replacementProduct->name}) was sold out. Cannot confirm order.");
+                    return; // Stop the entire process so admin can pick another replacement
                 }
 
                 $orderItem = $order->items->firstWhere('id', $issue['item_id']);

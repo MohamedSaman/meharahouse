@@ -447,7 +447,8 @@
                             <table class="w-full text-sm">
                                 <thead>
                                     <tr class="border-b border-slate-200">
-                                        <th class="text-left pb-2 text-xs font-semibold text-slate-600 w-2/5">Product</th>
+                                        <th class="text-left pb-2 text-xs font-semibold text-slate-600 w-1/4">Product</th>
+                                        <th class="text-left pb-2 text-xs font-semibold text-slate-600">Size</th>
                                         <th class="text-left pb-2 text-xs font-semibold text-slate-600">Code</th>
                                         <th class="text-center pb-2 text-xs font-semibold text-slate-600 w-20">Qty</th>
                                         <th class="text-right pb-2 text-xs font-semibold text-slate-600 w-28">Unit Cost</th>
@@ -464,6 +465,12 @@
                                                    class="form-input w-full text-sm py-1.5"
                                                    placeholder="Product name">
                                             @error("poItems.{$idx}.product_name") <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p> @enderror
+                                        </td>
+                                        <td class="py-2.5 pr-3">
+                                            <input wire:model.live="poItems.{{ $idx }}.size"
+                                                   type="text"
+                                                   class="form-input w-full text-sm py-1.5"
+                                                   placeholder="Size (L, 42...)">
                                         </td>
                                         <td class="py-2.5 pr-3">
                                             <input wire:model.live="poItems.{{ $idx }}.sku"
@@ -637,6 +644,7 @@
                         <thead>
                             <tr class="border-b border-slate-200">
                                 <th class="text-left pb-2.5 text-xs font-semibold text-slate-600">Product</th>
+                                <th class="text-left pb-2.5 text-xs font-semibold text-slate-600">Size</th>
                                 <th class="text-center pb-2.5 text-xs font-semibold text-slate-600 w-24">Ordered</th>
                                 <th class="text-center pb-2.5 text-xs font-semibold text-slate-600 w-28">Prev. Received</th>
                                 <th class="text-center pb-2.5 text-xs font-semibold text-slate-600 w-32">Receive Now</th>
@@ -650,6 +658,9 @@
                                     @if($item->sku)
                                     <p class="text-xs text-slate-500">{{ $item->sku }}</p>
                                     @endif
+                                </td>
+                                <td class="py-3 text-slate-700">
+                                    {{ $item->size ?: '—' }}
                                 </td>
                                 <td class="py-3 text-center">
                                     <span class="font-semibold text-slate-700">{{ $item->quantity_ordered }}</span>
@@ -834,6 +845,7 @@
                             <thead>
                                 <tr class="border-b border-slate-200">
                                     <th class="text-left pb-2 text-xs font-semibold text-slate-600">Product</th>
+                                    <th class="text-left pb-2 text-xs font-semibold text-slate-600">Size</th>
                                     <th class="text-center pb-2 text-xs font-semibold text-slate-600 w-20">Ordered</th>
                                     <th class="text-center pb-2 text-xs font-semibold text-slate-600 w-24">Received</th>
                                     <th class="text-right pb-2 text-xs font-semibold text-slate-600 w-24">Unit Cost</th>
@@ -847,6 +859,7 @@
                                         <p class="font-semibold text-slate-900">{{ $item->product_name }}</p>
                                         @if($item->sku)<p class="text-xs text-slate-500">{{ $item->sku }}</p>@endif
                                     </td>
+                                    <td class="py-2.5 text-slate-700">{{ $item->size ?: '—' }}</td>
                                     <td class="py-2.5 text-center text-slate-700">{{ $item->quantity_ordered }}</td>
                                     <td class="py-2.5 text-center">
                                         <span class="font-semibold {{ $item->quantity_received >= $item->quantity_ordered ? 'text-emerald-600' : ($item->quantity_received > 0 ? 'text-amber-600' : 'text-slate-400') }}">
@@ -942,6 +955,7 @@
                     <thead>
                         <tr class="border-b border-slate-100">
                             <th class="text-left py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Product</th>
+                            <th class="text-left py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Size</th>
                             <th class="text-left py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Code</th>
                             <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Orders</th>
                             <th class="text-center py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Needed</th>
@@ -954,6 +968,7 @@
                         @foreach($planItems as $item)
                         <tr class="{{ $item['to_buy'] > 0 ? 'bg-red-50/40' : '' }}">
                             <td class="py-3 font-medium text-slate-800">{{ $item['product_name'] }}</td>
+                            <td class="py-3 text-slate-600">{{ $item['size'] ?: '—' }}</td>
                             <td class="py-3 text-slate-500 font-mono text-xs">{{ $item['sku'] ?: '—' }}</td>
                             <td class="py-3 text-center text-slate-500">{{ $item['order_count'] ?: '—' }}</td>
                             <td class="py-3 text-center font-semibold text-slate-700">{{ $item['qty_needed'] ?: '—' }}</td>
@@ -1072,7 +1087,7 @@
                 <div class="flex items-center justify-between gap-3 rounded-xl border border-orange-100 bg-orange-50/50 px-4 py-3">
                     <div class="min-w-0">
                         <p class="text-xs font-mono font-bold text-orange-700">{{ $item['order_number'] }}</p>
-                        <p class="text-sm font-semibold text-slate-800 truncate">{{ $item['product_name'] }}</p>
+                        <p class="text-sm font-semibold text-slate-800 truncate">{{ $item['product_name'] }} @if(!empty($item['size'])) ({{ $item['size'] }}) @endif</p>
                         <p class="text-xs text-slate-500 mt-0.5">
                             Need <strong>{{ $item['short_qty'] }}</strong> &middot; Stock <strong class="text-green-600">{{ $item['stock'] }}</strong>
                         </p>

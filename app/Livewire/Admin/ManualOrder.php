@@ -38,7 +38,7 @@ class ManualOrder extends Component
 
     // Product selection
     public string $productSearch = '';
-    public array $orderItems = []; // [product_id => ['id', 'name', 'sku', 'price', 'stock', 'qty']]
+    public array $orderItems = []; // [unique_key => ['id', 'name', 'sku', 'price', 'stock', 'qty', 'size']]
     public string $paymentMethod = 'cash_on_delivery';
 
     // Success
@@ -114,37 +114,47 @@ class ManualOrder extends Component
         $product = Product::find($productId);
         if (!$product) return;
 
-        if (isset($this->orderItems[$productId])) {
-            $this->orderItems[$productId]['qty']++;
+        $key = $productId . '_'; // default size empty string
+
+        if (isset($this->orderItems[$key])) {
+            $this->orderItems[$key]['qty']++;
         } else {
-            $this->orderItems[$productId] = [
+            $this->orderItems[$key] = [
                 'id'    => $product->id,
                 'name'  => $product->name,
                 'sku'   => $product->sku,
                 'price' => (float) $product->effectivePrice(),
                 'stock' => $product->stock,
                 'qty'   => 1,
+                'size'  => '',
             ];
         }
 
         $this->productSearch = '';
     }
 
-    public function updateQty(int $productId, int $qty): void
+    public function updateSize(string $key, string $size): void
     {
-        if ($qty < 1) {
-            unset($this->orderItems[$productId]);
-            return;
-        }
-
-        if (isset($this->orderItems[$productId])) {
-            $this->orderItems[$productId]['qty'] = $qty;
+        if (isset($this->orderItems[$key])) {
+            $this->orderItems[$key]['size'] = $size;
         }
     }
 
-    public function removeItem(int $productId): void
+    public function updateQty(string $key, int $qty): void
     {
-        unset($this->orderItems[$productId]);
+        if ($qty < 1) {
+            unset($this->orderItems[$key]);
+            return;
+        }
+
+        if (isset($this->orderItems[$key])) {
+            $this->orderItems[$key]['qty'] = $qty;
+        }
+    }
+
+    public function removeItem(string $key): void
+    {
+        unset($this->orderItems[$key]);
     }
 
     public function getSubtotal(): float
@@ -197,13 +207,14 @@ class ManualOrder extends Component
                 'notes'           => ($this->notes ? $this->notes . ' ' : '') . '[Manual Order by Admin]',
             ]);
 
-            foreach ($this->orderItems as $productId => $item) {
+            foreach ($this->orderItems as $key => $item) {
                 OrderItem::create([
                     'order_id'     => $order->id,
-                    'product_id'   => $productId,
+                    'product_id'   => $item['id'],
                     'product_name' => $item['name'],
                     'price'        => $item['price'],
                     'quantity'     => $item['qty'],
+                    'size'         => $item['size'] ?: null,
                     'subtotal'     => $item['price'] * $item['qty'],
                 ]);
                 // NOTE: stock is NOT decremented here — deducted only on bulk confirmation in Purchasing

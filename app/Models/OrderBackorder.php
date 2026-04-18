@@ -17,6 +17,7 @@ class OrderBackorder extends Model
         'replacement_price',
         'replacement_notes',
         'product_name',
+        'size',
         'ordered_qty',
         'available_qty',
         'short_qty',

@@ -9,7 +9,7 @@ class PurchaseOrderItem extends Model
 {
     protected $fillable = [
         'purchase_order_id', 'product_id', 'product_name', 'sku',
-        'quantity_ordered', 'quantity_received', 'unit_cost', 'subtotal',
+        'quantity_ordered', 'quantity_received', 'unit_cost', 'subtotal', 'size',
     ];
 
     protected function casts(): array

@@ -156,6 +156,7 @@
                 @endif
 
                 {{-- Step 2: Payment --}}
+                @if($step === 2)
                        <div class="card p-6 space-y-4">
                     <h3 class="font-[Poppins] font-bold text-lg text-[#0F172A]">Payment Method</h3>
 
@@ -180,33 +181,37 @@
                     </div>
 
                     {{-- Advance / Full payment selector (For bank-related payments) --}}
-                    @if(in_array($paymentMethod, ['bank_transfer', 'telebirr', 'cbebirr']))
-                    <div class="rounded-xl border border-amber-200 overflow-hidden shadow-sm">
-                        <label class="flex items-center gap-4 p-4 cursor-pointer transition-colors {{ $advanceOption === 'full' ? 'bg-amber-100 border-l-4 border-l-amber-500' : 'bg-white hover:bg-slate-50' }}"
-                                wire:click="$set('advanceOption', 'full')">
-                            <input type="radio" wire:model.live="advanceOption" value="full"
-                                   class="text-amber-600 focus:ring-amber-500 shrink-0">
-                            <div class="flex-1">
-                                <p class="font-semibold text-sm text-[#0F172A]">Full Payment</p>
-                                <p class="text-xs text-slate-500 mt-0.5">
-                                    Pay the complete amount now:
-                                    <strong class="text-[#0F172A]">Rs. {{ number_format($total, 0) }}</strong>
-                                </p>
+                    <div wire:key="payment-options-{{ $paymentMethod }}">
+                        @if(in_array($paymentMethod, ['bank_transfer', 'telebirr', 'cbebirr']))
+                        <div class="mt-4 space-y-3">
+                            <h4 class="text-sm font-bold text-[#0F172A]">Payment Choice</h4>
+                            <div class="rounded-xl border border-amber-200 overflow-hidden shadow-sm">
+                                <label class="flex items-center gap-4 p-4 cursor-pointer transition-colors {{ $advanceOption === 'full' ? 'bg-amber-100 border-l-4 border-l-amber-500 shadow-sm' : 'bg-white hover:bg-slate-50' }}">
+                                    <input type="radio" wire:model.live="advanceOption" value="full"
+                                           class="text-amber-600 focus:ring-amber-500 shrink-0">
+                                    <div class="flex-1">
+                                        <p class="font-bold text-sm text-[#0F172A]">Full Payment</p>
+                                        <p class="text-xs text-slate-500 mt-0.5">Pay complete amount: <strong class="text-slate-800">Rs. {{ number_format($total, 0) }}</strong></p>
+                                    </div>
+                                </label>
+                                <div class="border-t border-amber-100"></div>
+                                <label class="flex items-center gap-4 p-4 cursor-pointer transition-colors {{ $advanceOption === 'advance' ? 'bg-amber-100 border-l-4 border-l-amber-500 shadow-sm' : 'bg-white hover:bg-slate-50' }}">
+                                    <input type="radio" wire:model.live="advanceOption" value="advance"
+                                           class="text-amber-600 focus:ring-amber-500 shrink-0">
+                                    <div class="flex-1">
+                                        <p class="font-bold text-sm text-[#0F172A]">Advance Payment ({{ $advancePct }}%)</p>
+                                        <p class="text-xs text-slate-500 mt-0.5">
+                                            Pay now: <strong class="text-amber-600">Rs. {{ number_format($total * $advancePct / 100, 0) }}</strong>
+                                            &bull; Balance on delivery: <strong class="text-slate-800">Rs. {{ number_format($total - ($total * $advancePct / 100), 0) }}</strong>
+                                        </p>
+                                    </div>
+                                </label>
                             </div>
-                        </label>
-                        <div class="border-t border-amber-100"></div>
-                        <label class="flex items-center gap-4 p-4 cursor-pointer transition-colors {{ $advanceOption === 'advance' ? 'bg-amber-100 border-l-4 border-l-amber-500' : 'bg-white hover:bg-slate-50' }}"
-                                wire:click="$set('advanceOption', 'advance')">
-                            <input type="radio" wire:model.live="advanceOption" value="advance"
-                                   class="text-amber-600 focus:ring-amber-500 shrink-0">
-                            <div class="flex-1">
-                                <p class="font-semibold text-sm text-[#0F172A]">Advance Payment ({{ $advancePct }}%)</p>
-                                <p class="text-xs text-slate-500 mt-0.5">
-                                    Pay now: <strong class="text-amber-600">Rs. {{ number_format($total * $advancePct / 100, 0) }}</strong>
-                                    &bull; Balance on delivery: <strong class="text-[#0F172A]">Rs. {{ number_format($total - ($total * $advancePct / 100), 0) }}</strong>
-                                </p>
-                            </div>
-                        </label>
+                        </div>
+                        @else
+                        {{-- Reset advance option if hidden --}}
+                        <div x-init="$wire.set('advanceOption', 'full')"></div>
+                        @endif
                     </div>
 
                     {{-- Bank Transfer Details --}}
@@ -248,7 +253,6 @@
                         @endif
                         <p class="text-xs text-slate-500">Please upload your payment receipt in the next step to complete your order.</p>
                     </div>
-                    @endif
                     @endif
 
                     <div class="flex justify-between pt-2">

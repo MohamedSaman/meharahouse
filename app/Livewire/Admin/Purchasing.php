@@ -104,6 +104,7 @@ class Purchasing extends Component
             'product_id'   => $item->product_id,
             'product_name' => $item->product_name,
             'sku'          => $item->sku ?? '',
+            'size'         => $item->size ?? '',
             'qty_ordered'  => $item->quantity_ordered,
             'unit_cost'    => $item->unit_cost,
         ])->toArray();
@@ -136,6 +137,7 @@ class Purchasing extends Component
             'product_id'   => $productId,
             'product_name' => $product->name,
             'sku'          => $product->sku ?? '',
+            'size'         => '',
             'qty_ordered'  => 1,
             'unit_cost'    => (float) $unitCost,
         ];
@@ -206,6 +208,7 @@ class Purchasing extends Component
                 'product_id'        => $item['product_id'] ?? null,
                 'product_name'      => $item['product_name'],
                 'sku'               => $item['sku'] ?? null,
+                'size'              => $item['size'] ?? null,
                 'quantity_ordered'  => (int) $item['qty_ordered'],
                 'quantity_received' => 0,
                 'unit_cost'         => (float) $item['unit_cost'],
@@ -487,21 +490,24 @@ class Purchasing extends Component
         foreach ($orders as $order) {
             foreach ($order->items as $item) {
                 $pid = $item->product_id;
+                $size = $item->size ?: '';
+                $key = $pid . '_' . $size;
                 if (!$pid) continue;
-                if (!isset($needed[$pid])) {
-                    $needed[$pid] = [
+                if (!isset($needed[$key])) {
+                    $needed[$key] = [
                         'product_id'      => $pid,
                         'product_name'    => $item->product_name,
                         'sku'             => $item->product?->sku ?? '',
+                        'size'            => $size,
                         'qty_needed'      => 0,
                         'order_count'     => 0,
                         'backorder_qty'   => 0,
                         'backorder_count' => 0,
-                        'current_stock'   => $item->product?->stock ?? 0,
+                        'current_stock'   => $item->product?->stock ?? 0, // Caution: shared stock
                     ];
                 }
-                $needed[$pid]['qty_needed']  += $item->quantity;
-                $needed[$pid]['order_count'] += 1;
+                $needed[$key]['qty_needed']  += $item->quantity;
+                $needed[$key]['order_count'] += 1;
             }
         }
 
@@ -512,12 +518,15 @@ class Purchasing extends Component
 
         foreach ($backorders as $bo) {
             $pid = $bo->product_id;
+            $size = $bo->size ?: '';
+            $key = $pid . '_' . $size;
             if (!$pid) continue;
-            if (!isset($needed[$pid])) {
-                $needed[$pid] = [
+            if (!isset($needed[$key])) {
+                $needed[$key] = [
                     'product_id'      => $pid,
                     'product_name'    => $bo->product_name,
                     'sku'             => $bo->product?->sku ?? '',
+                    'size'            => $size,
                     'qty_needed'      => 0,
                     'order_count'     => 0,
                     'backorder_qty'   => 0,
@@ -525,8 +534,8 @@ class Purchasing extends Component
                     'current_stock'   => $bo->product?->stock ?? 0,
                 ];
             }
-            $needed[$pid]['backorder_qty']   += $bo->short_qty;
-            $needed[$pid]['backorder_count'] += 1;
+            $needed[$key]['backorder_qty']   += $bo->short_qty;
+            $needed[$key]['backorder_count'] += 1;
         }
 
         $this->planItems = collect($needed)->map(function ($row) {
@@ -563,6 +572,7 @@ class Purchasing extends Component
                 'product_id'   => $pid,
                 'product_name' => $item['product_name'],
                 'sku'          => $item['sku'] ?? '',
+                'size'         => $item['size'] ?? '',
                 'qty_ordered'  => $item['to_buy'],
                 'unit_cost'    => (float) $lastCost,
             ];

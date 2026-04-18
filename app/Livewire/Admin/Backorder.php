@@ -34,6 +34,7 @@ class Backorder extends Component
     public int    $replacingBoId            = 0;
     public string $replacementProductSearch = '';
     public ?int   $selectedReplacementId    = null;
+    public string $replacementSize           = '';
     public string $replaceNotes             = '';
     // Price diff tracking (set when modal opens / product selected)
     public float  $originalItemPrice        = 0.0;  // price per unit from order item
@@ -92,10 +93,16 @@ class Backorder extends Component
             if ($bo->isReplacement() && $bo->replacementProduct) {
                 if ($bo->replacementProduct->stock >= $bo->short_qty) {
                     $bo->replacementProduct->decrement('stock', $bo->short_qty);
+                } else {
+                    session()->flash('error', "Insufficient stock for replacement product ({$bo->replacementProduct->name}).");
+                    return;
                 }
             } else {
                 if ($bo->product && $bo->product->stock >= $bo->short_qty) {
                     $bo->product->decrement('stock', $bo->short_qty);
+                } else {
+                    session()->flash('error', "Insufficient stock for product ({$bo->product_name}).");
+                    return;
                 }
             }
         }
@@ -298,6 +305,7 @@ class Backorder extends Component
         $this->replacingBoId            = $id;
         $this->replacementProductSearch = '';
         $this->selectedReplacementId    = null;
+        $this->replacementSize          = $bo?->size ?? '';
         $this->replaceNotes             = '';
         $this->selectedReplacementPrice = 0.0;
         // Load the original unit price from the order item (not the product, since
@@ -369,6 +377,7 @@ class Backorder extends Component
                 'product_name'          => $replacement->name,
                 'price'                 => $newUnitPrice,
                 'quantity'              => $qty,
+                'size'                  => $this->replacementSize ?: null,
                 'subtotal'              => $newSubtotal,
                 'is_replaced'           => true,
                 'original_product_id'   => $originalProductId,
@@ -441,6 +450,7 @@ class Backorder extends Component
         $this->showReplaceModal         = false;
         $this->replacingBoId            = 0;
         $this->selectedReplacementId    = null;
+        $this->replacementSize          = '';
         $this->selectedReplacementPrice = 0.0;
 
         if ($priceDiff > 0) {
