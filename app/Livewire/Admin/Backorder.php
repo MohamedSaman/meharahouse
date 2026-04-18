@@ -40,6 +40,14 @@ class Backorder extends Component
     public int    $replacingQty             = 0;    // short_qty of the backorder
     public float  $selectedReplacementPrice = 0.0;  // price of chosen replacement product
 
+    // ── Refund modal ──────────────────────────────────────────────────
+    public bool   $showRefundModal       = false;
+    public int    $refundingBoId          = 0;
+    public string $refundAmount           = '0';
+    public string $refundMethod           = 'bank_transfer';
+    public string $customerBankAccount    = '';
+    public string $refundNotes            = '';
+
     // ─────────────────────────────────────────────────────────────────
 
     public function updatingSearch(): void       { $this->resetPage(); }
@@ -172,8 +180,113 @@ class Backorder extends Component
         }
 
         $bo->update(['status' => 'cancelled']);
+        
+        // Also update order item to cancelled if it exists
+        if ($bo->order_item_id) {
+            \App\Models\OrderItem::where('id', $bo->order_item_id)->update(['status' => 'cancelled']);
+        }
+
         $this->refreshDetail();
         session()->flash('success', "{$bo->backorder_number} cancelled.");
+    }
+
+    // ── Refund Action ───────────────────────────────────────────────
+
+    public function openRefundModal(int $id): void
+    {
+        $bo = OrderBackorder::with(['order', 'orderItem'])->findOrFail($id);
+        
+        $this->refundingBoId        = $id;
+        // Default refund amount = item unit price * short_qty
+        $unitPrice = $bo->orderItem ? (float) $bo->orderItem->price : ($bo->product ? (float) $bo->product->price : 0);
+        $this->refundAmount         = (string) ($unitPrice * $bo->short_qty);
+        $this->refundMethod         = 'bank_transfer';
+        $this->customerBankAccount  = '';
+        $this->refundNotes          = "Refund for out-of-stock item: {$bo->product_name}";
+        $this->showRefundModal      = true;
+    }
+
+    public function confirmRefund(): void
+    {
+        $this->validate([
+            'refundAmount' => ['required', 'numeric', 'min:0'],
+            'refundMethod' => ['required', 'string'],
+        ]);
+
+        $bo    = OrderBackorder::with(['order', 'orderItem'])->findOrFail($this->refundingBoId);
+        $order = $bo->order;
+
+        \DB::transaction(function() use ($bo, $order) {
+            // 1. Create Refund record
+            \App\Models\Refund::create([
+                'order_id'              => $order->id,
+                'customer_id'           => $order->user_id,
+                'amount'                => (float) $this->refundAmount,
+                'method'                => $this->refundMethod,
+                'customer_bank_account' => $this->customerBankAccount ?: null,
+                'notes'                 => $this->refundNotes ?: null,
+                'status'                => 'processed',
+                'processed_by'          => auth()->id(),
+                'processed_at'          => now(),
+            ]);
+
+            // 2. Update Backorder
+            $bo->update(['status' => 'cancelled', 'notes' => ($bo->notes ? $bo->notes . "\n" : "") . "Refunded: LKR " . $this->refundAmount]);
+
+            // 3. Update Order Item
+            if ($bo->orderItem) {
+                $bo->orderItem->update([
+                    'status'        => 'refunded',
+                    'refund_amount' => (float) $this->refundAmount,
+                ]);
+            }
+
+            // 4. Recalculate Order Totals
+            // Since an item is being removed from delivery due to stock shortage, 
+            // the order total should decrease by the item's subtotal amount.
+            $subtotalRemoved = $bo->orderItem ? (float) $bo->orderItem->subtotal : 0;
+            
+            $newSubtotal = max(0, (float) $order->subtotal - $subtotalRemoved);
+            
+            $taxRate = (float) \App\Models\Setting::get('tax_rate', '15') / 100;
+            $newTax  = round($newSubtotal * $taxRate, 2);
+            
+            $newDiscount = (float) $order->discount;
+            if ($order->coupon_code) {
+                $coupon = \App\Models\Coupon::where('code', $order->coupon_code)->first();
+                if ($coupon && $coupon->type === 'percentage') {
+                    $newDiscount = round($newSubtotal * ($coupon->value / 100), 2);
+                    if ($coupon->max_discount && $newDiscount > $coupon->max_discount) {
+                        $newDiscount = (float) $coupon->max_discount;
+                    }
+                }
+            }
+
+            $newTotal = round($newSubtotal + $order->shipping_cost + $newTax - $newDiscount, 2);
+
+            // Calculate how much the customer already paid
+            $totalPaid = (float) $order->payments()
+                ->whereIn('type', ['advance', 'balance', 'full'])
+                ->where('status', 'confirmed')
+                ->sum('amount');
+
+            // New balance customer owes
+            $newBalanceDue = max(0, round($newTotal - $totalPaid, 2));
+
+            $order->update([
+                'subtotal'       => $newSubtotal,
+                'tax'            => $newTax,
+                'discount'       => $newDiscount,
+                'total'          => $newTotal,
+                'balance_amount' => $newBalanceDue,
+            ]);
+
+            $order->logStatus($order->status, "Item '{$bo->product_name}' refunded (LKR {$this->refundAmount}). Order total adjusted.", auth()->id());
+        });
+
+        $this->showRefundModal = false;
+        $this->refreshDetail();
+        session()->flash('success', "Refund of LKR " . number_format((float)$this->refundAmount, 2) . " processed for {$bo->backorder_number}.");
     }
 
     // ── Replace Product ───────────────────────────────────────────────

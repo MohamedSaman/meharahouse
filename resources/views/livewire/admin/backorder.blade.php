@@ -220,9 +220,18 @@
                         </div>
                     </div>
 
-                    {{-- Manual action buttons removed to enforce automated Shipment/Purchasing workflow --}}
+                    {{-- Action buttons --}}
                     <div class="flex items-center gap-2 shrink-0">
-                        <span class="text-[10px] text-slate-400 font-medium italic">Managed via Shipments / Purchasing</span>
+                        @if($bo->isActive())
+                        <button wire:click="openRefundModal({{ $bo->id }})"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 text-xs font-semibold transition-all shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                            Refund
+                        </button>
+                        @endif
+                        <span class="text-[10px] text-slate-400 font-medium italic">Logistics: Shipments</span>
                     </div>
                 </div>
                 @endforeach
@@ -379,11 +388,18 @@
                         {{ $bo->created_at->timezone('Asia/Colombo')->format('d M Y') }}
                         @if($bo->dispatcher) · Dispatched by {{ $bo->dispatcher->name }}@endif
                     </div>
-                    <div class="flex items-center gap-2">
+                     <div class="flex items-center gap-2">
                         @if($bo->isActive())
+                        <button wire:click="openRefundModal({{ $bo->id }})"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-all">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                            Refund
+                        </button>
                         <button wire:click="cancelBackorder({{ $bo->id }})"
                                 wire:confirm="Cancel this backorder?"
-                                class="inline-flex items-center px-2 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-all">
+                                class="inline-flex items-center px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-all">
                             Cancel
                         </button>
                         @endif
@@ -672,4 +688,90 @@
     </div>
     @endif
 
+    {{-- ══════════════════════════════════════════════════════════════
+         REFUND MODAL
+    ══════════════════════════════════════════════════════════════ --}}
+    @if($showRefundModal)
+    <div x-data="{ open: @entangle('showRefundModal') }"
+         x-init="$watch('open', val => { if(val) document.body.classList.add('overflow-hidden'); else document.body.classList.remove('overflow-hidden'); })"
+         x-show="open"
+         class="fixed inset-0 z-50 overflow-y-auto"
+         style="display: none;">
+        
+        <div class="flex items-center justify-center min-h-screen p-4 text-center sm:block sm:p-0">
+            <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="fixed inset-0 transition-opacity bg-slate-950/50 backdrop-blur-sm" @click="open = false; $wire.set('showRefundModal', false)"></div>
+
+            <div x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" class="inline-block w-full max-w-lg my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-2xl">
+                
+                <div class="bg-white px-8 pt-6 pb-4 border-b border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-900 font-[Poppins]">Record Item Refund</h3>
+                            <p class="text-sm text-slate-500">Refund payment for out-of-stock product</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-8 py-6 space-y-5 bg-white">
+                    {{-- Amount --}}
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 label-required mb-1.5">Refund Amount (LKR)</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">Rs.</span>
+                            <input type="number" wire:model="refundAmount" 
+                                   class="w-full pl-12 pr-4 py-3 rounded-xl border-slate-200 focus:ring-red-500 focus:border-red-500 bg-slate-50 font-bold text-lg" 
+                                   placeholder="0.00">
+                        </div>
+                        @error('refundAmount') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        {{-- Method --}}
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Refund Method</label>
+                            <select wire:model="refundMethod" class="w-full rounded-xl border-slate-200 focus:ring-red-500 focus:border-red-500 bg-slate-50">
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="online">Online Payment</option>
+                                <option value="cash">Cash</option>
+                            </select>
+                        </div>
+                        {{-- Account (optional) --}}
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Customer Bank Detail</label>
+                            <input type="text" wire:model="customerBankAccount" class="w-full rounded-xl border-slate-200 focus:ring-red-500 focus:border-red-500 bg-slate-50" placeholder="Acc/Bank info">
+                        </div>
+                    </div>
+
+                    {{-- Notes --}}
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Internal Notes</label>
+                        <textarea wire:model="refundNotes" rows="2" class="w-full rounded-xl border-slate-200 focus:ring-red-500 focus:border-red-500 bg-slate-50"></textarea>
+                    </div>
+
+                    <div class="rounded-xl bg-orange-50 p-3 border border-orange-100 flex gap-3">
+                        <svg class="w-5 h-5 text-orange-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <p class="text-[11px] text-orange-800 leading-relaxed font-medium">
+                            Proceeding will mark this item as refunded, update the order totals, and close this backorder.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="px-8 py-5 bg-slate-50 flex items-center justify-end gap-3 border-t border-slate-100">
+                    <button wire:click="$set('showRefundModal', false)" class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-semibold hover:bg-slate-100 transition-all">
+                        Cancel
+                    </button>
+                    <button wire:click="confirmRefund" class="px-5 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-all shadow-md shadow-red-600/25">
+                        Confirm Refund
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
