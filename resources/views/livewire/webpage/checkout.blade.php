@@ -45,130 +45,17 @@
 
             {{-- Bank Transfer Block (only if bank_transfer selected) --}}
             @if($paymentMethod === 'bank_transfer')
-            <div class="rounded-2xl border-2 border-amber-300 bg-amber-50 p-6 space-y-4">
+            <div class="rounded-2xl border-2 border-green-300 bg-green-50 p-6 space-y-4">
                 <div class="flex items-center gap-2">
-                    <svg class="w-6 h-6 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
-                    </svg>
-                    <h3 class="font-[Poppins] font-bold text-base text-amber-900">Bank Transfer Instructions</h3>
-                </div>
-                @if($advanceOption === 'advance')
-                <p class="text-sm text-amber-800">
-                    Please transfer the <strong>advance amount</strong> to the bank account below, then upload your payment receipt.
-                    The remaining balance will be collected on delivery.
-                </p>
-                @else
-                <p class="text-sm text-amber-800">Please transfer the full order amount to the bank account below, then upload your payment receipt.</p>
-                @endif
-
-                {{-- Bank details card --}}
-                <div class="bg-white rounded-xl border border-amber-200 divide-y divide-amber-100">
-                    @if($bankDetails['bank_name'])
-                    <div class="flex items-center justify-between px-4 py-3">
-                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Bank</span>
-                        <span class="font-bold text-[#0F172A] text-sm">{{ $bankDetails['bank_name'] }}</span>
-                    </div>
-                    @endif
-                    @if($bankDetails['account_name'])
-                    <div class="flex items-center justify-between px-4 py-3">
-                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Account Name</span>
-                        <span class="font-bold text-[#0F172A] text-sm">{{ $bankDetails['account_name'] }}</span>
-                    </div>
-                    @endif
-                    @if($bankDetails['account_number'])
-                    <div class="flex items-center justify-between px-4 py-3">
-                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Account Number</span>
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold text-[#0F172A] font-mono tracking-widest text-base" id="acct-num">{{ $bankDetails['account_number'] }}</span>
-                            <button type="button"
-                                    onclick="navigator.clipboard.writeText('{{ $bankDetails['account_number'] }}').then(() => { this.textContent='Copied!'; setTimeout(() => this.textContent='Copy', 1500); })"
-                                    class="text-xs text-amber-600 hover:text-amber-800 font-semibold px-2 py-0.5 rounded border border-amber-300 hover:border-amber-500 transition-colors">
-                                Copy
-                            </button>
-                        </div>
-                    </div>
-                    @endif
-                    {{-- Amount to transfer — dynamically reflects advance or full choice --}}
-                    <div class="flex items-center justify-between px-4 py-3 bg-amber-50">
-                        <span class="text-xs font-semibold text-amber-700 uppercase tracking-wide">Amount to Transfer</span>
-                        <span class="font-bold text-amber-700 text-base">
-                            @php
-                                $order = \App\Models\Order::where('order_number', $orderNumber)->first();
-                            @endphp
-                            Rs. {{ $advanceOption === 'advance'
-                                    ? number_format($order?->advance_amount ?? 0, 0)
-                                    : number_format($order?->total ?? 0, 0) }}
-                        </span>
-                    </div>
-                </div>
-
-                @if($bankDetails['instructions'])
-                <p class="text-xs text-amber-700">{{ $bankDetails['instructions'] }}</p>
-                @endif
-
-                {{-- Proof Upload --}}
-                @if($proofUploaded)
-                <div class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
-                    <svg class="w-6 h-6 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-6 h-6 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <div>
-                        <p class="font-semibold text-sm text-green-800">Payment Receipt Uploaded</p>
-                        <p class="text-xs text-green-600">Our team will verify and confirm your order shortly.</p>
-                    </div>
+                    <h3 class="font-[Poppins] font-bold text-base text-green-900">Payment Proof Submitted</h3>
                 </div>
-                @else
-                <div class="space-y-3">
-                    <p class="text-sm font-semibold text-amber-900">Upload Payment Receipt <span class="text-red-500">*</span></p>
-                    <div x-data="{ dragging: false }"
-                         @dragover.prevent="dragging = true"
-                         @dragleave="dragging = false"
-                         @drop.prevent="dragging = false; $refs.proofInput.files = $event.dataTransfer.files; $refs.proofInput.dispatchEvent(new Event('change'))"
-                         :class="dragging ? 'border-amber-500 bg-amber-100' : 'border-amber-300 bg-white'"
-                         class="border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer"
-                         @click="$refs.proofInput.click()">
-                        <input type="file" x-ref="proofInput" wire:model="paymentProofFile"
-                               accept="image/*" class="hidden">
-                        <template x-if="!$wire.paymentProofFile">
-                            <div>
-                                <svg class="w-10 h-10 text-amber-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                                <p class="text-sm text-slate-600 font-medium">Click or drag to upload receipt</p>
-                                <p class="text-xs text-slate-400 mt-1">JPG, PNG up to 5MB</p>
-                            </div>
-                        </template>
-                        <div wire:loading wire:target="paymentProofFile" class="flex items-center justify-center gap-2 text-amber-600">
-                            <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                            </svg>
-                            <span class="text-sm">Uploading...</span>
-                        </div>
-                    </div>
-                    @if($paymentProofFile)
-                    <div class="flex items-center gap-3 bg-white border border-amber-200 rounded-xl p-3">
-                        <img src="{{ $paymentProofFile->temporaryUrl() }}" class="w-16 h-16 object-cover rounded-lg shrink-0">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-[#0F172A] truncate">{{ $paymentProofFile->getClientOriginalName() }}</p>
-                            <p class="text-xs text-slate-400">{{ number_format($paymentProofFile->getSize() / 1024, 0) }} KB</p>
-                        </div>
-                    </div>
-                    @endif
-                    @error('paymentProofFile')
-                    <p class="text-xs text-red-500">{{ $message }}</p>
-                    @enderror
-                    <button wire:click="uploadProof" wire:loading.attr="disabled"
-                            class="btn-primary w-full justify-center">
-                        <svg wire:loading wire:target="uploadProof" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                        </svg>
-                        <span wire:loading.remove wire:target="uploadProof">Submit Payment Proof</span>
-                        <span wire:loading wire:target="uploadProof">Uploading...</span>
-                    </button>
-                </div>
-                @endif
+                <p class="text-sm text-green-800">
+                    We have received your payment proof for order <strong>{{ $orderNumber }}</strong>.
+                    Our team will verify the transfer and update your order status shortly.
+                </p>
             </div>
             @else
             <p class="text-sm text-center text-[#64748B]">Our team will review your order and confirm it shortly.</p>
@@ -361,7 +248,7 @@
                         @if($bankDetails['instructions'])
                         <p class="text-xs text-amber-700 border-t border-amber-200 pt-2">{{ $bankDetails['instructions'] }}</p>
                         @endif
-                        <p class="text-xs text-slate-500">After placing your order, you'll be asked to upload your payment receipt.</p>
+                        <p class="text-xs text-slate-500">Please upload your payment receipt in the next step to complete your order.</p>
                     </div>
                     @endif
 
@@ -415,7 +302,84 @@
                             </div>
                             @endforeach
                         </div>
+                    {{-- Payment Proof Upload (Required for Bank Transfer) --}}
+                    @if($paymentMethod === 'bank_transfer')
+                    <div class="card p-5 border-2 border-amber-300 bg-amber-50 space-y-4">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
+                            </svg>
+                            <h4 class="font-semibold text-sm text-amber-900">Make Transfer & Upload Proof <span class="text-red-500">*</span></h4>
+                        </div>
+
+                        {{-- Bank details for quick reference --}}
+                        <div class="bg-white rounded-xl border border-amber-200 divide-y divide-amber-100 overflow-hidden shadow-sm">
+                            @if($bankDetails['bank_name'])
+                            <div class="flex items-center justify-between px-4 py-2.5">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bank</span>
+                                <span class="font-bold text-[#0F172A] text-xs">{{ $bankDetails['bank_name'] }}</span>
+                            </div>
+                            @endif
+                            @if($bankDetails['account_name'])
+                            <div class="flex items-center justify-between px-4 py-2.5">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Account</span>
+                                <span class="font-bold text-[#0F172A] text-xs">{{ $bankDetails['account_name'] }}</span>
+                            </div>
+                            @endif
+                            @if($bankDetails['account_number'])
+                            <div class="flex items-center justify-between px-4 py-2.5">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Acc #</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-[#0F172A] font-mono text-sm tracking-widest">{{ $bankDetails['account_number'] }}</span>
+                                    <button type="button" onclick="navigator.clipboard.writeText('{{ $bankDetails['account_number'] }}')" class="text-[10px] text-amber-600 font-bold hover:underline">Copy</button>
+                                </div>
+                            </div>
+                            @endif
+                            <div class="flex items-center justify-between px-4 py-2.5 bg-amber-100">
+                                <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Amount</span>
+                                <span class="font-bold text-amber-700 text-sm">Rs. {{ $advanceOption === 'advance' ? number_format($total * $advancePct / 100, 0) : number_format($total, 0) }}</span>
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-amber-700">Please finish the transfer and upload a clear screenshot of the receipt below.</p>
+
+                        <div x-data="{ dragging: false }"
+                             @dragover.prevent="dragging = true"
+                             @dragleave="dragging = false"
+                             @drop.prevent="dragging = false; $refs.proofInput.files = $event.dataTransfer.files; $refs.proofInput.dispatchEvent(new Event('change'))"
+                             :class="dragging ? 'border-amber-500 bg-amber-100' : 'border-amber-300 bg-white'"
+                             class="border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer"
+                             @click="$refs.proofInput.click()">
+                            <input type="file" x-ref="proofInput" wire:model="paymentProofFile"
+                                   accept="image/*" class="hidden">
+                            <template x-if="!$wire.paymentProofFile">
+                                <div>
+                                    <svg class="w-8 h-8 text-amber-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                    </svg>
+                                    <p class="text-xs text-slate-600 font-medium">Click or drag to upload receipt</p>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">JPG, PNG up to 5MB</p>
+                                </div>
+                            </template>
+                            <div wire:loading wire:target="paymentProofFile" class="flex items-center justify-center gap-2 text-amber-600">
+                                <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                </svg>
+                                <span class="text-xs">Uploading...</span>
+                            </div>
+                            @if($paymentProofFile)
+                            <div class="space-y-2">
+                                <img src="{{ $paymentProofFile->temporaryUrl() }}" class="w-20 h-20 mx-auto object-cover rounded-lg">
+                                <p class="text-[10px] font-semibold text-[#0F172A] truncate">{{ $paymentProofFile->getClientOriginalName() }}</p>
+                            </div>
+                            @endif
+                        </div>
+                        @error('paymentProofFile')
+                        <p class="text-xs text-red-500 font-medium">{{ $message }}</p>
+                        @enderror
                     </div>
+                    @endif
 
                     <div class="flex justify-between">
                         <button wire:click="prevStep" class="btn-secondary">Back</button>

@@ -241,6 +241,18 @@ class Checkout extends Component
         $shipping    = Setting::get('delivery_fee_enabled', '0') === '1' ? (float) Setting::get('delivery_fee_amount', '0') : 0;
         $tax         = round($subtotal * ((float) \App\Models\Setting::get('tax_rate', '15') / 100), 2);
         $total       = round($subtotal + $shipping + $tax - $this->discountAmount, 2);
+
+        // Validation for payment proof if bank transfer
+        if ($this->paymentMethod === 'bank_transfer') {
+            $this->validate([
+                'paymentProofFile' => 'required|file|image|max:5120',
+            ], [
+                'paymentProofFile.required' => 'Payment proof is mandatory for bank transfers.',
+                'paymentProofFile.image'    => 'The payment proof must be an image.',
+                'paymentProofFile.max'      => 'The payment proof must be under 5MB.',
+            ]);
+        }
+
         $orderNumber = Order::generateOrderNumber();
 
         DB::transaction(function () use ($subtotal, $shipping, $tax, $total, $orderNumber) {
@@ -265,9 +277,26 @@ class Checkout extends Component
                 ],
                 'payment_method'   => $this->paymentMethod,
                 'payment_status'   => 'pending',
+                'payment_proof'    => $this->paymentMethod === 'bank_transfer' ? $this->paymentProofFile->store('payment-proofs', 'public') : null,
                 'coupon_code'      => $this->appliedCoupon?->code,
                 'notes'            => $this->notes,
             ]);
+
+            // Create OrderPayment record if bank transfer proof is uploaded
+            if ($this->paymentMethod === 'bank_transfer' && $order->payment_proof) {
+                // Determine payment type and amount from the advance option chosen at checkout
+                $type   = $this->advanceOption === 'advance' ? 'advance' : 'full';
+                $amount = $this->advanceOption === 'advance' ? round($total * ((float) Setting::get('payment_advance_percentage', '50') / 100), 2) : $total;
+
+                \App\Models\OrderPayment::create([
+                    'order_id'     => $order->id,
+                    'type'         => $type,
+                    'amount'       => $amount,
+                    'method'       => 'bank_transfer',
+                    'receipt_path' => $order->payment_proof,
+                    'status'       => 'pending',
+                ]);
+            }
 
             // Set advance / balance amounts for bank transfer orders
             if ($this->paymentMethod === 'bank_transfer') {
