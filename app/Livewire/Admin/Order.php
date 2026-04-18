@@ -304,7 +304,14 @@ class Order extends Component
         $product = \App\Models\Product::find($productId);
         if (!$product) return;
 
-        $idx = $this->stockReplaceIdx;
+        $idx   = $this->stockReplaceIdx;
+        $short = (int) ($this->stockIssues[$idx]['short'] ?? 0);
+
+        if (($product->stock ?? 0) < $short) {
+            session()->flash('replace_error', "Insufficient stock for " . $product->name . ". Needed: {$short}, Available: " . ($product->stock ?? 0));
+            return;
+        }
+
         $this->stockDecisions[$idx]    = 'replace';
         $this->stockReplaceChoices[$idx] = $productId;
         $this->showStockReplaceModal   = false;
@@ -363,9 +370,17 @@ class Order extends Component
                     continue;
                 }
 
+                $newQty = $issue['short']; // the short quantity being replaced
+
+                // Final safety check: ensure the replacement product STILL has enough stock
+                if ($replacementProduct->stock < $newQty) {
+                    $this->stockDecisions[$index] = 'next_batch'; // Revert to backorder
+                    session()->flash('error', "Stock for replacement product ({$replacementProduct->name}) was sold out. Reverted to backorder.");
+                    continue;
+                }
+
                 $orderItem = $order->items->firstWhere('id', $issue['item_id']);
                 if ($orderItem) {
-                    $newQty      = $issue['short']; // the short quantity being replaced
                     $newPrice    = (float) $replacementProduct->price;
                     $newSubtotal = round($newPrice * $newQty, 2);
 

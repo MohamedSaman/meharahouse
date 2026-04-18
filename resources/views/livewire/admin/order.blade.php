@@ -1468,19 +1468,30 @@
 
                     {{-- Product list --}}
                     <div class="max-h-48 overflow-y-auto space-y-1.5">
+                        @if(session('replace_error'))
+                        <div class="p-2 mb-2 bg-red-50 border border-red-200 rounded-lg text-[11px] text-red-600 font-medium">
+                            {{ session('replace_error') }}
+                        </div>
+                        @endif
+
                         @if(strlen($stockReplaceSearch) >= 2)
                             @forelse($stockReplaceProducts as $rp)
+                            @php $isOutOfStock = ($rp->stock < $ri['short']); @endphp
                             <button wire:click="confirmStockReplaceItem({{ $rp->id }})"
                                     type="button"
-                                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-slate-200 hover:border-orange-300 hover:bg-orange-50 text-left transition-all">
+                                    {{ $isOutOfStock ? 'disabled' : '' }}
+                                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all
+                                        {{ $isOutOfStock 
+                                            ? 'bg-slate-50 border-slate-100 opacity-60 cursor-not-allowed' 
+                                            : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50 hover:shadow-sm' }} text-left">
                                 <div class="min-w-0">
-                                    <p class="font-semibold text-sm text-[#0F172A] truncate">{{ $rp->name }}</p>
+                                    <p class="font-semibold text-sm {{ $isOutOfStock ? 'text-slate-400' : 'text-[#0F172A]' }} truncate">{{ $rp->name }}</p>
                                     @if($rp->sku)
                                     <p class="text-[11px] text-slate-400 font-mono">{{ $rp->sku }}</p>
                                     @endif
                                 </div>
                                 <div class="text-right shrink-0 ml-3">
-                                    <p class="font-bold text-sm text-[#0F172A]">Rs. {{ number_format($rp->price, 0) }}</p>
+                                    <p class="font-bold text-sm {{ $isOutOfStock ? 'text-slate-400' : 'text-[#0F172A]' }}">Rs. {{ number_format($rp->price, 0) }}</p>
                                     <p class="text-[11px] {{ $rp->stock >= $ri['short'] ? 'text-green-600' : 'text-red-500' }} font-semibold">
                                         {{ $rp->stock }} in stock
                                     </p>

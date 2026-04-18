@@ -223,13 +223,22 @@
                     {{-- Action buttons --}}
                     <div class="flex items-center gap-2 shrink-0">
                         @if($bo->isActive())
-                        <button wire:click="openRefundModal({{ $bo->id }})"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 text-xs font-semibold transition-all shadow-sm">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-                            </svg>
-                            Refund
-                        </button>
+                        <div class="flex items-center gap-1.5">
+                            <button wire:click="openReplaceModal({{ $bo->id }})"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200 text-xs font-semibold transition-all shadow-sm">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                </svg>
+                                Replace
+                            </button>
+                            <button wire:click="openRefundModal({{ $bo->id }})"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 text-xs font-semibold transition-all shadow-sm">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                </svg>
+                                Refund
+                            </button>
+                        </div>
                         @endif
                         <span class="text-[10px] text-slate-400 font-medium italic">Logistics: Shipments</span>
                     </div>
@@ -390,6 +399,13 @@
                     </div>
                      <div class="flex items-center gap-2">
                         @if($bo->isActive())
+                        <button wire:click="openReplaceModal({{ $bo->id }})"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 text-xs font-semibold hover:bg-orange-100 transition-all">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                            </svg>
+                            Replace
+                        </button>
                         <button wire:click="openRefundModal({{ $bo->id }})"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-all">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
