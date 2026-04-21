@@ -327,6 +327,17 @@
                                     Confirm Order
                                 </button>
                                 @endif
+
+                                {{-- Completed --}}
+                                @if($order->status === 'delivered')
+                                <button wire:click="forceComplete({{ $order->id }})"
+                                        wire:confirm="Mark this order as Completed? This means the sale is fully done."
+                                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-green-600 hover:bg-green-700 border border-green-600 transition-all hover:-translate-y-0.5 shadow-sm"
+                                        style="color:#ffffff;">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Completed
+                                </button>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -1296,14 +1307,15 @@
             <div class="overflow-y-auto flex-1 px-5 py-4 space-y-3">
                 @foreach($stockIssues as $idx => $issue)
                 @php
-                    $dec = $stockDecisions[$idx] ?? 'next_batch';
+                    $dec = $stockDecisions[$idx] ?? 'skip';
                     $replaceProductId = $stockReplaceChoices[$idx] ?? null;
                     $replaceProduct   = $replaceProductId ? \App\Models\Product::find($replaceProductId) : null;
                 @endphp
                 <div class="rounded-2xl border p-4 transition-colors
-                    {{ $dec === 'refund'   ? 'border-red-200 bg-red-50/40'
-                     : ($dec === 'replace' ? 'border-orange-200 bg-orange-50/30'
-                     :                      'border-amber-200 bg-amber-50/30') }}">
+                    {{ $dec === 'refund'      ? 'border-red-200 bg-red-50/40'
+                     : ($dec === 'replace'   ? 'border-orange-200 bg-orange-50/30'
+                     : ($dec === 'next_batch'? 'border-amber-200 bg-amber-50/30'
+                     :                        'border-slate-200 bg-slate-50/40')) }}">
 
                     {{-- Product name + price --}}
                     <div class="flex items-start justify-between mb-3">
@@ -1324,8 +1336,10 @@
                         <span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wide shrink-0">Backorder</span>
                         @elseif($dec === 'replace')
                         <span class="px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold uppercase tracking-wide shrink-0">Replace</span>
-                        @else
+                        @elseif($dec === 'refund')
                         <span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-bold uppercase tracking-wide shrink-0">Refund</span>
+                        @else
+                        <span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-wide shrink-0">Choose Action</span>
                         @endif
                     </div>
 
@@ -1359,7 +1373,7 @@
                             </svg>
                             <div class="text-center leading-tight">
                                 <p class="text-[11px] font-bold">Next Batch</p>
-                                <p class="text-[9px] {{ $dec === 'next_batch' ? 'text-amber-100' : 'text-slate-400' }}">Backorder</p>
+                                <p class="text-[9px] {{ $dec === 'next_batch' ? 'text-amber-100' : 'text-slate-400' }}">→ Backorder</p>
                             </div>
                         </button>
 
@@ -1404,12 +1418,18 @@
                     $sumNextBatch   = collect($stockDecisions)->filter(fn($d) => $d === 'next_batch')->count();
                     $sumRefund      = collect($stockDecisions)->filter(fn($d) => $d === 'refund')->count();
                     $sumReplace     = collect($stockDecisions)->filter(fn($d) => $d === 'replace')->count();
+                    $sumSkip        = collect($stockDecisions)->filter(fn($d) => $d === 'skip')->count();
                     $totalRefundAmt = 0;
                     foreach ($stockIssues as $i => $iss) {
-                        if (($stockDecisions[$i] ?? '') === 'refund') $totalRefundAmt += $iss['short_amount'];
+                        if (($stockDecisions[$i] ?? 'skip') === 'refund') $totalRefundAmt += $iss['short_amount'];
                     }
                 @endphp
                 <div class="flex items-center gap-2 flex-wrap">
+                    @if($sumSkip)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">
+                        {{ $sumSkip }} item{{ $sumSkip > 1 ? 's' : '' }} — ship available only
+                    </span>
+                    @endif
                     @if($sumNextBatch)
                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>

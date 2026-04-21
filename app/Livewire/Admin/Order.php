@@ -168,7 +168,7 @@ class Order extends Component
 
         if (!empty($issues)) {
             $this->stockIssues     = $issues;
-            $this->stockDecisions  = array_fill(0, count($issues), 'next_batch');
+            $this->stockDecisions  = array_fill(0, count($issues), 'skip');
             $this->stockAlertOrder = $orderId;
             $this->showStockAlert  = true;
             return;
@@ -235,7 +235,7 @@ class Order extends Component
         }
         if (!empty($issues)) {
             $this->stockIssues     = $issues;
-            $this->stockDecisions  = array_fill(0, count($issues), 'next_batch');
+            $this->stockDecisions  = array_fill(0, count($issues), 'skip');
             $this->stockAlertOrder = $orderId;
             $this->showStockAlert  = true;
             return;
@@ -371,6 +371,11 @@ class Order extends Component
                                                         ?? round($issue['unit_price'] * $issue['needed'], 2),
                     ]);
                 }
+
+            } elseif ($decision === 'skip') {
+                // Ship only the available quantity — no backorder created.
+                // The stock deduction loop below handles deducting the available qty.
+                // No further action needed here.
 
             } elseif ($decision === 'replace') {
                 $replacementProductId = $this->stockReplaceChoices[$index] ?? null;

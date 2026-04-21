@@ -276,6 +276,26 @@
                             Go to Shipments
                         </button>
                         @endif
+                        @if($bo->status === 'dispatched')
+                        <button wire:click="markDelivered({{ $bo->id }})"
+                                wire:confirm="Mark this backorder as delivered to customer?"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-100 hover:bg-teal-200 text-teal-700 border border-teal-200 text-xs font-semibold transition-all shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Mark Delivered
+                        </button>
+                        @endif
+                        @if($bo->status === 'delivered')
+                        <button wire:click="markCompleted({{ $bo->id }})"
+                                wire:confirm="Mark as completed? This will also update the order status to delivered if all backorders are done."
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white border border-green-700 text-xs font-semibold transition-all shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Completed
+                        </button>
+                        @endif
                     </div>
                 </div>
                 @endforeach
@@ -486,6 +506,26 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                             Go to Shipments
+                        </button>
+                        @endif
+                        @if($bo->status === 'dispatched')
+                        <button wire:click="markDelivered({{ $bo->id }})"
+                                wire:confirm="Mark this backorder as delivered to customer?"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal-200 bg-teal-50 text-teal-700 text-xs font-semibold hover:bg-teal-100 transition-all">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Mark Delivered
+                        </button>
+                        @endif
+                        @if($bo->status === 'delivered')
+                        <button wire:click="markCompleted({{ $bo->id }})"
+                                wire:confirm="Mark as completed? This will also update the order status to delivered if all backorders are done."
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-green-600 bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition-all">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Completed
                         </button>
                         @endif
                     </div>
