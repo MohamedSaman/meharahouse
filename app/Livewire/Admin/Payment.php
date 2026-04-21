@@ -147,16 +147,7 @@ class Payment extends Component
         $confirmedTotal = $order->payments->sum('amount');
         $due            = max(0, (float) $order->total - $confirmedTotal);
 
-        $message = "💳 *Payment Reminder — {$siteName}*\n\n"
-            . "Dear {$name},\n\n"
-            . "This is a friendly reminder regarding your order *{$order->order_number}*.\n\n"
-            . "📦 *Order Total:* Rs. " . number_format($order->total, 0) . "\n"
-            . "✅ *Amount Paid:* Rs. " . number_format($confirmedTotal, 0) . "\n"
-            . "⚠️ *Balance Due:* Rs. " . number_format($due, 0) . "\n\n"
-            . "Please transfer the balance to:\n{$bankDetails}\n\n"
-            . "Thank you for shopping with {$siteName}! 🙏";
-
-        $result = WhatsappService::send($phone, $message);
+        $result = WhatsappService::paymentReminder($order, $confirmedTotal, $due);
 
         if ($result['success']) {
             session()->flash('success', 'Payment reminder sent via WhatsApp to ' . $phone . '.');
