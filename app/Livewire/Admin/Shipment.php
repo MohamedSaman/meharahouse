@@ -248,14 +248,32 @@ class Shipment extends Component
 
         if ($newStatus === 'completed') {
             // Backorders that are dispatched → delivered when batch completes
+            $affectedOrderIds = collect();
             $batch->backorders()
                 ->where('status', 'dispatched')
-                ->each(function ($bo) {
+                ->each(function ($bo) use (&$affectedOrderIds) {
                     $bo->update([
                         'status'       => 'delivered',
                         'delivered_at' => now(),
                     ]);
+                    $affectedOrderIds->push($bo->order_id);
                 });
+
+            // Update parent order status for backorder-linked orders
+            $affectedOrderIds->unique()->each(function ($orderId) {
+                $order = \App\Models\Order::find($orderId);
+                if (!$order) return;
+
+                // Check if any backorders are still not done
+                $remaining = \App\Models\OrderBackorder::where('order_id', $orderId)
+                    ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
+                    ->count();
+
+                if ($remaining === 0 && in_array($order->status, ['sourcing', 'confirmed', 'dispatched'])) {
+                    $order->logStatus('delivered', 'All backorders delivered via shipment batch.', auth()->id());
+                    $order->update(['status' => 'delivered']);
+                }
+            });
         }
     }
 

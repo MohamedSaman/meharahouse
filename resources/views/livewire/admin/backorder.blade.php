@@ -228,7 +228,20 @@
                     {{-- Action buttons --}}
                     <div class="flex items-center gap-2 shrink-0">
                         @if($bo->isActive())
+                        @if($order->status !== 'delivered')
                         <div class="flex items-center gap-1.5">
+                            @if($currentStock >= $bo->short_qty)
+                            {{-- Stock available after purchase: confirm it ready --}}
+                            <button wire:click="markReady({{ $bo->id }})"
+                                    wire:confirm="Mark this backorder as ready to dispatch?"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 border border-green-200 text-xs font-semibold transition-all shadow-sm">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Mark Ready
+                            </button>
+                            @else
+                            {{-- No stock: offer replace or refund --}}
                             <button wire:click="openReplaceModal({{ $bo->id }})"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200 text-xs font-semibold transition-all shadow-sm">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +256,9 @@
                                 </svg>
                                 Refund
                             </button>
+                            @endif
                         </div>
+                        @endif
                         @endif
                         <span class="text-[10px] text-slate-400 font-medium italic">Logistics: Shipments</span>
                     </div>
@@ -404,6 +419,19 @@
                     </div>
                      <div class="flex items-center gap-2">
                         @if($bo->isActive())
+                        @if($selectedOrder->status !== 'delivered')
+                        @if($currentStock2 >= $bo->short_qty)
+                        {{-- Stock available: confirm ready --}}
+                        <button wire:click="markReady({{ $bo->id }})"
+                                wire:confirm="Mark this backorder as ready to dispatch?"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-green-200 bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-all">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Mark Ready
+                        </button>
+                        @else
+                        {{-- No stock: replace or refund --}}
                         <button wire:click="openReplaceModal({{ $bo->id }})"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 text-xs font-semibold hover:bg-orange-100 transition-all">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,6 +446,8 @@
                             </svg>
                             Refund
                         </button>
+                        @endif
+                        @endif
                         <button wire:click="cancelBackorder({{ $bo->id }})"
                                 wire:confirm="Cancel this backorder?"
                                 class="inline-flex items-center px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-all">

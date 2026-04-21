@@ -108,6 +108,14 @@ class Backorder extends Component
         }
 
         $bo->update(['status' => 'ready']);
+
+        // Update order status to 'sourcing' when at least one backorder is ready
+        $order = $bo->order()->first();
+        if ($order && $order->status === 'confirmed') {
+            $order->logStatus('sourcing', 'Backorder item ready — awaiting shipment dispatch.', auth()->id());
+            $order->update(['status' => 'sourcing']);
+        }
+
         $this->refreshDetail();
         session()->flash('success', "{$bo->backorder_number} marked ready to dispatch.");
     }
@@ -164,8 +172,8 @@ class Backorder extends Component
                 'All backorders completed — order fully fulfilled.',
                 auth()->id()
             );
-            // Also update order to 'delivered' if it was still in sourcing/confirmed
-            if (in_array($bo->order->status, ['sourcing', 'confirmed'])) {
+            // Update order to 'delivered' if it was still pending/in-transit
+            if (in_array($bo->order->status, ['sourcing', 'confirmed', 'dispatched'])) {
                 $bo->order->update(['status' => 'delivered']);
             }
         }
