@@ -40,6 +40,13 @@ class Backorder extends Component
     public float  $originalItemPrice        = 0.0;  // price per unit from order item
     public int    $replacingQty             = 0;    // short_qty of the backorder
     public float  $selectedReplacementPrice = 0.0;  // price of chosen replacement product
+    public int    $replaceQty               = 1;
+
+    // ── Payment gate ──────────────────────────────────────────────────
+    public bool   $showPaymentGate    = false;
+    public int    $paymentGateOrderId = 0;
+    public string $paymentGateOrderNo = '';
+    public float  $paymentGateDue    = 0.0;
 
     // ── Refund modal ──────────────────────────────────────────────────
     public bool   $showRefundModal       = false;
@@ -48,11 +55,22 @@ class Backorder extends Component
     public string $refundMethod           = 'bank_transfer';
     public string $customerBankAccount    = '';
     public string $refundNotes            = '';
+    public int    $refundQty              = 1;
 
     // ─────────────────────────────────────────────────────────────────
 
     public function updatingSearch(): void       { $this->resetPage(); }
     public function updatingFilterStatus(): void { $this->resetPage(); }
+
+    public function updatedRefundQty(): void
+    {
+        $bo = OrderBackorder::with('orderItem', 'product')->find($this->refundingBoId);
+        if (!$bo) return;
+        $unitPrice = $bo->orderItem ? (float) $bo->orderItem->price : ($bo->product ? (float) $bo->product->price : 0);
+        $qty = max(1, min((int) $this->refundQty, (int) $bo->short_qty));
+        $this->refundQty    = $qty;
+        $this->refundAmount = (string) round($unitPrice * $qty, 2);
+    }
 
     // ── Detail Panel (order-level) ────────────────────────────────────
 
@@ -210,11 +228,29 @@ class Backorder extends Component
     public function openRefundModal(int $id): void
     {
         $bo = OrderBackorder::with(['order', 'orderItem'])->findOrFail($id);
-        
-        $this->refundingBoId        = $id;
-        // Default refund amount = item unit price * short_qty
-        $unitPrice = $bo->orderItem ? (float) $bo->orderItem->price : ($bo->product ? (float) $bo->product->price : 0);
-        $this->refundAmount         = (string) ($unitPrice * $bo->short_qty);
+
+        $this->refundingBoId = $id;
+        $this->refundQty = (int) $bo->short_qty;
+        $unitPrice    = $bo->orderItem ? (float) $bo->orderItem->price : ($bo->product ? (float) $bo->product->price : 0);
+        $itemSubtotal = round($unitPrice * $bo->short_qty, 2);
+
+        // For partial/advance payment orders, only pre-fill what was actually paid for this item
+        $order = $bo->order;
+        if ($order) {
+            $totalPaid    = (float) $order->payments()->whereIn('type', ['advance', 'balance', 'full'])->where('status', 'confirmed')->sum('amount');
+            $orderTotal   = (float) $order->total;
+            if ($orderTotal > 0 && $totalPaid < $orderTotal) {
+                // Proportional: how much of this item's value has been paid
+                $proportion   = $itemSubtotal / $orderTotal;
+                $paidForItem  = round($totalPaid * $proportion, 2);
+                $this->refundAmount = (string) min($paidForItem, $itemSubtotal);
+            } else {
+                $this->refundAmount = (string) $itemSubtotal;
+            }
+        } else {
+            $this->refundAmount = (string) $itemSubtotal;
+        }
+
         $this->refundMethod         = 'bank_transfer';
         $this->customerBankAccount  = '';
         $this->refundNotes          = "Refund for out-of-stock item: {$bo->product_name}";
@@ -223,12 +259,18 @@ class Backorder extends Component
 
     public function confirmRefund(): void
     {
+        $bo    = OrderBackorder::with(['order', 'orderItem', 'product'])->findOrFail($this->refundingBoId);
+        $unitPrice = $bo->orderItem ? (float) $bo->orderItem->price : ($bo->product ? (float) $bo->product->price : 0);
+        $maxRefund = round($unitPrice * $bo->short_qty, 2);
+
         $this->validate([
-            'refundAmount' => ['required', 'numeric', 'min:0'],
+            'refundAmount' => ['required', 'numeric', 'min:0.01', 'max:' . $maxRefund],
             'refundMethod' => ['required', 'string'],
+            'refundQty'    => ['required', 'integer', 'min:1', 'max:' . $bo->short_qty],
+        ], [
+            'refundAmount.max' => 'Refund amount cannot exceed LKR ' . number_format($maxRefund, 2) . ' (item price × quantity).',
         ]);
 
-        $bo    = OrderBackorder::with(['order', 'orderItem'])->findOrFail($this->refundingBoId);
         $order = $bo->order;
 
         \DB::transaction(function() use ($bo, $order) {
@@ -245,8 +287,18 @@ class Backorder extends Component
                 'processed_at'          => now(),
             ]);
 
-            // 2. Update Backorder
-            $bo->update(['status' => 'cancelled', 'notes' => ($bo->notes ? $bo->notes . "\n" : "") . "Refunded: LKR " . $this->refundAmount]);
+            // 2. Update Backorder (partial or full cancel)
+            if ((int) $this->refundQty >= (int) $bo->short_qty) {
+                // Full refund of all units — cancel the backorder
+                $bo->update(['status' => 'cancelled', 'notes' => ($bo->notes ? $bo->notes . "\n" : "") . "Refunded: LKR " . $this->refundAmount]);
+            } else {
+                // Partial refund — reduce short_qty and keep backorder active
+                $newShortQty = (int) $bo->short_qty - (int) $this->refundQty;
+                $bo->update([
+                    'short_qty' => $newShortQty,
+                    'notes'     => ($bo->notes ? $bo->notes . "\n" : "") . "Partial refund: {$this->refundQty} unit(s) refunded LKR " . $this->refundAmount,
+                ]);
+            }
 
             // 3. Update Order Item
             if ($bo->orderItem) {
@@ -304,6 +356,33 @@ class Backorder extends Component
         session()->flash('success', "Refund of LKR " . number_format((float)$this->refundAmount, 2) . " processed for {$bo->backorder_number}.");
     }
 
+    // ── Payment Gate (shipments dispatch check) ───────────────────────
+
+    public function checkDispatchPayment(int $orderId): void
+    {
+        $order = \App\Models\Order::findOrFail($orderId);
+        $due   = $order->balanceDue();
+
+        if ($due > 0) {
+            $this->paymentGateOrderId = $orderId;
+            $this->paymentGateOrderNo = $order->order_number;
+            $this->paymentGateDue     = $due;
+            $this->showPaymentGate    = true;
+            return;
+        }
+
+        // Fully paid — go straight to shipments
+        $this->redirectRoute('admin.shipments');
+    }
+
+    public function closePaymentGate(): void
+    {
+        $this->showPaymentGate    = false;
+        $this->paymentGateOrderId = 0;
+        $this->paymentGateOrderNo = '';
+        $this->paymentGateDue     = 0.0;
+    }
+
     // ── Replace Product ───────────────────────────────────────────────
 
     public function openReplaceModal(int $id): void
@@ -322,6 +401,7 @@ class Backorder extends Component
             ? (float) $bo->orderItem->price
             : 0.0;
         $this->replacingQty      = (int) ($bo?->short_qty ?? 0);
+        $this->replaceQty        = (int) ($bo?->short_qty ?? 1);
         $this->showReplaceModal  = true;
     }
 
@@ -343,20 +423,18 @@ class Backorder extends Component
         $bo          = OrderBackorder::with(['product', 'orderItem'])->findOrFail($this->replacingBoId);
         $replacement = Product::findOrFail($this->selectedReplacementId);
 
-        if ($replacement->stock < $bo->short_qty) {
-            $this->addError('selectedReplacementId',
-                "Not enough stock. Need {$bo->short_qty}, only {$replacement->stock} available.");
-            return;
-        }
+        // If out of stock, save replacement product and keep in repurchasing state
+        // (admin will purchase it next batch, then mark ready)
+        $qty      = max(1, min((int) $this->replaceQty, (int) $bo->short_qty));
+        $hasStock = $replacement->stock >= $qty;
 
         // ── Price difference calculation ──────────────────────────────
         $origUnitPrice  = $bo->orderItem ? (float) $bo->orderItem->price : 0.0;
         $newUnitPrice   = (float) $replacement->price;
-        $qty            = (int) $bo->short_qty;
         $priceDiff      = round(($newUnitPrice - $origUnitPrice) * $qty, 2); // + = more expensive, - = cheaper
 
-        if ($replacement->stock >= $bo->short_qty) {
-            $replacement->decrement('stock', $bo->short_qty);
+        if ($hasStock) {
+            $replacement->decrement('stock', $qty);
         }
 
         $bo->update([
@@ -364,8 +442,27 @@ class Backorder extends Component
             'replacement_product_id' => $replacement->id,
             'replacement_price'      => $replacement->price,
             'replacement_notes'      => $this->replaceNotes ?: null,
-            'status'                 => 'ready',
+            'status'                 => $hasStock ? 'ready' : 'repurchasing',
         ]);
+
+        // If partial replacement, create remaining backorder for un-replaced units
+        $remainingQty = (int) $bo->short_qty - $qty;
+        if ($remainingQty > 0) {
+            OrderBackorder::create([
+                'order_id'      => $bo->order_id,
+                'order_item_id' => $bo->order_item_id,
+                'product_id'    => $bo->product_id,
+                'product_name'  => $bo->product_name,
+                'size'          => $bo->size,
+                'ordered_qty'   => $remainingQty,
+                'available_qty' => 0,
+                'short_qty'     => $remainingQty,
+                'decision'      => 'repurchase',
+                'status'        => 'repurchasing',
+                'created_by'    => auth()->id(),
+            ]);
+        }
+        $bo->update(['short_qty' => $qty]);
 
         // ── Update order item & recalculate totals ────────────────────
         $orderItem = \App\Models\OrderItem::find($bo->order_item_id);
@@ -460,6 +557,13 @@ class Backorder extends Component
         $this->selectedReplacementId    = null;
         $this->replacementSize          = '';
         $this->selectedReplacementPrice = 0.0;
+
+        if (!$hasStock) {
+            session()->flash('success',
+                "Replacement set to \"{$replacement->name}\" (out of stock). A purchase order will be needed to source this product. Status remains Repurchasing.");
+            $this->refreshDetail();
+            return;
+        }
 
         if ($priceDiff > 0) {
             session()->flash('success',

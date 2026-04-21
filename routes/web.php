@@ -56,6 +56,8 @@ Route::prefix('/')->name('webpage.')->middleware('website.live')->group(function
     Route::get('/cart',     App\Livewire\Webpage\Cart::class)->name('cart');
     Route::get('/checkout', App\Livewire\Webpage\Checkout::class)->name('checkout');
     Route::get('/orders',   App\Livewire\Webpage\Orders::class)->name('orders');
+    Route::get('/wishlist', App\Livewire\Webpage\Wishlist::class)->name('wishlist')->middleware('auth');
+    Route::get('/profile',  App\Livewire\Webpage\Profile::class)->name('profile')->middleware('auth');
 });
 
 /*

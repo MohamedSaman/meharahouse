@@ -132,6 +132,16 @@
                         </svg>
                     </button>
 
+                    {{-- Wishlist (desktop icon, auth only) --}}
+                    @auth
+                    <a href="{{ route('webpage.wishlist') }}" title="My Wishlist"
+                       class="relative p-2 rounded-lg text-[#475569] hover:text-[#D4A017] hover:bg-[#FFFDF5] transition-all duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </a>
+                    @endauth
+
                     {{-- Cart --}}
                     @php
                         $cartCount = auth()->check()
@@ -179,6 +189,14 @@
                             <a href="{{ route('webpage.orders') }}" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#475569] hover:bg-[#FFFDF5] hover:text-[#D4A017] transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                                 My Orders
+                            </a>
+                            <a href="{{ route('webpage.wishlist') }}" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#475569] hover:bg-[#FFFDF5] hover:text-[#D4A017] transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                My Wishlist
+                            </a>
+                            <a href="{{ route('webpage.profile') }}" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#475569] hover:bg-[#FFFDF5] hover:text-[#D4A017] transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                My Profile
                             </a>
                             @if(auth()->user()->isAdmin())
                             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#475569] hover:bg-[#FFFDF5] hover:text-[#D4A017] transition-colors">
@@ -280,11 +298,28 @@
                         </svg>
                         Reviews
                     </a>
-                    <div class="mt-3 px-4 pt-4 border-t border-[#F0EDE8]">
+                    <div class="mt-3 pt-4 border-t border-[#F0EDE8] space-y-0.5">
                         @auth
-                        <a href="{{ route('webpage.orders') }}" class="btn-primary w-full justify-center">My Orders</a>
+                        <a href="{{ route('webpage.orders') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#FFFDF5] hover:text-[#D4A017] transition-all duration-200">
+                            <svg class="w-4 h-4 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                            My Orders
+                        </a>
+                        <a href="{{ route('webpage.wishlist') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#FFFDF5] hover:text-[#D4A017] transition-all duration-200">
+                            <svg class="w-4 h-4 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            </svg>
+                            My Wishlist
+                        </a>
+                        <a href="{{ route('webpage.profile') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[#0F172A] hover:bg-[#FFFDF5] hover:text-[#D4A017] transition-all duration-200">
+                            <svg class="w-4 h-4 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            My Profile
+                        </a>
                         @else
-                        <a href="{{ route('auth.login') }}" class="btn-primary w-full justify-center">Sign In</a>
+                        <div class="px-4 pt-2">
+                            <a href="{{ route('auth.login') }}" class="btn-primary w-full justify-center">Sign In</a>
+                        </div>
                         @endauth
                     </div>
                 </nav>

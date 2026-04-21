@@ -290,6 +290,15 @@
                     {{-- Items --}}
                     <div class="card p-5">
                         <h4 class="font-semibold text-sm text-[#0F172A] mb-3">Order Items ({{ $this->cartItems->count() }})</h4>
+
+                        {{-- Warning: all cart items will be ordered --}}
+                        <div class="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 mb-3">
+                            <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>All items below will be included in this order. Remove any you don't want before confirming.</span>
+                        </div>
+
                         <div class="space-y-3">
                             @foreach($this->cartItems as $item)
                             <div class="flex items-center gap-3">
@@ -301,7 +310,13 @@
                                     <p class="text-sm font-medium text-[#0F172A] truncate">{{ $item->product->name }}</p>
                                     <p class="text-xs text-[#64748B]">Qty: {{ $item->quantity }}@if(!empty($item->size)) &bull; Size: {{ $item->size }}@endif</p>
                                 </div>
-                                <span class="text-sm font-semibold text-[#0F172A] shrink-0">Rs. {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}</span>
+                                <div class="flex flex-col items-end shrink-0 gap-1">
+                                    <span class="text-sm font-semibold text-[#0F172A]">Rs. {{ number_format($item->product->effectivePrice() * $item->quantity, 0) }}</span>
+                                    <button type="button" wire:click="remove('{{ $item->id ?? $item->product->id }}')"
+                                            class="text-[10px] uppercase font-bold text-red-400 hover:text-red-600 transition-colors">
+                                        Remove
+                                    </button>
+                                </div>
                             </div>
                             @endforeach
                         </div>

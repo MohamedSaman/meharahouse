@@ -396,6 +396,7 @@ class Purchasing extends Component
                     'order_number' => $bo->order?->order_number ?? 'N/A',
                     'order_id'     => $bo->order_id,
                     'product_name' => $bo->product_name,
+                    'size'         => $bo->size ?? '',
                     'short_qty'    => $bo->short_qty,
                     'stock'        => $stock,
                 ];
@@ -410,30 +411,30 @@ class Purchasing extends Component
 
     public function fulfillAllBackorders(): void
     {
+        $markedCount = 0;
+
         foreach ($this->fulfillableBackorders as $item) {
             $bo = OrderBackorder::find($item['id']);
-            if (!$bo) continue;
+            if (!$bo || $bo->status === 'ready') continue;
 
-            if ($bo->status !== 'ready') {
-                if ($bo->isReplacement() && $bo->replacementProduct) {
-                    if ($bo->replacementProduct->stock >= $bo->short_qty) {
-                        $bo->replacementProduct->decrement('stock', $bo->short_qty);
-                    }
-                } else {
-                    if ($bo->product && $bo->product->stock >= $bo->short_qty) {
-                        $bo->product->decrement('stock', $bo->short_qty);
-                    }
-                }
+            // Re-query product stock fresh to account for previous iterations
+            if ($bo->isReplacement() && $bo->replacementProduct) {
+                $freshProduct = \App\Models\Product::find($bo->replacement_product_id);
+                if (!$freshProduct || $freshProduct->stock < $bo->short_qty) continue;
+                $freshProduct->decrement('stock', $bo->short_qty);
+            } else {
+                $freshProduct = \App\Models\Product::find($bo->product_id);
+                if (!$freshProduct || $freshProduct->stock < $bo->short_qty) continue;
+                $freshProduct->decrement('stock', $bo->short_qty);
             }
 
-            // Mark as ready and deduct stock immediately so it is reserved
             $bo->update(['status' => 'ready']);
+            $markedCount++;
         }
 
-        $count = count($this->fulfillableBackorders);
         $this->showBackorderFulfillModal = false;
         $this->fulfillableBackorders     = [];
-        session()->flash('success', "{$count} backorder(s) marked as ready. Go to Back Orders to dispatch them.");
+        session()->flash('success', "{$markedCount} backorder(s) marked as ready. Go to Back Orders to dispatch them.");
     }
 
     public function dismissBackorderFulfill(): void

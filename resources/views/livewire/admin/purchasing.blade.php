@@ -448,7 +448,7 @@
                                 <thead>
                                     <tr class="border-b border-slate-200">
                                         <th class="text-left pb-2 text-xs font-semibold text-slate-600 w-1/4">Product</th>
-                                        <th class="text-left pb-2 text-xs font-semibold text-slate-600">Size</th>
+                                        <th class="text-left pb-2 text-xs font-semibold text-slate-600">Size <span class="text-red-500">*</span></th>
                                         <th class="text-left pb-2 text-xs font-semibold text-slate-600">Code</th>
                                         <th class="text-center pb-2 text-xs font-semibold text-slate-600 w-20">Qty</th>
                                         <th class="text-right pb-2 text-xs font-semibold text-slate-600 w-28">Unit Cost</th>
@@ -466,11 +466,13 @@
                                                    placeholder="Product name">
                                             @error("poItems.{$idx}.product_name") <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p> @enderror
                                         </td>
-                                        <td class="py-2.5 pr-3">
+                                        <td class="py-2.5 pr-3" x-data>
                                             <input wire:model.live="poItems.{{ $idx }}.size"
                                                    type="text"
+                                                   required
+                                                   :class="$wire.poItems[{{ $idx }}]?.size?.trim() === '' || $wire.poItems[{{ $idx }}]?.size === undefined ? 'border-amber-300' : ''"
                                                    class="form-input w-full text-sm py-1.5"
-                                                   placeholder="Size (L, 42...)">
+                                                   placeholder="Size (L, 42...) or N/A">
                                         </td>
                                         <td class="py-2.5 pr-3">
                                             <input wire:model.live="poItems.{{ $idx }}.sku"
@@ -511,6 +513,14 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                        </div>
+
+                        {{-- Size required notice --}}
+                        <div class="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 mt-3">
+                            <svg class="w-4 h-4 shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span><strong>Size is required</strong> &mdash; enter <strong>"N/A"</strong> if the product has no size variant.</span>
                         </div>
 
                         {{-- Order Totals Summary --}}

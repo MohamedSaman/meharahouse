@@ -157,9 +157,9 @@ class Shipment extends Component
             $unpaid = $unpaidOrders + $unpaidBackorderParents;
 
             if ($unpaid > 0) {
-                // Hard block: do not allow delivery if orders have due balance
-                $this->unpaidOrderCount    = $unpaid;
-                $this->showUnpaidWarning   = true;
+                $this->unpaidOrderCount      = $unpaid;
+                $this->pendingAdvanceBatchId = $id;
+                $this->showUnpaidWarning     = true;
                 return;
             }
         }
@@ -189,6 +189,92 @@ class Shipment extends Component
         $this->showUnpaidWarning     = false;
         $this->pendingAdvanceBatchId = 0;
         $this->unpaidOrderCount      = 0;
+    }
+
+    /**
+     * Advance the batch but only deliver orders that have been fully paid.
+     * Unpaid orders remain in their current status.
+     */
+    public function forceAdvanceSkipUnpaid(): void
+    {
+        if (!$this->pendingAdvanceBatchId) return;
+
+        $batch    = ShipmentBatch::findOrFail($this->pendingAdvanceBatchId);
+        $statuses = ['collecting', 'packed', 'shipped', 'in_transit', 'arrived', 'distributing', 'completed'];
+        $idx      = array_search($batch->status, $statuses);
+        if ($idx === false || $idx >= count($statuses) - 1) return;
+
+        $newStatus = $statuses[$idx + 1];
+        $data = ['status' => $newStatus];
+        if ($newStatus === 'shipped') $data['shipped_at'] = now();
+        if ($newStatus === 'arrived') $data['arrived_at'] = now();
+
+        $batch->update($data);
+        $batch->refresh();
+
+        // Sync only fully-paid orders
+        $this->syncBatchOrderStatusesForPaidOnly($batch, $newStatus);
+
+        $this->showUnpaidWarning     = false;
+        $this->pendingAdvanceBatchId = 0;
+        $this->unpaidOrderCount      = 0;
+
+        session()->flash('success', "Batch advanced to: {$batch->statusLabel()}. Unpaid orders were skipped and must be delivered separately.");
+    }
+
+    /**
+     * Same as syncBatchOrderStatuses but skips orders with outstanding balance.
+     */
+    private function syncBatchOrderStatusesForPaidOnly(ShipmentBatch $batch, string $newStatus): void
+    {
+        $orderStatusMap = ['shipped' => 'dispatched', 'completed' => 'delivered'];
+
+        if (isset($orderStatusMap[$newStatus])) {
+            $targetOrderStatus = $orderStatusMap[$newStatus];
+            $eligibleOrderStatuses = match ($targetOrderStatus) {
+                'dispatched' => ['confirmed', 'sourcing'],
+                'delivered'  => ['confirmed', 'sourcing', 'dispatched'],
+                default      => [],
+            };
+
+            if (!empty($eligibleOrderStatuses)) {
+                $batch->orders()
+                    ->whereIn('status', $eligibleOrderStatuses)
+                    ->where(fn($q) => $q->where('balance_amount', '<=', 0)->orWhere('payment_status', 'paid'))
+                    ->each(function ($order) use ($targetOrderStatus) {
+                        $order->logStatus($targetOrderStatus, "Auto-updated: shipment batch advanced (paid orders only).", auth()->id());
+                        $order->update(['status' => $targetOrderStatus]);
+                    });
+            }
+        }
+
+        if ($newStatus === 'distributing') {
+            $batch->backorders()->where('status', 'ready')
+                ->whereHas('order', fn($q) => $q->where('balance_amount', '<=', 0)->orWhere('payment_status', 'paid'))
+                ->each(fn($bo) => $bo->update(['status' => 'dispatched', 'dispatched_at' => now(), 'dispatched_by' => auth()->id()]));
+        }
+
+        if ($newStatus === 'completed') {
+            $affectedOrderIds = collect();
+            $batch->backorders()->where('status', 'dispatched')
+                ->whereHas('order', fn($q) => $q->where('balance_amount', '<=', 0)->orWhere('payment_status', 'paid'))
+                ->each(function ($bo) use (&$affectedOrderIds) {
+                    $bo->update(['status' => 'delivered', 'delivered_at' => now()]);
+                    $affectedOrderIds->push($bo->order_id);
+                });
+
+            $affectedOrderIds->unique()->each(function ($orderId) {
+                $order = \App\Models\Order::find($orderId);
+                if (!$order) return;
+                $remaining = \App\Models\OrderBackorder::where('order_id', $orderId)
+                    ->whereNotIn('status', ['delivered', 'completed', 'cancelled'])
+                    ->count();
+                if ($remaining === 0 && in_array($order->status, ['sourcing', 'confirmed', 'dispatched'])) {
+                    $order->logStatus('delivered', 'All backorders delivered via shipment batch (paid orders only).', auth()->id());
+                    $order->update(['status' => 'delivered']);
+                }
+            });
+        }
     }
 
     /**
@@ -293,6 +379,13 @@ class Shipment extends Component
     public function openAssignModal(int $batchId): void
     {
         $batch = ShipmentBatch::findOrFail($batchId);
+
+        $lockedStatuses = ['shipped', 'in_transit', 'arrived', 'distributing', 'completed'];
+        if (in_array($batch->status, $lockedStatuses)) {
+            session()->flash('error', "Cannot modify orders for a batch that is already '{$batch->statusLabel()}'. Only collecting/packed batches can be modified.");
+            return;
+        }
+
         $this->assigningBatchId     = $batchId;
         $this->assigningBatchName   = $batch->name;
         $this->selectedOrderIds     = $batch->orders()->pluck('id')->toArray();

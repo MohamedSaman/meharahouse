@@ -207,9 +207,15 @@
                                 </span>
                                 @endif
                                 {{-- Short qty pill --}}
+                                @if(in_array($bo->status, ['ready', 'dispatched', 'delivered', 'completed']))
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">
+                                    ×{{ $bo->short_qty }} ready
+                                </span>
+                                @else
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
                                     ×{{ $bo->short_qty }} short
                                 </span>
+                                @endif
                                 {{-- BO number --}}
                                 <span class="font-mono text-[10px] text-slate-400">{{ $bo->backorder_number }}</span>
                                 @if($bo->size)
@@ -227,40 +233,49 @@
 
                     {{-- Action buttons --}}
                     <div class="flex items-center gap-2 shrink-0">
-                        @if($bo->isActive())
-                        @if($order->status !== 'delivered')
+                        @if($bo->isActive() && $order->status !== 'delivered')
                         <div class="flex items-center gap-1.5">
-                            @if($currentStock >= $bo->short_qty)
-                            {{-- Stock available after purchase: confirm it ready --}}
-                            <button wire:click="markReady({{ $bo->id }})"
-                                    wire:confirm="Mark this backorder as ready to dispatch?"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 border border-green-200 text-xs font-semibold transition-all shadow-sm">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                                Mark Ready
-                            </button>
-                            @else
-                            {{-- No stock: offer replace or refund --}}
-                            <button wire:click="openReplaceModal({{ $bo->id }})"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200 text-xs font-semibold transition-all shadow-sm">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                </svg>
-                                Replace
-                            </button>
-                            <button wire:click="openRefundModal({{ $bo->id }})"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 text-xs font-semibold transition-all shadow-sm">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-                                </svg>
-                                Refund
-                            </button>
+                            @if(in_array($bo->status, ['pending', 'repurchasing']))
+                                @if($currentStock >= $bo->short_qty)
+                                {{-- Stock arrived: can mark ready --}}
+                                <button wire:click="markReady({{ $bo->id }})"
+                                        wire:confirm="Mark this backorder as ready to dispatch?"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 border border-green-200 text-xs font-semibold transition-all shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    Mark Ready
+                                </button>
+                                @else
+                                {{-- No stock yet: offer replace or refund --}}
+                                <button wire:click="openReplaceModal({{ $bo->id }})"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200 text-xs font-semibold transition-all shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                    </svg>
+                                    Replace
+                                </button>
+                                <button wire:click="openRefundModal({{ $bo->id }})"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 text-xs font-semibold transition-all shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                    </svg>
+                                    Refund
+                                </button>
+                                @endif
                             @endif
+                            {{-- ready/dispatched/delivered: no actions needed, handled via Shipments --}}
                         </div>
                         @endif
+                        @if($bo->status === 'ready')
+                        <button wire:click="checkDispatchPayment({{ $bo->order_id }})"
+                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100 transition-all">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Go to Shipments
+                        </button>
                         @endif
-                        <span class="text-[10px] text-slate-400 font-medium italic">Logistics: Shipments</span>
                     </div>
                 </div>
                 @endforeach
@@ -393,8 +408,16 @@
                         <p class="font-bold text-lg text-green-600">{{ $bo->available_qty }}</p>
                     </div>
                     <div class="text-center pl-3">
+                        @if(in_array($bo->status, ['ready', 'dispatched', 'delivered', 'completed']))
+                        <p class="text-[10px] text-green-500 uppercase tracking-wide">Ready</p>
+                        <p class="font-bold text-lg text-green-600">{{ $bo->short_qty }}</p>
+                        @elseif($bo->status === 'cancelled')
+                        <p class="text-[10px] text-slate-400 uppercase tracking-wide">Cancelled</p>
+                        <p class="font-bold text-lg text-slate-400">{{ $bo->short_qty }}</p>
+                        @else
                         <p class="text-[10px] text-amber-500 uppercase tracking-wide">Short (BO)</p>
                         <p class="font-bold text-lg text-amber-600">{{ $bo->short_qty }}</p>
+                        @endif
                     </div>
                 </div>
 
@@ -420,6 +443,7 @@
                      <div class="flex items-center gap-2">
                         @if($bo->isActive())
                         @if($selectedOrder->status !== 'delivered')
+                        @if(in_array($bo->status, ['pending', 'repurchasing']))
                         @if($currentStock2 >= $bo->short_qty)
                         {{-- Stock available: confirm ready --}}
                         <button wire:click="markReady({{ $bo->id }})"
@@ -448,13 +472,22 @@
                         </button>
                         @endif
                         @endif
+                        @endif
                         <button wire:click="cancelBackorder({{ $bo->id }})"
                                 wire:confirm="Cancel this backorder?"
                                 class="inline-flex items-center px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-all">
                             Cancel
                         </button>
                         @endif
-                        <span class="text-[10px] text-slate-400 italic">Process via Shipments</span>
+                        @if($bo->status === 'ready')
+                        <button wire:click="checkDispatchPayment({{ $selectedOrder->id }})"
+                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100 transition-all">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Go to Shipments
+                        </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -662,6 +695,14 @@
                     @endif
                 </div>
 
+                @if($replaceBo && $replaceBo->short_qty > 1)
+                <div class="animate-in fade-in slide-in-from-top-2 duration-300">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Quantity to Replace <span class="text-slate-400 font-normal">(of {{ $replaceBo->short_qty }})</span></label>
+                    <input wire:model.live="replaceQty" type="number"
+                           min="1" max="{{ $replaceBo->short_qty }}"
+                           class="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-center font-semibold">
+                </div>
+                @endif
                 @if($selectedReplacementId)
                 <div class="pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Specified Size <span class="text-slate-400 font-normal">(optional)</span></label>
@@ -676,6 +717,15 @@
                     $totalOrig    = round($originalItemPrice * $replacingQty, 2);
                     $totalNew     = round($selectedReplacementPrice * $replacingQty, 2);
                     $diffAmount   = round($totalNew - $totalOrig, 2);
+
+                    // Half-payment context
+                    $replaceBo2     = $replacingBoId ? \App\Models\OrderBackorder::with(['order.payments'])->find($replacingBoId) : null;
+                    $boOrder        = $replaceBo2?->order;
+                    $advancePct     = $boOrder ? (float) ($boOrder->advance_percentage ?? 0) : 0;
+                    $isHalfPayment  = $advancePct > 0 && $advancePct < 100;
+                    $totalPaidSoFar = $boOrder ? (float) $boOrder->payments()->whereIn('type', ['advance', 'balance', 'full'])->where('status', 'confirmed')->sum('amount') : 0;
+                    $newOrderTotal  = $boOrder ? round((float) $boOrder->total + $diffAmount, 2) : 0;
+                    $newBalanceDue  = $boOrder ? max(0, round($newOrderTotal - $totalPaidSoFar, 2)) : 0;
                 @endphp
                 @if($diffAmount > 0)
                 <div class="flex items-start gap-3 p-3.5 bg-orange-50 border border-orange-300 rounded-xl">
@@ -693,6 +743,13 @@
                         <p class="text-xs font-bold text-orange-800 mt-1">
                             +LKR {{ number_format($diffAmount, 2) }} will be added to the customer's balance due.
                         </p>
+                        @if($isHalfPayment && $boOrder)
+                        <div class="mt-2 pt-2 border-t border-current/20 text-xs">
+                            <p class="font-semibold">Half-payment order:</p>
+                            <p>Paid so far: <strong>LKR {{ number_format($totalPaidSoFar, 2) }}</strong></p>
+                            <p>New balance due: <strong>LKR {{ number_format($newBalanceDue, 2) }}</strong></p>
+                        </div>
+                        @endif
                     </div>
                 </div>
                 @elseif($diffAmount < 0)
@@ -712,6 +769,13 @@
                             LKR {{ number_format(abs($diffAmount), 2) }} will be deducted from order total.
                             If customer already paid in full, a refund will be required.
                         </p>
+                        @if($isHalfPayment && $boOrder)
+                        <div class="mt-2 pt-2 border-t border-current/20 text-xs">
+                            <p class="font-semibold">Half-payment order:</p>
+                            <p>Paid so far: <strong>LKR {{ number_format($totalPaidSoFar, 2) }}</strong></p>
+                            <p>New balance due: <strong>LKR {{ number_format($newBalanceDue, 2) }}</strong></p>
+                        </div>
+                        @endif
                     </div>
                 </div>
                 @else
@@ -778,6 +842,17 @@
                 </div>
 
                 <div class="px-8 py-6 space-y-5 bg-white">
+                    {{-- Qty to refund --}}
+                    @php $refundBo = $refundingBoId ? \App\Models\OrderBackorder::find($refundingBoId) : null; @endphp
+                    @if($refundBo && $refundBo->short_qty > 1)
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Quantity to Refund <span class="text-slate-400 font-normal">(of {{ $refundBo->short_qty }})</span></label>
+                        <input type="number" wire:model.live="refundQty"
+                               min="1" max="{{ $refundBo->short_qty }}"
+                               class="w-full rounded-xl border-slate-200 focus:ring-red-500 focus:border-red-500 bg-slate-50 font-semibold text-center text-lg">
+                        @error('refundQty') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                    @endif
                     {{-- Amount --}}
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 label-required mb-1.5">Refund Amount (LKR)</label>
@@ -830,6 +905,44 @@
                     </button>
                 </div>
 
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══════════════════════════════════════════════════════════════
+         PAYMENT GATE MODAL
+    ══════════════════════════════════════════════════════════════ --}}
+    @if($showPaymentGate)
+    <div class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50"></div>
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-bold text-[#0F172A] text-base">Balance Payment Pending</h3>
+                    <p class="text-xs text-slate-500">MH-{{ $paymentGateOrderNo }}</p>
+                </div>
+            </div>
+            <p class="text-sm text-slate-600 mb-2">
+                This order has an outstanding balance of
+                <span class="font-bold text-red-600">Rs. {{ number_format($paymentGateDue, 0) }}</span>
+                that must be collected before dispatch.
+            </p>
+            <p class="text-xs text-slate-400 mb-5">Go to the Orders page to record the balance payment, then return here to dispatch.</p>
+            <div class="flex gap-3">
+                <button wire:click="closePaymentGate"
+                        class="flex-1 px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-all">
+                    Cancel
+                </button>
+                <a href="{{ route('admin.orders') }}?search={{ $paymentGateOrderNo }}"
+                   class="flex-1 px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition-all text-center">
+                    Go to Orders
+                </a>
             </div>
         </div>
     </div>

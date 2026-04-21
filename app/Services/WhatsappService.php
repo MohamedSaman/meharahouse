@@ -244,4 +244,20 @@ class WhatsappService
             return ['success' => false, 'message' => 'Meta error: ' . $e->getMessage()];
         }
     }
+
+    public static function paymentRejected(\App\Models\Order $order): void
+    {
+        $phone = self::extractPhone($order);
+        if (!$phone) return;
+
+        $site = \App\Models\Setting::get('site_name', 'Meharahouse');
+
+        self::send($phone,
+            "❌ *Payment Receipt Rejected — {$site}*\n\n"
+          . "Hi {$order->shipping_address['full_name']},\n\n"
+          . "Your payment receipt for Order *#{$order->order_number}* has been rejected.\n\n"
+          . "Please log in to your account and re-upload a clear photo of your payment receipt.\n\n"
+          . "If you need help, please contact us. Thank you!"
+        );
+    }
 }

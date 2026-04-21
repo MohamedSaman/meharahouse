@@ -971,6 +971,11 @@
 
             {{-- Footer --}}
             <div class="px-6 pb-5 flex flex-col gap-2">
+                <button wire:click="forceAdvanceSkipUnpaid"
+                        wire:confirm="Advance shipment and deliver only fully-paid orders? Unpaid orders will be skipped."
+                        class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors">
+                    Continue with Paid Orders Only
+                </button>
                 <button wire:click="dismissUnpaidWarning"
                         class="w-full py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
                     Close — Collect Payment First

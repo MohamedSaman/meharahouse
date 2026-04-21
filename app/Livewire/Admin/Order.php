@@ -68,6 +68,14 @@ class Order extends Component
     #[Validate('nullable|file|mimes:jpg,jpeg,png,pdf|max:5120')]
     public $refundProofFile = null;
 
+    // ── Record Balance Payment modal ──────────────────────────────────
+    public bool   $showBalancePayModal   = false;
+    public int    $balancePayOrderId     = 0;
+    public string $balancePayAmount      = '0';
+    public string $balancePayMethod      = 'bank_transfer';
+    public string $balancePayReference   = '';
+    public string $balancePayNotes       = '';
+
     // ── Backorder / Partial Fulfillment ───────────────────────────────
     public bool  $showBackorderModal = false;
     public int   $backorderOrderId   = 0;
@@ -528,7 +536,8 @@ class Order extends Component
 
         if ($allRefunded) {
             $targetStatus = 'refunded';
-        } elseif ($fullyBackordered) {
+        } elseif ($fullyBackordered || $sumNextBatch > 0) {
+            // Fully or partially backordered — show sourcing so admin knows items are pending
             $targetStatus = 'sourcing';
         } else {
             $targetStatus = 'confirmed';
@@ -872,8 +881,67 @@ class Order extends Component
     {
         $payment = OrderPayment::findOrFail($paymentId);
         $payment->update(['status' => 'rejected']);
+
+        try {
+            $order = OrderModel::with(['user', 'whatsappToken'])->find($payment->order_id);
+            if ($order) WhatsappService::paymentRejected($order);
+        } catch (\Throwable) {}
+
         $this->refreshSelectedOrder($payment->order_id);
-        session()->flash('success', 'Payment receipt rejected. Customer should re-upload.');
+        session()->flash('success', 'Payment receipt rejected. Customer has been notified to re-upload.');
+    }
+
+    // ── Record Balance Payment ────────────────────────────────────────
+
+    public function openBalancePayModal(int $orderId): void
+    {
+        $order = OrderModel::findOrFail($orderId);
+        $this->balancePayOrderId   = $orderId;
+        $this->balancePayAmount    = (string) $order->balanceDue();
+        $this->balancePayMethod    = 'bank_transfer';
+        $this->balancePayReference = '';
+        $this->balancePayNotes     = '';
+        $this->showBalancePayModal = true;
+    }
+
+    public function confirmBalancePayment(): void
+    {
+        $order = OrderModel::with(['payments'])->findOrFail($this->balancePayOrderId);
+
+        $this->validate([
+            'balancePayAmount'    => ['required', 'numeric', 'min:1', 'max:' . ($order->balanceDue() + 0.01)],
+            'balancePayMethod'    => ['required', 'string'],
+            'balancePayReference' => ['nullable', 'string', 'max:255'],
+            'balancePayNotes'     => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $payment = OrderPayment::create([
+            'order_id'     => $order->id,
+            'type'         => 'balance',
+            'amount'       => $this->balancePayAmount,
+            'method'       => $this->balancePayMethod,
+            'reference'    => $this->balancePayReference ?: null,
+            'notes'        => $this->balancePayNotes ?: null,
+            'status'       => 'confirmed',
+            'confirmed_by' => auth()->id(),
+            'confirmed_at' => now(),
+        ]);
+
+        // Recalculate balance
+        $totalConfirmed = $order->payments()->where('status', 'confirmed')
+            ->whereIn('type', ['advance', 'balance', 'full'])->sum('amount');
+        $totalRefunded  = (float) $order->refunds()->sum('amount');
+        $newBalance     = max(0, (float) $order->total - $totalConfirmed + $totalRefunded);
+        $paymentStatus  = $newBalance <= 0 ? 'paid' : 'partial';
+
+        $order->update(['payment_status' => $paymentStatus, 'balance_amount' => $newBalance]);
+        $order->logStatus($order->status, 'Balance payment of Rs. ' . number_format($this->balancePayAmount, 0) . ' recorded by admin.', auth()->id());
+
+        try { WhatsappService::paymentReceived($order->fresh(), (float) $this->balancePayAmount); } catch (\Throwable) {}
+
+        $this->showBalancePayModal = false;
+        $this->refreshSelectedOrder($order->id);
+        session()->flash('success', 'Balance payment recorded and confirmed.');
     }
 
     // ── Refund Processing ─────────────────────────────────────────────
