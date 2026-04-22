@@ -36,7 +36,7 @@ class WhatsappService
             'order_placed'     => 'HX97bd3a91265d03c7e038ec858295805e',
             'order_confirmed'  => 'HX1965e3690086fa22cf4740b6b2ee9574',
             'payment_received' => 'HXc151d778f7dd9f0d45a0e333b694aa2b',
-            'payment_reminder' => 'HX488664c71bf8b6c1dd6142058d4ab870',
+            'payment_reminder' => 'HXeb9afffd9f4b12db995d28b2f538939b', // payment_reminder_btn
             // You can add others here once they are created in Twilio!
             // 'order_dispatched' => 'SID_HERE',
         ];
@@ -209,15 +209,22 @@ class WhatsappService
         if (!$phone) return;
 
         $site = \App\Models\Setting::get('site_name', 'Meharahouse');
+        $name = $order->shipping_address['full_name'] ?? 'Customer';
 
-        self::send($phone,
-            "🚚 *Order Dispatched — {$site}*\n\n"
-          . "Hi {$order->shipping_address['full_name']},\n\n"
+        $fallbackBody = "🚚 *Order Dispatched — {$site}*\n\n"
+          . "Hi {$name},\n\n"
           . "Your order is on its way to you! 🎉\n\n"
           . "📦 *Order No:* {$order->order_number}\n"
           . "📍 *Deliver to:* {$order->shipping_address['city']}, {$order->shipping_address['region']}\n\n"
-          . "Our delivery team will contact you before arrival. Please keep your phone reachable. 📞"
-        );
+          . "Our delivery team will contact you before arrival. Please keep your phone reachable. 📞";
+
+        self::sendTemplate($phone, 'order_dispatched', [
+            '1' => $site,
+            '2' => $name,
+            '3' => $order->order_number,
+            '4' => $order->shipping_address['city'] ?? 'Unknown',
+            '5' => $order->shipping_address['region'] ?? 'Unknown'
+        ], $fallbackBody);
     }
 
     public static function orderDelivered(\App\Models\Order $order): void
@@ -226,14 +233,19 @@ class WhatsappService
         if (!$phone) return;
 
         $site = \App\Models\Setting::get('site_name', 'Meharahouse');
+        $name = $order->shipping_address['full_name'] ?? 'Customer';
 
-        self::send($phone,
-            "📬 *Order Delivered — {$site}*\n\n"
-          . "Hi {$order->shipping_address['full_name']},\n\n"
+        $fallbackBody = "📬 *Order Delivered — {$site}*\n\n"
+          . "Hi {$name},\n\n"
           . "Your order has been delivered! We hope you love your purchase. ❤️\n\n"
           . "📦 *Order No:* {$order->order_number}\n\n"
-          . "If you have any issues, please reply to this message or contact us. Thank you for shopping with {$site}! 🙏"
-        );
+          . "If you have any issues, please reply to this message or contact us. Thank you for shopping with {$site}! 🙏";
+
+        self::sendTemplate($phone, 'order_delivered', [
+            '1' => $site,
+            '2' => $name,
+            '3' => $order->order_number
+        ], $fallbackBody);
     }
 
     public static function orderCompleted(\App\Models\Order $order): void
@@ -242,14 +254,19 @@ class WhatsappService
         if (!$phone) return;
 
         $site = \App\Models\Setting::get('site_name', 'Meharahouse');
+        $name = $order->shipping_address['full_name'] ?? 'Customer';
 
-        self::send($phone,
-            "🎊 *Order Completed — {$site}*\n\n"
-          . "Hi {$order->shipping_address['full_name']},\n\n"
+        $fallbackBody = "🎊 *Order Completed — {$site}*\n\n"
+          . "Hi {$name},\n\n"
           . "Your order is fully completed and payment received. Thank you! 🌟\n\n"
           . "📦 *Order No:* {$order->order_number}\n\n"
-          . "We'd love to have you shop with us again. Visit us at {$site}! 🛍️"
-        );
+          . "We'd love to have you shop with us again. Visit us at {$site}! 🛍️";
+
+        self::sendTemplate($phone, 'order_completed', [
+            '1' => $site,
+            '2' => $name,
+            '3' => $order->order_number
+        ], $fallbackBody);
     }
 
     public static function paymentReceived(\App\Models\Order $order, float $amount): void
@@ -330,13 +347,19 @@ class WhatsappService
 
         $site = \App\Models\Setting::get('site_name', 'Meharahouse');
 
-        self::send($phone,
-            "❌ *Payment Receipt Rejected — {$site}*\n\n"
-          . "Hi {$order->shipping_address['full_name']},\n\n"
+        $name = $order->shipping_address['full_name'] ?? 'Customer';
+
+        $fallbackBody = "❌ *Payment Receipt Rejected — {$site}*\n\n"
+          . "Hi {$name},\n\n"
           . "Your payment receipt for Order *#{$order->order_number}* has been rejected.\n\n"
           . "Please log in to your account and re-upload a clear photo of your payment receipt.\n\n"
-          . "If you need help, please contact us. Thank you!"
-        );
+          . "If you need help, please contact us. Thank you!";
+
+        self::sendTemplate($phone, 'payment_rejected', [
+            '1' => $site,
+            '2' => $name,
+            '3' => $order->order_number
+        ], $fallbackBody);
     }
 
     public static function paymentReminder(\App\Models\Order $order, float $confirmedTotal, float $due): array

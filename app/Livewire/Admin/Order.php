@@ -151,14 +151,15 @@ class Order extends Component
             $product = $item->product;
             if (!$product) continue;
             if ($product->stock < $item->quantity) {
-                $short = (int) $item->quantity - (int) $product->stock;
+                $available = max(0, (int) $product->stock);
+                $short = (int) $item->quantity - $available;
                 $issues[] = [
                     'item_id'      => $item->id,
                     'product_id'   => $item->product_id,
                     'name'         => $item->product_name,
                     'size'         => $item->size,
                     'needed'       => (int) $item->quantity,
-                    'available'    => (int) $product->stock,
+                    'available'    => $available,
                     'short'        => $short,
                     'unit_price'   => (float) $item->price,
                     'short_amount' => round((float) $item->price * $short, 2),
@@ -219,14 +220,15 @@ class Order extends Component
             $product = $item->product;
             if (!$product) continue;
             if ($product->stock < $item->quantity) {
-                $short = (int) $item->quantity - (int) $product->stock;
+                $available = max(0, (int) $product->stock);
+                $short = (int) $item->quantity - $available;
                 $issues[] = [
                     'item_id'      => $item->id,
                     'product_id'   => $item->product_id,
                     'name'         => $item->product_name,
                     'size'         => $item->size,
                     'needed'       => (int) $item->quantity,
-                    'available'    => (int) $product->stock,
+                    'available'    => $available,
                     'short'        => $short,
                     'unit_price'   => (float) $item->price,
                     'short_amount' => round((float) $item->price * $short, 2),
@@ -645,13 +647,14 @@ class Order extends Component
             $stock  = (int) ($item->product?->stock ?? 0);
             $needed = (int) $item->quantity;
             if ($stock < $needed) {
+                $available = max(0, $stock);
                 $items[] = [
                     'item_id'      => $item->id,
                     'product_id'   => $item->product_id,
                     'product_name' => $item->product_name,
                     'ordered'      => $needed,
-                    'available'    => $stock,
-                    'short'        => $needed - $stock,
+                    'available'    => $available,
+                    'short'        => $needed - $available,
                     'decision'     => 'repurchase', // default decision
                 ];
             }
