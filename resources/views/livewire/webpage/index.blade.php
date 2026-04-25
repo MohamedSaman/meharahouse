@@ -516,16 +516,16 @@
                 {{-- Left: brand text --}}
                 <div>
                     <span class="inline-block text-xs font-bold tracking-widest uppercase mb-4 font-[Inter]" style="color: #D4A017;">
-                        About Meharahouse
+                        About Mehra House
                     </span>
                     <h2 class="font-[Poppins] font-extrabold text-3xl md:text-4xl lg:text-5xl leading-tight text-white mb-6">
                         Modest Fashion,<br>
                         <span style="color: #D4A017;">Maximum Elegance</span>
                     </h2>
                     <p class="font-[Inter] text-slate-300 text-base md:text-lg leading-relaxed mb-8">
-                        Meharahouse was founded on a single belief — that modest dressing is not a compromise, it is a statement. We curate the finest abayas and innerwear from premium fabric houses, bringing world-class quality directly to your door. Every piece is selected with care, crafted for comfort, and designed to make you feel beautiful.
+                        At Mehra House, our journey began with passion, purpose, and a vision to redefine modest fashion with elegance. What started as a humble initiative through a WhatsApp community has now grown into a trusted brand, supported by over 13,000 loyal followers and a thriving social media presence exceeding 50,000 across platforms.
                     </p>
-                    <a href="#"
+                    <a href="{{ route('webpage.about') }}"
                        class="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold font-[Inter] border-2 transition-all duration-300 hover:bg-[#D4A017]/10"
                        style="border-color: #D4A017; color: #D4A017;">
                         Our Story

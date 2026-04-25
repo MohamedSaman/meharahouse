@@ -24,7 +24,7 @@
             </div>
 
             <h1 class="font-[Poppins] font-extrabold text-4xl md:text-5xl text-white mb-3">Customer Reviews</h1>
-            <p class="text-slate-300 text-base md:text-lg max-w-xl mx-auto">Real stories from real customers — honest feedback from our Meharahouse community</p>
+            <p class="text-slate-300 text-base md:text-lg max-w-xl mx-auto">Real stories from real customers — honest feedback from our Mehra House community</p>
         </div>
     </section>
 
@@ -433,7 +433,7 @@
                     </div>
                     <h3 class="font-[Poppins] font-bold text-lg text-[#0F172A] mb-2">No reviews yet</h3>
                     <p class="text-slate-500 text-sm mb-5">
-                        {{ $filterRating ? "No {$filterRating}-star reviews found. Try a different filter." : 'Be the first to share your experience with Meharahouse!' }}
+                        {{ $filterRating ? "No {$filterRating}-star reviews found. Try a different filter." : 'Be the first to share your experience with Mehra House!' }}
                     </p>
                     @if(!$filterRating)
                     <button @click="showForm = true" class="btn-primary">Write the First Review</button>

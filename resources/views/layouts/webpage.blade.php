@@ -390,8 +390,9 @@
                     <p class="text-sm leading-relaxed mb-6 text-[#64748B]">Ethiopia's premier destination for premium abaya dresses and modest innerwear. Elegance crafted for the modern woman of faith.</p>
                     @php
                         $socialLinks = [
-                            'facebook'  => \App\Models\Setting::get('social_facebook'),
-                            'instagram' => \App\Models\Setting::get('social_instagram'),
+                            'facebook'  => \App\Models\Setting::get('social_facebook', 'https://www.facebook.com/share/18aMshA7ek/?mibextid=wwXIfr'),
+                            'instagram' => \App\Models\Setting::get('social_instagram', 'https://www.instagram.com/mehra_abayadxb?igsh=aHFocGQ4Nm5icWk%3D&utm_source=qr'),
+                            'whatsapp'  => \App\Models\Setting::get('social_whatsapp', 'https://whatsapp.com/channel/0029Vb33lzaLCoX2SYqYD627'),
                             'tiktok'    => \App\Models\Setting::get('social_tiktok'),
                             'youtube'   => \App\Models\Setting::get('social_youtube'),
                         ];
@@ -411,6 +412,8 @@
                                         <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.16 8.16 0 004.79 1.52V6.76a4.85 4.85 0 01-1.03-.07z"/>
                                     @elseif($platform === 'youtube')
                                         <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                    @elseif($platform === 'whatsapp')
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413A11.815 11.815 0 0012.05 0z"/>
                                     @endif
                                 </svg>
                             </a>
@@ -457,19 +460,19 @@
                             <div class="w-7 h-7 rounded-lg bg-[#D4A017]/10 flex items-center justify-center shrink-0 mt-0.5">
                                 <svg class="w-3.5 h-3.5 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             </div>
-                            <span class="text-sm text-[#64748B] leading-relaxed">Bole Road, Addis Ababa<br>Ethiopia</span>
+                            <span class="text-sm text-[#64748B] leading-relaxed">Bustan Tower, Al Nahda<br>Sharjah, UAE</span>
                         </li>
-                        <li class="flex items-center gap-3">
-                            <div class="w-7 h-7 rounded-lg bg-[#D4A017]/10 flex items-center justify-center shrink-0">
-                                <svg class="w-3.5 h-3.5 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                        <li class="flex items-start gap-3">
+                            <div class="w-7 h-7 rounded-lg bg-[#D4A017]/10 flex items-center justify-center shrink-0 mt-0.5">
+                                <svg class="w-3.5 h-3.5 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             </div>
-                            <a href="tel:+251911000000" class="text-sm text-[#64748B] hover:text-[#D4A017] transition-colors">+251 911 000 000</a>
+                            <span class="text-sm text-[#64748B] leading-relaxed">107/9, Quarry Road<br>Dehiwela, Sri Lanka</span>
                         </li>
                         <li class="flex items-center gap-3">
                             <div class="w-7 h-7 rounded-lg bg-[#D4A017]/10 flex items-center justify-center shrink-0">
                                 <svg class="w-3.5 h-3.5 text-[#D4A017]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                             </div>
-                            <a href="mailto:support@mehrahouse.com" class="text-sm text-[#64748B] hover:text-[#D4A017] transition-colors">support@mehrahouse.com</a>
+                            <a href="mailto:sales@mehrahouse.com" class="text-sm text-[#64748B] hover:text-[#D4A017] transition-colors">sales@mehrahouse.com</a>
                         </li>
                         <li class="flex items-center gap-3">
                             <div class="w-7 h-7 rounded-lg bg-[#D4A017]/10 flex items-center justify-center shrink-0">
