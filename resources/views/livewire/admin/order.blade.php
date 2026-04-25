@@ -1426,8 +1426,9 @@
                 @endphp
                 <div class="flex items-center gap-2 flex-wrap">
                     @if($sumSkip)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">
-                        {{ $sumSkip }} item{{ $sumSkip > 1 ? 's' : '' }} — ship available only
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-600 text-xs font-semibold">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                        Action required for {{ $sumSkip }} item{{ $sumSkip > 1 ? 's' : '' }}
                     </span>
                     @endif
                     @if($sumNextBatch)
@@ -1457,7 +1458,8 @@
                     </button>
                     <button wire:click="applyStockDecisions"
                             wire:loading.attr="disabled"
-                            class="flex-1 py-2.5 rounded-xl bg-[#0F172A] text-white text-sm font-bold hover:bg-slate-800 transition-colors disabled:opacity-60">
+                            @if($sumSkip > 0) disabled @endif
+                            class="flex-1 py-2.5 rounded-xl bg-[#0F172A] text-white text-sm font-bold hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#0F172A]">
                         <span wire:loading.remove wire:target="applyStockDecisions">Confirm Order</span>
                         <span wire:loading wire:target="applyStockDecisions">Processing…</span>
                     </button>

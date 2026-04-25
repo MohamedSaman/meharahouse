@@ -341,6 +341,12 @@ class Order extends Component
     {
         if (!$this->stockAlertOrder) return;
 
+        // Ensure all items have a decision (no 'skip')
+        if (in_array('skip', $this->stockDecisions, true)) {
+            session()->flash('error', 'Please choose an action for all items before confirming.');
+            return;
+        }
+
         $order = OrderModel::with('items.product')->findOrFail($this->stockAlertOrder);
 
         $partialRefundAmount = 0.0;
