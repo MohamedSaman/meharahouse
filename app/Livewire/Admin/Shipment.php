@@ -493,7 +493,7 @@ class Shipment extends Component
         $assignableOrders = $this->showAssignModal
             ? Order::where(function($q) {
                     $q->whereNull('shipment_batch_id')
-                      ->where('status', 'confirmed')
+                      ->whereIn('status', ['confirmed', 'sourcing'])
                       ->orWhere('shipment_batch_id', $this->assigningBatchId);
                 })
                 ->whereHas('items', fn($q) => $q->whereIn('status', ['active', 'replaced']))
