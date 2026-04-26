@@ -497,7 +497,6 @@ class Shipment extends Component
                       ->orWhere('shipment_batch_id', $this->assigningBatchId);
                 })
                 ->whereHas('items', fn($q) => $q->whereIn('status', ['active', 'replaced']))
-                ->whereDoesntHave('backorders', fn($q) => $q->where('status', 'repurchasing'))
                 ->when($this->orderSearch, fn($q) => $q
                     ->where('order_number', 'like', "%{$this->orderSearch}%")
                     ->orWhere(

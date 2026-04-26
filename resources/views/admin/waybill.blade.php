@@ -140,37 +140,7 @@
         </tbody>
     </table>
 
-    {{-- Next Shipment (Backorder) --}}
-    @if($shipLater->isNotEmpty())
-    <div style="border:1.5px dashed #f59e0b;border-radius:6px;padding:10px 12px;background:#fffbeb;margin-bottom:16px;">
-        <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#b45309;margin-bottom:8px;">
-            Next Shipment — Backorder (will be delivered separately)
-        </p>
-        <table style="margin-bottom:0;">
-            <thead>
-                <tr>
-                    <th style="background:#fef3c7;">#</th>
-                    <th style="background:#fef3c7;">Product</th>
-                    <th style="text-align:center;background:#fef3c7;">Qty</th>
-                    <th style="text-align:right;background:#fef3c7;">Note</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($shipLater->values() as $i => $item)
-                @php $bo = $order->backorders->firstWhere('order_item_id', $item->id); @endphp
-                <tr>
-                    <td>{{ $i + 1 }}</td>
-                    <td>{{ $item->product_name }}</td>
-                    <td style="text-align:center;">{{ $bo?->short_qty ?? $item->quantity }}</td>
-                    <td style="text-align:right;color:#b45309;font-weight:700;font-size:11px;">
-                        {{ $bo?->backorder_number ?? 'Backorder' }} — Arriving soon
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-    @endif
+    {{-- Next Shipment (Backorder) Section Removed as per request --}}
 
     {{-- Payment Summary --}}
     <div class="payment-box">
