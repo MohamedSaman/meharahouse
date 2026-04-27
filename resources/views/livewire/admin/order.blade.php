@@ -1065,13 +1065,13 @@
             x-transition:leave="transition ease-in duration-150"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95"
-            class="bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200/80 w-full max-w-md"
+            class="bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200/80 w-full max-w-lg"
             @click.stop
         >
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                 <div>
                     <h3 class="font-[Poppins] font-bold text-[#0F172A]">Record Refund</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Payment details will be entered on the Refunds page</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Select items &amp; quantity to refund, or enter amount manually</p>
                 </div>
                 <button @click="refundOpen = false; $wire.set('showRefundModal', false)"
                         class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
@@ -1079,6 +1079,47 @@
                 </button>
             </div>
             <div class="p-6 space-y-4">
+
+                {{-- Item qty selectors --}}
+                @if(!empty($refundItems))
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Refund by Item Quantity</label>
+                    <div class="space-y-2">
+                        @foreach($refundItems as $item)
+                        <div wire:key="refund-item-{{ $item['id'] }}"
+                             class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-slate-800 truncate">{{ $item['name'] }}</p>
+                                @if($item['size'] || $item['color'])
+                                <p class="text-[11px] text-slate-400">
+                                    @if($item['size']) Size: {{ $item['size'] }} @endif
+                                    @if($item['size'] && $item['color']) · @endif
+                                    @if($item['color']) {{ $item['color'] }} @endif
+                                </p>
+                                @endif
+                                <p class="text-[11px] text-slate-500 mt-0.5">
+                                    Rs. {{ number_format($item['price'], 0) }} × {{ $item['qty'] }} ordered
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span class="text-xs text-slate-400">Refund qty:</span>
+                                <input wire:model.blur="refundQtys.{{ $item['id'] }}"
+                                       wire:key="refund-qty-{{ $item['id'] }}"
+                                       type="number"
+                                       min="0"
+                                       max="{{ $item['qty'] }}"
+                                       placeholder="0"
+                                       class="w-16 px-2 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 transition-colors">
+                                <span class="text-xs text-slate-400">/ {{ $item['qty'] }}</span>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                <div class="border-t border-dashed border-slate-200 pt-3">
+                    <p class="text-[11px] text-slate-400 mb-2">Amount is auto-calculated from qty above. You can also edit it manually.</p>
+                @endif
+
                 <div>
                     <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Refund Amount (Rs.)</label>
                     <input wire:model="refundAmount" type="number" step="0.01" min="0" class="form-input w-full"
@@ -1087,9 +1128,14 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Notes <span class="text-slate-400 font-normal">(optional)</span></label>
-                    <textarea wire:model="refundNotes" rows="3" class="form-input w-full resize-none" placeholder="Reason for refund..."></textarea>
+                    <textarea wire:model="refundNotes" rows="2" class="form-input w-full resize-none" placeholder="Reason for refund..."></textarea>
                     @error('refundNotes') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
+
+                @if(!empty($refundItems))
+                </div>
+                @endif
+
             </div>
             <div class="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50">
                 <button @click="refundOpen = false; $wire.set('showRefundModal', false)"
@@ -1403,7 +1449,11 @@
                             </svg>
                             <div class="text-center leading-tight">
                                 <p class="text-[11px] font-bold">Refund</p>
-                                <p class="text-[9px] {{ $dec === 'refund' ? 'text-red-100' : 'text-slate-400' }}">Rs. {{ number_format($issue['short_amount'], 0) }}</p>
+                                @php
+                                    $btnQty = isset($stockRefundQtys[$idx]) ? max(1, min((int)$stockRefundQtys[$idx], $issue['short'])) : $issue['short'];
+                                    $btnAmt = round($issue['unit_price'] * $btnQty, 2);
+                                @endphp
+                                <p class="text-[9px] {{ $dec === 'refund' ? 'text-red-100' : 'text-slate-400' }}">Rs. {{ number_format($btnAmt, 0) }}</p>
                             </div>
                         </button>
 
@@ -1421,7 +1471,10 @@
                     $sumSkip        = collect($stockDecisions)->filter(fn($d) => $d === 'skip')->count();
                     $totalRefundAmt = 0;
                     foreach ($stockIssues as $i => $iss) {
-                        if (($stockDecisions[$i] ?? 'skip') === 'refund') $totalRefundAmt += $iss['short_amount'];
+                        if (($stockDecisions[$i] ?? 'skip') === 'refund') {
+                            $chosenQty = isset($stockRefundQtys[$i]) ? max(1, min((int)$stockRefundQtys[$i], $iss['short'])) : $iss['short'];
+                            $totalRefundAmt += round($iss['unit_price'] * $chosenQty, 2);
+                        }
                     }
                 @endphp
                 <div class="flex items-center gap-2 flex-wrap">
@@ -1554,7 +1607,13 @@
 
         {{-- ── Refund Sub-Confirm Popup (slides over main card) ────── --}}
         @if($showStockRefundConfirm && $stockRefundConfirmIdx >= 0)
-        @php $ri = $stockIssues[$stockRefundConfirmIdx]; @endphp
+        @php
+            $ri          = $stockIssues[$stockRefundConfirmIdx];
+            $chosenQty   = (int) ($stockRefundQtys[$stockRefundConfirmIdx] ?? $ri['short']);
+            $chosenQty   = max(1, min($chosenQty, $ri['short']));
+            $remainderQty = $ri['short'] - $chosenQty;
+            $chosenAmt   = round($ri['unit_price'] * $chosenQty, 2);
+        @endphp
         <div class="absolute inset-0 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.45);">
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
 
@@ -1566,40 +1625,62 @@
                         </svg>
                     </div>
                     <div>
-                        <h4 class="font-[Poppins] font-bold text-sm text-red-700">Confirm Partial Refund</h4>
-                        <p class="text-xs text-slate-500">{{ $ri['name'] }}</p>
+                        <h4 class="font-[Poppins] font-bold text-sm text-red-700">Refund — Choose Qty</h4>
+                        <p class="text-xs text-slate-500">{{ $ri['name'] }} · Rs. {{ number_format($ri['unit_price'], 0) }} / unit</p>
                     </div>
                 </div>
 
                 {{-- Content --}}
                 <div class="px-5 py-5 space-y-4">
 
-                    {{-- Amount breakdown --}}
-                    <div class="rounded-xl bg-slate-50 border border-slate-200 divide-y divide-slate-200">
-                        <div class="flex justify-between items-center px-4 py-2.5 text-sm">
-                            <span class="text-slate-500">Short qty</span>
-                            <span class="font-bold text-slate-700">{{ $ri['short'] }} unit{{ $ri['short'] > 1 ? 's' : '' }}</span>
+                    {{-- Qty info pills --}}
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="rounded-xl bg-slate-100 py-2.5">
+                            <p class="text-[9px] text-slate-400 uppercase font-bold tracking-wide">Short</p>
+                            <p class="text-base font-bold text-slate-700">{{ $ri['short'] }}</p>
                         </div>
-                        <div class="flex justify-between items-center px-4 py-2.5 text-sm">
-                            <span class="text-slate-500">Unit price</span>
-                            <span class="font-bold text-slate-700">Rs. {{ number_format($ri['unit_price'], 0) }}</span>
+                        <div class="rounded-xl bg-green-50 border border-green-200 py-2.5">
+                            <p class="text-[9px] text-green-500 uppercase font-bold tracking-wide">In Stock</p>
+                            <p class="text-base font-bold text-green-700">{{ $ri['available'] }}</p>
                         </div>
-                        <div class="flex justify-between items-center px-4 py-3 bg-red-50">
-                            <span class="font-semibold text-red-700 text-sm">Refund Amount</span>
-                            <span class="font-bold text-red-700 text-lg">Rs. {{ number_format($ri['short_amount'], 0) }}</span>
+                        <div class="rounded-xl bg-blue-50 border border-blue-200 py-2.5">
+                            <p class="text-[9px] text-blue-500 uppercase font-bold tracking-wide">Backorder</p>
+                            <p class="text-base font-bold text-blue-700">{{ $remainderQty }}</p>
                         </div>
                     </div>
 
-                    {{-- What happens note --}}
-                    <div class="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800 leading-relaxed">
-                        The order total will be <strong>reduced by Rs. {{ number_format($ri['short_amount'], 0) }}</strong>.
-                        @if($ri['available'] > 0)
-                        The remaining <strong>{{ $ri['available'] }} unit{{ $ri['available'] > 1 ? 's' : '' }}</strong> will be delivered.
-                        @else
-                        This item will be <strong>removed</strong> from the order.
+                    {{-- Qty selector --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-2">How many units to refund?</label>
+                        <div class="flex items-center gap-3">
+                            <input wire:model.live="stockRefundQtys.{{ $stockRefundConfirmIdx }}"
+                                   wire:key="stock-refund-qty-{{ $stockRefundConfirmIdx }}"
+                                   type="number"
+                                   min="1"
+                                   max="{{ $ri['short'] }}"
+                                   class="w-20 px-3 py-2 rounded-xl border-2 border-red-300 text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-500 transition-colors">
+                            <span class="text-xs text-slate-400">of {{ $ri['short'] }} short unit{{ $ri['short'] > 1 ? 's' : '' }}</span>
+                        </div>
+                        @if($remainderQty > 0)
+                        <p class="text-[11px] text-blue-600 mt-1.5 flex items-center gap-1">
+                            <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Remaining {{ $remainderQty }} unit{{ $remainderQty > 1 ? 's' : '' }} will be backordered
+                        </p>
                         @endif
-                        Customer's payment for this amount will need to be refunded.
                     </div>
+
+                    {{-- Amount breakdown --}}
+                    <div class="rounded-xl bg-slate-50 border border-slate-200 divide-y divide-slate-200">
+                        <div class="flex justify-between items-center px-4 py-2.5 text-sm">
+                            <span class="text-slate-500">Refund qty</span>
+                            <span class="font-bold text-slate-700">{{ $chosenQty }} × Rs. {{ number_format($ri['unit_price'], 0) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center px-4 py-3 bg-red-50">
+                            <span class="font-semibold text-red-700 text-sm">Refund Amount</span>
+                            <span class="font-bold text-red-700 text-lg">Rs. {{ number_format($chosenAmt, 0) }}</span>
+                        </div>
+                    </div>
+
                 </div>
 
                 {{-- Sub-footer --}}
@@ -1610,7 +1691,7 @@
                     </button>
                     <button wire:click="confirmStockRefundItem"
                             class="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">
-                        Confirm Refund
+                        Confirm — Rs. {{ number_format($chosenAmt, 0) }}
                     </button>
                 </div>
 

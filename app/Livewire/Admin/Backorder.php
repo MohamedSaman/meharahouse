@@ -17,45 +17,45 @@ class Backorder extends Component
 {
     use WithPagination;
 
-    public string $search       = '';
-    public string $filterStatus = '';
+    public $search       = '';
+    public $filterStatus = '';
 
     // ── Order detail slide-over ───────────────────────────────────────
-    public bool   $showDetail   = false;
-    public ?Order $selectedOrder = null;
+    public $showDetail   = false;
+    public $selectedOrder = null;
 
     // ── Dispatch modal ────────────────────────────────────────────────
-    public bool   $showDispatchModal = false;
-    public int    $dispatchBoId      = 0;
-    public string $dispatchNotes     = '';
+    public $showDispatchModal = false;
+    public $dispatchBoId      = 0;
+    public $dispatchNotes     = '';
 
     // ── Replace modal ─────────────────────────────────────────────────
-    public bool   $showReplaceModal         = false;
-    public int    $replacingBoId            = 0;
-    public string $replacementProductSearch = '';
-    public ?int   $selectedReplacementId    = null;
-    public string $replacementSize           = '';
-    public string $replaceNotes             = '';
+    public $showReplaceModal         = false;
+    public $replacingBoId            = 0;
+    public $replacementProductSearch = '';
+    public $selectedReplacementId    = null;
+    public $replacementSize           = '';
+    public $replaceNotes             = '';
     // Price diff tracking (set when modal opens / product selected)
-    public float  $originalItemPrice        = 0.0;  // price per unit from order item
-    public int    $replacingQty             = 0;    // short_qty of the backorder
-    public float  $selectedReplacementPrice = 0.0;  // price of chosen replacement product
-    public int    $replaceQty               = 1;
+    public $originalItemPrice        = 0.0;  // price per unit from order item
+    public $replacingQty             = 0;    // short_qty of the backorder
+    public $selectedReplacementPrice = 0.0;  // price of chosen replacement product
+    public $replaceQty               = 1;
 
     // ── Payment gate ──────────────────────────────────────────────────
-    public bool   $showPaymentGate    = false;
-    public int    $paymentGateOrderId = 0;
-    public string $paymentGateOrderNo = '';
-    public float  $paymentGateDue    = 0.0;
+    public $showPaymentGate    = false;
+    public $paymentGateOrderId = 0;
+    public $paymentGateOrderNo = '';
+    public $paymentGateDue    = 0.0;
 
     // ── Refund modal ──────────────────────────────────────────────────
-    public bool   $showRefundModal       = false;
-    public int    $refundingBoId          = 0;
-    public string $refundAmount           = '0';
-    public string $refundMethod           = 'bank_transfer';
-    public string $customerBankAccount    = '';
-    public string $refundNotes            = '';
-    public int    $refundQty              = 1;
+    public $showRefundModal       = false;
+    public $refundingBoId          = 0;
+    public $refundAmount           = '0';
+    public $refundMethod           = 'bank_transfer';
+    public $customerBankAccount    = '';
+    public $refundNotes            = '';
+    public $refundQty              = 1;
 
     // ─────────────────────────────────────────────────────────────────
 
@@ -234,23 +234,7 @@ class Backorder extends Component
         $unitPrice    = $bo->orderItem ? (float) $bo->orderItem->price : ($bo->product ? (float) $bo->product->price : 0);
         $itemSubtotal = round($unitPrice * $bo->short_qty, 2);
 
-        // For partial/advance payment orders, only pre-fill what was actually paid for this item
-        $order = $bo->order;
-        if ($order) {
-            $totalPaid    = (float) $order->payments()->whereIn('type', ['advance', 'balance', 'full'])->where('status', 'confirmed')->sum('amount');
-            $orderTotal   = (float) $order->total;
-            if ($orderTotal > 0 && $totalPaid < $orderTotal) {
-                // Proportional: how much of this item's value has been paid
-                $proportion   = $itemSubtotal / $orderTotal;
-                $paidForItem  = round($totalPaid * $proportion, 2);
-                $this->refundAmount = (string) min($paidForItem, $itemSubtotal);
-            } else {
-                $this->refundAmount = (string) $itemSubtotal;
-            }
-        } else {
-            $this->refundAmount = (string) $itemSubtotal;
-        }
-
+        $this->refundAmount = (string) $itemSubtotal;
         $this->refundMethod         = 'bank_transfer';
         $this->customerBankAccount  = '';
         $this->refundNotes          = "Refund for out-of-stock item: {$bo->product_name}";
@@ -309,15 +293,10 @@ class Backorder extends Component
             }
 
             // 4. Recalculate Order Totals
-            // Since an item is being removed from delivery due to stock shortage, 
-            // the order total should decrease by the item's subtotal amount.
             $subtotalRemoved = $bo->orderItem ? (float) $bo->orderItem->subtotal : 0;
-            
             $newSubtotal = max(0, (float) $order->subtotal - $subtotalRemoved);
-            
             $taxRate = (float) \App\Models\Setting::get('tax_rate', '15') / 100;
             $newTax  = round($newSubtotal * $taxRate, 2);
-            
             $newDiscount = (float) $order->discount;
             if ($order->coupon_code) {
                 $coupon = \App\Models\Coupon::where('code', $order->coupon_code)->first();
@@ -328,16 +307,8 @@ class Backorder extends Component
                     }
                 }
             }
-
             $newTotal = round($newSubtotal + $order->shipping_cost + $newTax - $newDiscount, 2);
-
-            // Calculate how much the customer already paid
-            $totalPaid = (float) $order->payments()
-                ->whereIn('type', ['advance', 'balance', 'full'])
-                ->where('status', 'confirmed')
-                ->sum('amount');
-
-            // New balance customer owes
+            $totalPaid = (float) $order->payments()->whereIn('type', ['advance', 'balance', 'full'])->where('status', 'confirmed')->sum('amount');
             $newBalanceDue = max(0, round($newTotal - $totalPaid, 2));
 
             $order->update([
@@ -371,7 +342,6 @@ class Backorder extends Component
             return;
         }
 
-        // Fully paid — go straight to shipments
         $this->redirectRoute('admin.shipments');
     }
 
@@ -388,18 +358,13 @@ class Backorder extends Component
     public function openReplaceModal(int $id): void
     {
         $bo = OrderBackorder::with('orderItem')->find($id);
-
         $this->replacingBoId            = $id;
         $this->replacementProductSearch = '';
         $this->selectedReplacementId    = null;
         $this->replacementSize          = $bo?->size ?? '';
         $this->replaceNotes             = '';
         $this->selectedReplacementPrice = 0.0;
-        // Load the original unit price from the order item (not the product, since
-        // the product price may have changed since the order was placed).
-        $this->originalItemPrice = $bo?->orderItem
-            ? (float) $bo->orderItem->price
-            : 0.0;
+        $this->originalItemPrice = $bo?->orderItem ? (float) $bo->orderItem->price : 0.0;
         $this->replacingQty      = (int) ($bo?->short_qty ?? 0);
         $this->replaceQty        = (int) ($bo?->short_qty ?? 1);
         $this->showReplaceModal  = true;
@@ -422,16 +387,11 @@ class Backorder extends Component
 
         $bo          = OrderBackorder::with(['product', 'orderItem'])->findOrFail($this->replacingBoId);
         $replacement = Product::findOrFail($this->selectedReplacementId);
-
-        // If out of stock, save replacement product and keep in repurchasing state
-        // (admin will purchase it next batch, then mark ready)
         $qty      = max(1, min((int) $this->replaceQty, (int) $bo->short_qty));
         $hasStock = $replacement->stock >= $qty;
-
-        // ── Price difference calculation ──────────────────────────────
         $origUnitPrice  = $bo->orderItem ? (float) $bo->orderItem->price : 0.0;
         $newUnitPrice   = (float) $replacement->price;
-        $priceDiff      = round(($newUnitPrice - $origUnitPrice) * $qty, 2); // + = more expensive, - = cheaper
+        $priceDiff      = round(($newUnitPrice - $origUnitPrice) * $qty, 2);
 
         if ($hasStock) {
             $replacement->decrement('stock', $qty);
@@ -445,7 +405,6 @@ class Backorder extends Component
             'status'                 => $hasStock ? 'ready' : 'repurchasing',
         ]);
 
-        // If partial replacement, create remaining backorder for un-replaced units
         $remainingQty = (int) $bo->short_qty - $qty;
         if ($remainingQty > 0) {
             OrderBackorder::create([
@@ -464,14 +423,11 @@ class Backorder extends Component
         }
         $bo->update(['short_qty' => $qty]);
 
-        // ── Update order item & recalculate totals ────────────────────
         $orderItem = \App\Models\OrderItem::find($bo->order_item_id);
         $refundNeeded = 0.0;
 
         if ($orderItem) {
             $newSubtotal = round($newUnitPrice * $qty, 2);
-
-            // Preserve the original product info only if not already replaced once before
             $originalProductId   = $orderItem->is_replaced ? $orderItem->original_product_id   : $orderItem->product_id;
             $originalProductName = $orderItem->is_replaced ? $orderItem->original_product_name : $orderItem->product_name;
             $originalPrice       = $orderItem->is_replaced ? $orderItem->original_price        : $orderItem->price;
@@ -497,12 +453,8 @@ class Backorder extends Component
             $order = $orderItem->order()->with(['items', 'payments'])->first();
             if ($order) {
                 $newSubtotalOrder = $order->items()->sum('subtotal');
-
-                // BUG-06 fix: Recalculate tax based on new subtotal
                 $taxRate = (float) \App\Models\Setting::get('tax_rate', '15') / 100;
                 $newTax  = round($newSubtotalOrder * $taxRate, 2);
-
-                // Recalculate percentage-based coupon discount if applicable
                 $newDiscount = (float) $order->discount;
                 if ($order->coupon_code) {
                     $coupon = \App\Models\Coupon::where('code', $order->coupon_code)->first();
@@ -513,23 +465,11 @@ class Backorder extends Component
                         }
                     }
                 }
-
                 $newTotal = round($newSubtotalOrder + $order->shipping_cost + $newTax - $newDiscount, 2);
-
                 $advPct       = (float) ($order->advance_percentage ?? 0);
                 $newAdvance   = $advPct > 0 ? round($newTotal * $advPct / 100, 2) : (float) $order->advance_amount;
-                $newBalance   = max(0, round($newTotal - $newAdvance, 2));
-
-                // Total confirmed payments by customer (including full-payment orders)
-                $totalPaid = (float) $order->payments()
-                    ->whereIn('type', ['advance', 'balance', 'full'])
-                    ->where('status', 'confirmed')
-                    ->sum('amount');
-
-                // How much customer still owes (or is owed)
+                $totalPaid = (float) $order->payments()->whereIn('type', ['advance', 'balance', 'full'])->where('status', 'confirmed')->sum('amount');
                 $newBalanceDue = max(0, $newTotal - $totalPaid);
-
-                // If customer already paid MORE than new total → they're owed a refund
                 $refundNeeded = max(0.0, round($totalPaid - $newTotal, 2));
 
                 $order->update([
@@ -541,7 +481,6 @@ class Backorder extends Component
                     'balance_amount' => $newBalanceDue,
                 ]);
 
-                // Log the change in order status history
                 $diffNote = $priceDiff > 0
                     ? "Replacement product \"{$replacement->name}\" costs LKR " . number_format($priceDiff, 2) . " MORE than original. Balance due increased."
                     : ($priceDiff < 0
@@ -551,7 +490,6 @@ class Backorder extends Component
             }
         }
 
-        // ── Close modal & build flash message ─────────────────────────
         $this->showReplaceModal         = false;
         $this->replacingBoId            = 0;
         $this->selectedReplacementId    = null;
@@ -559,44 +497,23 @@ class Backorder extends Component
         $this->selectedReplacementPrice = 0.0;
 
         if (!$hasStock) {
-            session()->flash('success',
-                "Replacement set to \"{$replacement->name}\" (out of stock). A purchase order will be needed to source this product. Status remains Repurchasing.");
+            session()->flash('success', "Replacement set to \"{$replacement->name}\" (out of stock). Status remains Repurchasing.");
             $this->refreshDetail();
             return;
         }
 
-        if ($priceDiff > 0) {
-            session()->flash('success',
-                "Replaced with \"{$replacement->name}\". Replacement costs LKR " . number_format($priceDiff, 2) .
-                " more — balance due has been updated. Notify the customer to pay the extra amount.");
-        } elseif ($priceDiff < 0 && $refundNeeded > 0) {
-            // Customer overpaid — open refund modal pre-filled with the excess
-            session()->flash('success',
-                "Replaced with \"{$replacement->name}\". Order total reduced by LKR " . number_format(abs($priceDiff), 2) .
-                " — customer has overpaid. Please process a refund of LKR " . number_format($refundNeeded, 2) . ".");
-        } elseif ($priceDiff < 0) {
-            session()->flash('success',
-                "Replaced with \"{$replacement->name}\". Order total reduced by LKR " . number_format(abs($priceDiff), 2) . ". Balance due updated.");
-        } else {
-            session()->flash('success', "Replaced with \"{$replacement->name}\". Ready to dispatch.");
-        }
-
+        session()->flash('success', "Replaced with \"{$replacement->name}\". Ready to dispatch.");
         $this->refreshDetail();
     }
 
-    // ── Render ────────────────────────────────────────────────────────
-
     public function render()
     {
-        // Query orders that have active backorders — grouped at order level
         $ordersQuery = Order::with([
             'user',
             'backorders' => fn($q) => $q->with(['product', 'replacementProduct'])->orderBy('id'),
         ])
         ->whereHas('backorders', fn($q) => $q->whereNotIn('status', ['completed', 'cancelled']))
-        ->when($this->filterStatus, fn($q) => $q->whereHas('backorders',
-            fn($b) => $b->where('status', $this->filterStatus)
-        ))
+        ->when($this->filterStatus, fn($q) => $q->whereHas('backorders', fn($b) => $b->where('status', $this->filterStatus)))
         ->when($this->search, fn($q) => $q
             ->where('order_number', 'like', "%{$this->search}%")
             ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$this->search}%"))

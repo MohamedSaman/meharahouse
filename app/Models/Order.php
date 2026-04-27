@@ -169,10 +169,10 @@ class Order extends Model
     public function totalRefunded(): float
     {
         if ($this->relationLoaded('refunds')) {
-            return (float) $this->refunds->sum('amount');
+            return (float) $this->refunds->where('status', '!=', 'cancelled')->sum('amount');
         }
 
-        return (float) $this->refunds()->sum('amount');
+        return (float) $this->refunds()->where('status', '!=', 'cancelled')->sum('amount');
     }
 
     /**

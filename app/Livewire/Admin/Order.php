@@ -51,6 +51,7 @@ class Order extends Component
     // Refund sub-confirm inside stock alert
     public bool  $showStockRefundConfirm = false;
     public int   $stockRefundConfirmIdx  = -1;
+    public array $stockRefundQtys        = []; // [index => qty_to_refund]
     // Replace sub-modal inside stock alert
     public bool   $showStockReplaceModal = false;
     public int    $stockReplaceIdx       = -1;
@@ -64,6 +65,8 @@ class Order extends Component
     public string $refundBankAccount  = '';
     public string $refundReference    = '';
     public string $refundNotes        = '';
+    public array  $refundItems        = [];   // [{id, name, size, color, qty, price}]
+    public array  $refundQtys         = [];   // [item_id => qty_to_refund]
 
     #[Validate('nullable|file|mimes:jpg,jpeg,png,pdf|max:5120')]
     public $refundProofFile = null;
@@ -148,6 +151,7 @@ class Order extends Component
         // ── Stock check ───────────────────────────────────────────────
         $issues = [];
         foreach ($order->items as $item) {
+            if (in_array($item->status, ['backordered', 'refunded', 'replaced', 'cancelled'])) continue;
             $product = $item->product;
             if (!$product) continue;
             if ($product->stock < $item->quantity) {
@@ -177,6 +181,7 @@ class Order extends Component
 
         // ── Deduct stock & confirm ────────────────────────────────────
         foreach ($order->items as $item) {
+            if (in_array($item->status, ['backordered', 'refunded', 'replaced', 'cancelled'])) continue;
             if ($item->product) {
                 $item->product->decrement('stock', $item->quantity);
             }
@@ -217,6 +222,7 @@ class Order extends Component
         // Skip payment check — proceed directly to stock check & confirm
         $issues = [];
         foreach ($order->items as $item) {
+            if (in_array($item->status, ['backordered', 'refunded', 'replaced', 'cancelled'])) continue;
             $product = $item->product;
             if (!$product) continue;
             if ($product->stock < $item->quantity) {
@@ -243,6 +249,7 @@ class Order extends Component
             return;
         }
         foreach ($order->items as $item) {
+            if (in_array($item->status, ['backordered', 'refunded', 'replaced', 'cancelled'])) continue;
             if ($item->product) $item->product->decrement('stock', $item->quantity);
         }
         $order->logStatus('confirmed', 'Order confirmed (no payment recorded — admin override).', auth()->id());
@@ -266,9 +273,11 @@ class Order extends Component
      */
     public function openStockRefundConfirm(int $index): void
     {
-        $this->stockDecisions[$index]  = 'refund';
-        $this->stockRefundConfirmIdx   = $index;
-        $this->showStockRefundConfirm  = true;
+        $this->stockDecisions[$index]          = 'refund';
+        $this->stockRefundConfirmIdx           = $index;
+        // Default to full short qty
+        $this->stockRefundQtys[$index]         = $this->stockIssues[$index]['short'] ?? 1;
+        $this->showStockRefundConfirm          = true;
     }
 
     /** Close just the refund sub-confirm (revert to next_batch for that item). */
@@ -276,6 +285,7 @@ class Order extends Component
     {
         if ($this->stockRefundConfirmIdx >= 0) {
             $this->stockDecisions[$this->stockRefundConfirmIdx] = 'next_batch';
+            unset($this->stockRefundQtys[$this->stockRefundConfirmIdx]);
         }
         $this->showStockRefundConfirm = false;
         $this->stockRefundConfirmIdx  = -1;
@@ -284,6 +294,11 @@ class Order extends Component
     /** Confirm the refund selection for the item and close the sub-popup. */
     public function confirmStockRefundItem(): void
     {
+        $idx = $this->stockRefundConfirmIdx;
+        // Clamp qty between 1 and the full short qty
+        $max = $this->stockIssues[$idx]['short'] ?? 1;
+        $qty = max(1, min((int) ($this->stockRefundQtys[$idx] ?? $max), $max));
+        $this->stockRefundQtys[$idx]  = $qty;
         $this->showStockRefundConfirm = false;
         $this->stockRefundConfirmIdx  = -1;
     }
@@ -428,24 +443,29 @@ class Order extends Component
                 }
 
             } elseif ($decision === 'refund') {
-                $shortAmount          = round($issue['unit_price'] * $issue['short'], 2);
+                // Use admin-chosen refund qty (defaults to full short qty)
+                $refundQty    = max(1, min((int) ($this->stockRefundQtys[$index] ?? $issue['short']), $issue['short']));
+                $remainderQty = $issue['short'] - $refundQty; // units to backorder
+                $shortAmount  = round($issue['unit_price'] * $refundQty, 2);
                 $partialRefundAmount += $shortAmount;
 
                 $orderItem = $order->items->firstWhere('id', $issue['item_id']);
                 if ($orderItem) {
-                    if ($issue['available'] > 0) {
-                        // Partial refund: reduce quantity to what is actually available,
-                        // keep the item active for the fulfilled portion
+                    // Units that remain in the order = in-stock (deliverable now) + backordered remainder
+                    $keepQty = $issue['available'] + $remainderQty;
+
+                    if ($keepQty > 0) {
+                        // Some units remain (delivered now or backordered) — keep item with reduced qty/subtotal
                         $orderItem->update([
-                            'status'                    => 'active',
-                            'quantity'                  => $issue['available'],
-                            'subtotal'                  => round($issue['unit_price'] * $issue['available'], 2),
+                            'status'                    => $remainderQty > 0 ? 'backordered' : 'active',
+                            'quantity'                  => $keepQty,
+                            'subtotal'                  => round($issue['unit_price'] * $keepQty, 2),
                             'original_qty'              => $issue['needed'],
                             'original_ordered_subtotal' => round($issue['unit_price'] * $issue['needed'], 2),
                             'refund_amount'             => $shortAmount,
                         ]);
                     } else {
-                        // Full refund: keep the record but mark as refunded — do NOT delete
+                        // All units refunded, nothing left — mark item as fully refunded
                         $orderItem->update([
                             'status'                    => 'refunded',
                             'quantity'                  => 0,
@@ -453,6 +473,23 @@ class Order extends Component
                             'original_qty'              => $issue['needed'],
                             'original_ordered_subtotal' => round($issue['unit_price'] * $issue['needed'], 2),
                             'refund_amount'             => $shortAmount,
+                        ]);
+                    }
+
+                    // Backorder the remainder (units not refunded and not in stock)
+                    if ($remainderQty > 0) {
+                        OrderBackorder::create([
+                            'order_id'      => $order->id,
+                            'order_item_id' => $issue['item_id'],
+                            'product_id'    => $issue['product_id'],
+                            'product_name'  => $issue['name'],
+                            'size'          => $issue['size'] ?? null,
+                            'ordered_qty'   => $remainderQty,
+                            'available_qty' => 0,
+                            'short_qty'     => $remainderQty,
+                            'decision'      => 'repurchase',
+                            'status'        => 'repurchasing',
+                            'created_by'    => auth()->id(),
                         ]);
                     }
                 }
@@ -496,7 +533,7 @@ class Order extends Component
                     ->whereIn('type', ['advance', 'balance', 'full'])
                     ->where('status', 'confirmed')
                     ->sum('amount');
-                $totalRefunded = (float) $order->refunds()->sum('amount');
+                $totalRefunded = (float) $order->refunds()->where('status', '!=', 'cancelled')->sum('amount');
                 $newBalanceDue = max(0, round($newTotal - $totalPaid + $totalRefunded, 2));
 
                 $order->update([
@@ -538,8 +575,9 @@ class Order extends Component
         $sumNextBatch      = collect($this->stockDecisions)->filter(fn($d) => $d === 'next_batch')->count();
         $sumRefundDec      = collect($this->stockDecisions)->filter(fn($d) => $d === 'refund')->count();
 
-        // Truly fully-backordered = no non-issued active items AND nothing deducted AND no refunds
-        $fullyBackordered = !$hasNonIssuedItems && $totalDeducted === 0 && $sumRefundDec === 0;
+        // Nothing deliverable now = no non-issued active items AND nothing deducted from stock.
+        // Applies even when some items were partially refunded (remainder goes to backorder).
+        $fullyBackordered = !$hasNonIssuedItems && $totalDeducted === 0;
 
         // All items fully refunded (quantity = 0) = mark order as refunded
         $allRefunded = $order->items->where('status', 'refunded')->count() === $order->items->count()
@@ -641,20 +679,26 @@ class Order extends Component
             //          p2 (Rs.1,575) refunded → new total = Rs.1,000
             //          Overpayment = Rs.1,288 - Rs.1,000 = Rs.288 (refund this)
             //          NOT min(1575, 1288) = Rs.1,288 — that's wrong!
-            $order->load('payments');
-            $totalPaid       = $order->totalPaid();
-            $newOrderTotal   = (float) $order->total;  // Already updated above
-            $overpayment     = max(0, round($totalPaid - $newOrderTotal, 2));
+            $order->load('payments', 'refunds');
+            $totalPaid            = $order->totalPaid();
+            $totalAlreadyRefunded = (float) $order->refunds()
+                ->where('status', '!=', 'cancelled')
+                ->sum('amount');
+            $newOrderTotal        = (float) $order->total;  // Already updated above
+            $overpayment          = max(0, round($totalPaid - $newOrderTotal - $totalAlreadyRefunded, 2));
 
-            // Only show refund modal if customer actually overpaid
+            // Only show refund modal if customer actually overpaid beyond what was already refunded
             if ($overpayment > 0) {
                 $this->refundOrderId     = $order->id;
                 $this->refundAmount      = (string) $overpayment;
                 $this->refundMethod      = 'bank_transfer';
                 $this->refundBankAccount = '';
                 $this->refundReference   = '';
-                $this->refundNotes       = 'Partial refund for out-of-stock item(s). Item value: Rs. ' . number_format($partialRefundAmount, 0) . '. Overpayment refund: Rs. ' . number_format($overpayment, 0) . '.';
+                $this->refundNotes       = 'Partial refund for out-of-stock item(s). Item value: Rs. ' . number_format($partialRefundAmount, 0) . '. Overpayment to refund: Rs. ' . number_format($overpayment, 0)
+                    . ($totalAlreadyRefunded > 0 ? ' (Rs. ' . number_format($totalAlreadyRefunded, 0) . ' already refunded separately).' : '.');
                 $this->refundProofFile   = null;
+                $this->refundItems       = [];
+                $this->refundQtys        = [];
                 $this->showRefundModal   = true;
             }
             // If overpayment = 0 (customer paid less than new total), no refund needed
@@ -1012,7 +1056,34 @@ class Order extends Component
         $this->refundReference    = '';
         $this->refundNotes        = '';
         $this->refundProofFile    = null;
+
+        // Load active items for qty-based partial refund
+        $order->loadMissing('items');
+        $this->refundItems = $order->items
+            ->whereNotIn('status', ['refunded', 'cancelled'])
+            ->map(fn($i) => [
+                'id'    => $i->id,
+                'name'  => $i->product_name ?? 'Item',
+                'size'  => $i->size ?? '',
+                'color' => $i->color ?? '',
+                'qty'   => $i->quantity,
+                'price' => (float) $i->price,
+            ])->values()->toArray();
+        $this->refundQtys = collect($this->refundItems)
+            ->mapWithKeys(fn($i) => [$i['id'] => 0])
+            ->toArray();
+
         $this->showRefundModal    = true;
+    }
+
+    public function updatedRefundQtys(): void
+    {
+        $total = 0.0;
+        foreach ($this->refundItems as $item) {
+            $qty = max(0, min((int) ($this->refundQtys[$item['id']] ?? 0), $item['qty']));
+            $total += $qty * $item['price'];
+        }
+        $this->refundAmount = (string) round($total, 2);
     }
 
     public function processRefund(): void
