@@ -34,6 +34,7 @@ class Order extends Model
         'waybill_number',
         'delivery_agent',
         'delivery_notes',
+        'delivery_code',
         'payment_proof',
     ];
 

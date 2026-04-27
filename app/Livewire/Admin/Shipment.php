@@ -37,6 +37,7 @@ class Shipment extends Component
     public array  $selectedOrderIds     = [];
     public array  $selectedBackorderIds = [];
     public string $orderSearch          = '';
+    public array  $orderDeliveryCodes   = [];
 
     // ── Waybill Modal ─────────────────────────────────────────────────
     public bool   $showWaybillModal = false;
@@ -391,6 +392,11 @@ class Shipment extends Component
         $this->selectedOrderIds     = $batch->orders()->pluck('id')->toArray();
         $this->selectedBackorderIds = $batch->backorders()->pluck('id')->toArray();
         $this->orderSearch          = '';
+        $this->orderDeliveryCodes   = Order::whereIn('id', $this->selectedOrderIds)
+            ->whereNotNull('delivery_code')
+            ->pluck('delivery_code', 'id')
+            ->map(fn($v) => (string) $v)
+            ->toArray();
         $this->showAssignModal      = true;
     }
 
@@ -428,6 +434,11 @@ class Shipment extends Component
         if (!empty($this->selectedOrderIds)) {
             Order::whereIn('id', $this->selectedOrderIds)
                  ->update(['shipment_batch_id' => $this->assigningBatchId]);
+            // Save delivery codes entered in the modal
+            foreach ($this->selectedOrderIds as $orderId) {
+                $code = trim($this->orderDeliveryCodes[$orderId] ?? '');
+                Order::where('id', $orderId)->update(['delivery_code' => $code ?: null]);
+            }
         }
 
         // Backorders
@@ -472,6 +483,16 @@ class Shipment extends Component
 
         $this->showWaybillModal = false;
         session()->flash('success', 'Waybill details saved.');
+    }
+
+    // ── Delivery Code ─────────────────────────────────────────────────
+
+    public function saveDeliveryCode(int $orderId, string $code): void
+    {
+        Order::findOrFail($orderId)->update([
+            'delivery_code' => trim($code) ?: null,
+        ]);
+        // No session flash — the UI shows confirmation via Alpine
     }
 
     // ── Render ────────────────────────────────────────────────────────
