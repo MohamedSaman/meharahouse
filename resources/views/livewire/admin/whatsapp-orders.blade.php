@@ -468,8 +468,24 @@
                             <span class="text-slate-400">Order Total</span>
                             <span class="font-semibold text-white">Rs. {{ number_format($this->subtotal, 0) }}</span>
                         </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-slate-400">Advance %</span>
+                            <div class="flex items-center gap-1.5">
+                                <input
+                                    wire:model.live="customAdvancePct"
+                                    type="number" min="0" max="100"
+                                    placeholder="{{ $this->defaultAdvancePercentage }}"
+                                    class="w-16 text-center text-xs font-bold bg-slate-700 text-white border border-slate-500 rounded-lg px-2 py-1 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/30">
+                                <span class="text-slate-300 text-xs">%</span>
+                                @if($customAdvancePct !== '' && (int)$customAdvancePct !== $this->defaultAdvancePercentage)
+                                <button wire:click="$set('customAdvancePct', '')"
+                                        title="Reset to default ({{ $this->defaultAdvancePercentage }}%)"
+                                        class="text-slate-500 hover:text-slate-300 transition-colors text-[10px] underline ml-0.5">reset</button>
+                                @endif
+                            </div>
+                        </div>
                         <div class="flex justify-between text-sm">
-                            <span class="text-slate-400">Advance ({{ $this->advancePercentage }}%)</span>
+                            <span class="text-slate-400">Advance Amount</span>
                             <span class="font-bold text-amber-400 text-base">Rs. {{ number_format($this->advanceAmount, 0) }}</span>
                         </div>
                         <div class="flex justify-between text-sm border-t border-slate-700 pt-2 mt-2">
@@ -477,7 +493,7 @@
                             <span class="text-slate-300 font-semibold">Rs. {{ number_format($this->subtotal - $this->advanceAmount, 0) }}</span>
                         </div>
                     </div>
-                    <p class="text-xs text-slate-500 mt-3">Advance % is configured in <strong class="text-slate-400">Website Settings</strong></p>
+                    <p class="text-xs text-slate-500 mt-3">Default advance % from <strong class="text-slate-400">Website Settings</strong> — override above per order.</p>
                 </div>
                 @endif
 

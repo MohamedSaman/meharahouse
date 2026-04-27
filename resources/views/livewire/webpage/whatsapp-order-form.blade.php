@@ -85,7 +85,8 @@
             </div>
             <div class="divide-y divide-slate-100">
                 @foreach($tokenModel->products as $index => $product)
-                <div class="px-4 py-3 space-y-2">
+                @php $variants = $productVariants[$index] ?? []; @endphp
+                <div class="px-4 py-3 space-y-3">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-semibold text-[#0F172A] truncate">{{ $product['product_name'] }}</p>
@@ -98,23 +99,65 @@
                             Rs. {{ number_format($product['price'] * $product['quantity'], 0) }}
                         </span>
                     </div>
-                    {{-- Per-product size input --}}
-                    <div class="flex items-center gap-2">
-                        <label class="text-xs font-semibold text-[#475569] shrink-0 flex items-center gap-1">
-                            <span class="text-base">📏</span> Size
-                        </label>
-                        <input
-                            wire:model="productSizes.{{ $index }}"
-                            type="number"
-                            min="1"
-                            max="999"
-                            placeholder="e.g. 52"
-                            class="w-28 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all @error('productSizes.'.$index) border-red-400 bg-red-50 @enderror"
-                        >
+
+                    {{-- Size chips (only if product has sizes) --}}
+                    @if(!empty($variants['sizes']))
+                    <div>
+                        <p class="text-xs font-semibold text-[#475569] mb-2 flex items-center gap-1">
+                            <span class="text-sm">📏</span> Size
+                            <span class="text-red-400 font-bold">*</span>
+                            @if($productSizes[$index] ?? '')
+                                <span class="ml-1 text-amber-700">— {{ $productSizes[$index] }}</span>
+                            @endif
+                        </p>
                         @error('productSizes.'.$index)
-                            <p class="text-xs text-red-500">{{ $message }}</p>
+                            <p class="text-xs text-red-500 mb-1.5">{{ $message }}</p>
                         @enderror
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($variants['sizes'] as $sz)
+                            <button
+                                type="button"
+                                wire:click="selectSize({{ $index }}, '{{ $sz }}')"
+                                class="px-3.5 py-1.5 rounded-lg border text-sm font-semibold transition-all
+                                    {{ ($productSizes[$index] ?? '') === $sz
+                                        ? 'bg-[#0F172A] border-[#0F172A] text-white shadow-sm scale-105'
+                                        : 'bg-white border-slate-300 text-[#475569] hover:border-amber-400 hover:text-amber-700' }}">
+                                {{ $sz }}
+                            </button>
+                            @endforeach
+                        </div>
                     </div>
+                    @endif
+
+                    {{-- Color swatches (only if product has colors) --}}
+                    @if(!empty($variants['colors']))
+                    <div>
+                        <p class="text-xs font-semibold text-[#475569] mb-2 flex items-center gap-1">
+                            <span class="text-sm">🎨</span> Color
+                            <span class="text-red-400 font-bold">*</span>
+                            @if($productColors[$index] ?? '')
+                                <span class="ml-1 text-amber-700">— {{ $productColors[$index] }}</span>
+                            @endif
+                        </p>
+                        @error('productColors.'.$index)
+                            <p class="text-xs text-red-500 mb-1.5">{{ $message }}</p>
+                        @enderror
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($variants['colors'] as $clr)
+                            <button
+                                type="button"
+                                wire:click="selectColor({{ $index }}, '{{ $clr['name'] }}')"
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-semibold transition-all
+                                    {{ ($productColors[$index] ?? '') === $clr['name']
+                                        ? 'border-[#0F172A] bg-[#0F172A]/5 text-[#0F172A] shadow-sm scale-105'
+                                        : 'border-slate-300 bg-white text-[#475569] hover:border-amber-400 hover:text-amber-700' }}">
+                                <span class="w-4 h-4 rounded-full border border-slate-200 shrink-0" style="background-color:{{ $clr['hex'] }}"></span>
+                                {{ $clr['name'] }}
+                            </button>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
                 </div>
                 @endforeach
             </div>

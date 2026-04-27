@@ -30,6 +30,9 @@ class WhatsappOrders extends Component
     // Customer WhatsApp number
     public string $customerPhone = '';
 
+    // Editable advance percentage (empty = use global setting)
+    public string $customAdvancePct = '';
+
     // Flash link after generation
     public ?string $generatedLink    = null;
     public ?string $generatedTokenId = null;
@@ -66,6 +69,15 @@ class WhatsappOrders extends Component
     #[Computed]
     public function advancePercentage(): int
     {
+        if ($this->customAdvancePct !== '' && (int) $this->customAdvancePct >= 0) {
+            return min(100, max(0, (int) $this->customAdvancePct));
+        }
+        return (int) Setting::get('advance_payment_percentage', '50');
+    }
+
+    #[Computed]
+    public function defaultAdvancePercentage(): int
+    {
         return (int) Setting::get('advance_payment_percentage', '50');
     }
 
@@ -87,12 +99,14 @@ class WhatsappOrders extends Component
         $this->productResults = Product::where('is_active', true)
             ->where('name', 'like', '%' . $this->searchProduct . '%')
             ->limit(8)
-            ->get(['id', 'name', 'price', 'sale_price'])
+            ->get(['id', 'name', 'price', 'sale_price', 'sizes', 'colors'])
             ->map(function ($product) {
                 return [
-                    'id'    => $product->id,
-                    'name'  => $product->name,
-                    'price' => (float) ($product->sale_price ?: $product->price),
+                    'id'         => $product->id,
+                    'name'       => $product->name,
+                    'price'      => (float) ($product->sale_price ?: $product->price),
+                    'has_sizes'  => !empty($product->sizes),
+                    'has_colors' => !empty($product->colors),
                 ];
             })
             ->toArray();
@@ -188,6 +202,7 @@ class WhatsappOrders extends Component
         $this->productResults    = [];
         $this->notes             = '';
         $this->customerPhone     = '';
+        $this->customAdvancePct  = '';
         $this->resetPage();
     }
 
