@@ -225,9 +225,14 @@
                             default    => $confirmedTotal > 0 ? 'partial' : 'pending',
                         };
 
-                        // Treat as fully paid when balance_amount is zero or payment_status is paid
-                        if ($due <= 0 || $order->payment_status === 'paid') {
-                            $payLabel    = 'fully_paid';
+                        // balance_amount is the authoritative source — if it's > 0,
+                        // the order is NOT fully paid regardless of payment_status.
+                        // (payment_status can be stale after a more-expensive replacement.)
+                        if ($due <= 0) {
+                            $payLabel = 'fully_paid';
+                        } elseif ($payLabel === 'fully_paid') {
+                            // payment_status says 'paid' but balance_amount disagrees — override
+                            $payLabel = 'partial';
                         }
 
                         $isFullyPaid = $payLabel === 'fully_paid';

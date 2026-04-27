@@ -519,10 +519,6 @@ class Order extends Component
 
                 $newTotal = round($newSubtotal + $order->shipping_cost + $newTax - $newDiscount, 2);
 
-                // Recalculate advance/balance split based on the advance percentage
-                $advPct           = (float) ($order->advance_percentage ?? 0);
-                $newAdvance       = $advPct > 0 ? round($newTotal * $advPct / 100, 2) : (float) $order->advance_amount;
-
                 // Total confirmed payments (advance + balance + full)
                 $totalPaid = (float) $order->payments()
                     ->whereIn('type', ['advance', 'balance', 'full'])
@@ -531,6 +527,15 @@ class Order extends Component
                 $totalRefunded = (float) $order->refunds()->where('status', '!=', 'cancelled')->sum('amount');
                 $newBalanceDue = max(0, round($newTotal - $totalPaid + $totalRefunded, 2));
 
+                // advance_amount = what was ACTUALLY paid (never inflate it beyond what
+                // the customer has already paid, even if total increased via replacement).
+                $newAdvance = min($totalPaid, $newTotal);
+
+                // Derive payment_status from actual balance
+                $newPaymentStatus = $newBalanceDue <= 0
+                    ? ($totalPaid > 0 ? 'paid' : $order->payment_status)
+                    : ($totalPaid > 0 ? 'partial' : 'pending');
+
                 $order->update([
                     'subtotal'       => $newSubtotal,
                     'tax'            => $newTax,
@@ -538,6 +543,7 @@ class Order extends Component
                     'total'          => $newTotal,
                     'advance_amount' => $newAdvance,
                     'balance_amount' => $newBalanceDue,
+                    'payment_status' => $newPaymentStatus,
                 ]);
             } else {
                 // All items refunded — set total to 0 so overpayment calc gives
@@ -659,37 +665,48 @@ class Order extends Component
                           . '. No cash refund needed — customer still owes Rs. ' . number_format($currentTotal - $paidSoFar, 0) . '.';
                 }
             }
-            if ($sumReplace > 0) $msg .= " {$sumReplace} item(s) replaced directly in the order — no backorder created.";
+            if ($sumReplace > 0) {
+                $order->load('payments');
+                $paidSoFar    = $order->totalPaid();
+                $currentTotal = (float) $order->total;
+                $replaceDiff  = max(0, round($paidSoFar - $currentTotal, 2));
+                $msg .= " {$sumReplace} item(s) replaced.";
+                if ($replaceDiff > 0) {
+                    $msg .= ' Replacement is cheaper — Rs. ' . number_format($replaceDiff, 0) . ' refund due. Please fill in the refund details below.';
+                }
+            }
             if ($partialRefundAmount === 0.0 && $sumReplace === 0) $msg .= ' Backorders created for short items.';
         }
         session()->flash('success', $msg);
 
-        // If any items were refunded, open the refund modal so admin can
-        // record the payment method, bank account, reference and proof.
-        if ($partialRefundAmount > 0) {
-            // The refund to the customer is the OVERPAYMENT — the amount they paid
-            // beyond the new (reduced) order total. NOT the full item price.
-            //
-            // Example: Order Rs.2,575, customer paid Rs.1,288 advance (50%).
-            //          p2 (Rs.1,575) refunded → new total = Rs.1,000
-            //          Overpayment = Rs.1,288 - Rs.1,000 = Rs.288 (refund this)
-            //          NOT min(1575, 1288) = Rs.1,288 — that's wrong!
+        // Open refund modal whenever the order total decreased (refund or cheaper replacement)
+        // so admin can record the overpayment back to the customer.
+        $orderTotalChanged = $partialRefundAmount > 0 || $hasReplacement;
+        if ($orderTotalChanged) {
             $order->load('payments', 'refunds');
             $totalPaid            = $order->totalPaid();
             $totalAlreadyRefunded = (float) $order->refunds()
                 ->where('status', '!=', 'cancelled')
                 ->sum('amount');
-            $newOrderTotal        = (float) $order->total;  // Already updated above
-            $overpayment          = max(0, round($totalPaid - $newOrderTotal - $totalAlreadyRefunded, 2));
+            $newOrderTotal = (float) $order->total;  // Already updated above
+            $overpayment   = max(0, round($totalPaid - $newOrderTotal - $totalAlreadyRefunded, 2));
 
-            // Only show refund modal if customer actually overpaid beyond what was already refunded
+            // Only show refund modal if customer actually overpaid
             if ($overpayment > 0) {
+                // Build a human-readable note describing why there's an overpayment
+                if ($partialRefundAmount > 0 && $sumReplace > 0) {
+                    $noteReason = 'Item(s) refunded (Rs. ' . number_format($partialRefundAmount, 0) . ') and replaced with cheaper product(s).';
+                } elseif ($sumReplace > 0) {
+                    $noteReason = 'Replacement product is cheaper than original — price difference refundable.';
+                } else {
+                    $noteReason = 'Item value cancelled: Rs. ' . number_format($partialRefundAmount, 0) . '.';
+                }
                 $this->refundOrderId     = $order->id;
                 $this->refundAmount      = (string) $overpayment;
                 $this->refundMethod      = 'bank_transfer';
                 $this->refundBankAccount = '';
                 $this->refundReference   = '';
-                $this->refundNotes       = 'Partial refund for out-of-stock item(s). Item value: Rs. ' . number_format($partialRefundAmount, 0) . '. Overpayment to refund: Rs. ' . number_format($overpayment, 0)
+                $this->refundNotes       = $noteReason . ' Overpayment to refund: Rs. ' . number_format($overpayment, 0)
                     . ($totalAlreadyRefunded > 0 ? ' (Rs. ' . number_format($totalAlreadyRefunded, 0) . ' already refunded separately).' : '.');
                 $this->refundProofFile   = null;
                 $this->refundItems       = [];
