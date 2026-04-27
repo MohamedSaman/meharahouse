@@ -32,13 +32,22 @@
                     <span class="ml-2 text-xs text-slate-400">· Group orders into shipment batches and track their international journey</span>
                 </div>
             </div>
-            <button wire:click="openCreateBatch"
-                    class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-900 hover:bg-amber-300 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-400/40 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                New Batch
-            </button>
+            <div class="flex items-center gap-2 shrink-0">
+                <button wire:click="openTrackModal"
+                        class="inline-flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-5 py-3 text-sm font-bold text-white hover:bg-white/20 transition-all duration-200 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Track Order
+                </button>
+                <button wire:click="openCreateBatch"
+                        class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-900 hover:bg-amber-300 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-400/40 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    New Batch
+                </button>
+            </div>
         </div>
     </div>
 
@@ -871,6 +880,255 @@
                         class="flex-1 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-bold hover:bg-purple-700 transition-colors disabled:opacity-60">
                     <span wire:loading.remove wire:target="saveWaybill">Save Waybill</span>
                     <span wire:loading wire:target="saveWaybill">Saving...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══════════════════════ TRACK ORDER MODAL ══════════════════════ --}}
+    @if($showTrackModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background:rgba(15,23,42,0.7);" x-cloak>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+
+            {{-- Modal Header --}}
+            <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-slate-900 to-slate-800 border-b border-white/10 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-[Poppins] font-bold text-base text-white">Track Order</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Search by order number or delivery code</p>
+                    </div>
+                </div>
+                <button wire:click="$set('showTrackModal', false)"
+                        class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Search Bar --}}
+            <div class="px-6 pt-5 pb-4 shrink-0 border-b border-slate-100">
+                <div class="flex gap-2">
+                    <div class="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus-within:border-blue-400 focus-within:bg-white transition-colors">
+                        <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input wire:model="trackQuery"
+                               wire:keydown.enter="searchTrackOrder"
+                               type="text"
+                               placeholder="Enter order number (MH-...) or delivery code..."
+                               class="flex-1 bg-transparent text-sm outline-none placeholder-slate-400">
+                    </div>
+                    <button wire:click="searchTrackOrder"
+                            wire:loading.attr="disabled"
+                            class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-60 shrink-0">
+                        <span wire:loading.remove wire:target="searchTrackOrder">Search</span>
+                        <span wire:loading wire:target="searchTrackOrder">...</span>
+                    </button>
+                </div>
+                @if($trackError)
+                <p class="text-xs text-red-500 mt-2 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {{ $trackError }}
+                </p>
+                @endif
+            </div>
+
+            {{-- Results --}}
+            <div class="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+
+                @if(!$trackedOrder)
+                {{-- Empty state --}}
+                <div class="flex flex-col items-center justify-center py-10 text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-600">Enter an order number or delivery code</p>
+                    <p class="text-xs text-slate-400 mt-1">e.g. MH-69EF1734A795D or your local delivery code</p>
+                </div>
+                @else
+                @php
+                    $statusColors = [
+                        'pending'    => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-700', 'dot' => 'bg-yellow-400'],
+                        'confirmed'  => ['bg' => 'bg-blue-100',   'text' => 'text-blue-700',   'dot' => 'bg-blue-400'],
+                        'sourcing'   => ['bg' => 'bg-indigo-100', 'text' => 'text-indigo-700', 'dot' => 'bg-indigo-400'],
+                        'dispatched' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-700', 'dot' => 'bg-orange-400'],
+                        'delivered'  => ['bg' => 'bg-green-100',  'text' => 'text-green-700',  'dot' => 'bg-green-500'],
+                        'cancelled'  => ['bg' => 'bg-red-100',    'text' => 'text-red-700',    'dot' => 'bg-red-400'],
+                    ];
+                    $sc = $statusColors[$trackedOrder['status']] ?? ['bg' => 'bg-slate-100', 'text' => 'text-slate-700', 'dot' => 'bg-slate-400'];
+                    $payColors = [
+                        'paid'    => ['bg' => 'bg-green-100',  'text' => 'text-green-700'],
+                        'partial' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-700'],
+                        'pending' => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-700'],
+                    ];
+                    $pc = $payColors[$trackedOrder['payment_status']] ?? ['bg' => 'bg-slate-100', 'text' => 'text-slate-600'];
+                @endphp
+
+                {{-- Order Header Card --}}
+                <div class="rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Order Number</p>
+                            <p class="font-mono font-bold text-lg text-white mt-0.5">{{ $trackedOrder['order_number'] }}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold {{ $sc['bg'] }} {{ $sc['text'] }}">
+                                <span class="w-1.5 h-1.5 rounded-full {{ $sc['dot'] }}"></span>
+                                {{ ucfirst($trackedOrder['status']) }}
+                            </span>
+                            <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold {{ $pc['bg'] }} {{ $pc['text'] }}">
+                                {{ ucfirst($trackedOrder['payment_status']) }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="bg-white px-5 py-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Customer</p>
+                            <p class="text-sm font-semibold text-slate-800 mt-0.5">{{ $trackedOrder['customer_name'] }}</p>
+                            @if($trackedOrder['customer_phone'])
+                            <p class="text-xs text-slate-500">{{ $trackedOrder['customer_phone'] }}</p>
+                            @endif
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Order Total</p>
+                            <p class="text-sm font-bold text-slate-800 mt-0.5">Rs. {{ number_format($trackedOrder['total'], 0) }}</p>
+                            @if($trackedOrder['balance_due'] > 0)
+                            <p class="text-xs text-red-500">Due: Rs. {{ number_format($trackedOrder['balance_due'], 0) }}</p>
+                            @endif
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Ordered On</p>
+                            <p class="text-sm font-semibold text-slate-800 mt-0.5">{{ $trackedOrder['created_at'] }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Delivery Tracking Card --}}
+                <div class="rounded-xl border border-teal-200 bg-teal-50 p-4">
+                    <p class="text-[10px] font-bold text-teal-700 uppercase tracking-wider mb-3">Delivery Tracking</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white rounded-lg p-3 border border-teal-100">
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold">Delivery Code</p>
+                            <p class="font-mono font-bold text-sm text-teal-700 mt-1">
+                                {{ $trackedOrder['delivery_code'] ?: '—' }}
+                            </p>
+                        </div>
+                        <div class="bg-white rounded-lg p-3 border border-teal-100">
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold">Waybill #</p>
+                            <p class="font-mono font-bold text-sm text-slate-700 mt-1">
+                                {{ $trackedOrder['waybill_number'] ?: '—' }}
+                            </p>
+                        </div>
+                        <div class="bg-white rounded-lg p-3 border border-teal-100">
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold">Delivery Agent</p>
+                            <p class="text-sm font-semibold text-slate-700 mt-1">
+                                {{ $trackedOrder['delivery_agent'] ?: '—' }}
+                            </p>
+                        </div>
+                        @if($trackedOrder['delivery_notes'])
+                        <div class="bg-white rounded-lg p-3 border border-teal-100">
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold">Notes</p>
+                            <p class="text-xs text-slate-600 mt-1">{{ $trackedOrder['delivery_notes'] }}</p>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Shipment Batch Card --}}
+                @if($trackedOrder['batch_name'])
+                <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                    <p class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider mb-3">Shipment Batch</p>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold text-sm text-indigo-900">{{ $trackedOrder['batch_name'] }}</p>
+                            <p class="font-mono text-xs text-indigo-600 mt-0.5">{{ $trackedOrder['batch_number'] }}</p>
+                        </div>
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                            {{ $trackedOrder['batch_status_label'] }}
+                        </span>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Order Items --}}
+                @if(!empty($trackedOrder['items']))
+                <div>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Order Items</p>
+                    <div class="rounded-xl border border-slate-200 overflow-hidden">
+                        <table class="w-full text-xs">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-2.5 text-left font-semibold text-slate-600">Product</th>
+                                    <th class="px-4 py-2.5 text-center font-semibold text-slate-600">Qty</th>
+                                    <th class="px-4 py-2.5 text-right font-semibold text-slate-600">Price</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                @foreach($trackedOrder['items'] as $item)
+                                <tr>
+                                    <td class="px-4 py-3">
+                                        <p class="font-semibold text-slate-800">{{ $item['name'] }}</p>
+                                        @if($item['size'] || $item['color'])
+                                        <p class="text-[10px] text-slate-400 mt-0.5">
+                                            @if($item['size']) Size: {{ $item['size'] }} @endif
+                                            @if($item['size'] && $item['color']) · @endif
+                                            @if($item['color']) Color: {{ $item['color'] }} @endif
+                                        </p>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-center font-bold text-slate-700">{{ $item['qty'] }}</td>
+                                    <td class="px-4 py-3 text-right font-semibold text-slate-700">Rs. {{ number_format($item['price'], 0) }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Status Timeline --}}
+                @if(!empty($trackedOrder['status_logs']))
+                <div>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Status History</p>
+                    <div class="space-y-2">
+                        @foreach(array_reverse($trackedOrder['status_logs']) as $log)
+                        <div class="flex items-start gap-3">
+                            <div class="w-2 h-2 rounded-full bg-blue-400 shrink-0 mt-1.5"></div>
+                            <div class="flex-1 flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-semibold text-slate-700 capitalize">{{ $log['status'] }}</span>
+                                    @if($log['note'])
+                                    <p class="text-[11px] text-slate-400">{{ $log['note'] }}</p>
+                                    @endif
+                                </div>
+                                <span class="text-[10px] text-slate-400 shrink-0 ml-3">{{ $log['date'] }}</span>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                @endif {{-- end trackedOrder --}}
+            </div>
+
+            {{-- Footer --}}
+            <div class="px-6 py-4 border-t border-slate-100 shrink-0">
+                <button wire:click="$set('showTrackModal', false)"
+                        class="w-full py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                    Close
                 </button>
             </div>
         </div>

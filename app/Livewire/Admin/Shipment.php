@@ -46,6 +46,12 @@ class Shipment extends Component
     public string $deliveryAgent    = '';
     public string $deliveryNotes    = '';
 
+    // ── Track Order Modal ──────────────────────────────────────────────────
+    public bool   $showTrackModal  = false;
+    public string $trackQuery      = '';
+    public ?array $trackedOrder    = null;
+    public string $trackError      = '';
+
     // ── Batch Detail Expand (for distributing/arrived sub-tables) ─────
     public array $expandedBatches = [];
 
@@ -493,6 +499,73 @@ class Shipment extends Component
             'delivery_code' => trim($code) ?: null,
         ]);
         // No session flash — the UI shows confirmation via Alpine
+    }
+
+    // ── Track Order ───────────────────────────────────────────────────
+
+    public function openTrackModal(): void
+    {
+        $this->showTrackModal = true;
+        $this->trackQuery     = '';
+        $this->trackedOrder   = null;
+        $this->trackError     = '';
+    }
+
+    public function searchTrackOrder(): void
+    {
+        $this->trackError   = '';
+        $this->trackedOrder = null;
+
+        $q = trim($this->trackQuery);
+        if (!$q) {
+            $this->trackError = 'Please enter an order number or delivery code.';
+            return;
+        }
+
+        $order = Order::with(['user', 'items', 'shipmentBatch', 'statusLogs', 'payments'])
+            ->where('order_number', $q)
+            ->orWhere('delivery_code', $q)
+            ->first();
+
+        if (!$order) {
+            $this->trackError = 'No order found for "' . e($q) . '". Check the order number or delivery code.';
+            return;
+        }
+
+        $addr = $order->shipping_address ?? [];
+
+        $this->trackedOrder = [
+            'id'             => $order->id,
+            'order_number'   => $order->order_number,
+            'status'         => $order->status,
+            'payment_status' => $order->payment_status,
+            'total'          => $order->total,
+            'balance_due'    => $order->balanceDue(),
+            'delivery_code'  => $order->delivery_code,
+            'waybill_number' => $order->waybill_number,
+            'delivery_agent' => $order->delivery_agent,
+            'delivery_notes' => $order->delivery_notes,
+            'customer_name'  => $addr['full_name'] ?? ($order->user?->name ?? 'Guest'),
+            'customer_phone' => $addr['phone'] ?? '',
+            'customer_city'  => $addr['city'] ?? '',
+            'created_at'     => $order->created_at->format('d M Y, h:i A'),
+            'batch_name'     => $order->shipmentBatch?->name,
+            'batch_number'   => $order->shipmentBatch?->batch_number,
+            'batch_status'   => $order->shipmentBatch?->status,
+            'batch_status_label' => $order->shipmentBatch?->statusLabel(),
+            'items'          => $order->items->map(fn($i) => [
+                'name'     => $i->product_name ?? $i->name ?? 'Item',
+                'qty'      => $i->quantity,
+                'price'    => $i->price,
+                'size'     => $i->size ?? '',
+                'color'    => $i->color ?? '',
+            ])->toArray(),
+            'status_logs'    => $order->statusLogs->map(fn($l) => [
+                'status'  => $l->status,
+                'note'    => $l->note ?? '',
+                'date'    => $l->created_at->format('d M Y, h:i A'),
+            ])->toArray(),
+        ];
     }
 
     // ── Render ────────────────────────────────────────────────────────
