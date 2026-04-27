@@ -261,6 +261,58 @@
                     @error('stock')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
 
+                {{-- ── Sizes ── --}}
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Available Sizes</label>
+                    <div class="flex flex-wrap gap-1.5 mb-2 min-h-[28px]">
+                        @foreach($editSizes as $idx => $sz)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-800 text-white">
+                            {{ $sz }}
+                            <button type="button" wire:click="removeSize({{ $idx }})" class="ml-0.5 text-white/60 hover:text-white leading-none">&times;</button>
+                        </span>
+                        @endforeach
+                    </div>
+                    <div class="flex gap-2">
+                        <input wire:model="sizeInput"
+                               wire:keydown.enter.prevent="addSize"
+                               type="text"
+                               placeholder="e.g. S, M, L, XL, 2XL, 54, 56 ..."
+                               class="form-input flex-1 text-sm">
+                        <button type="button" wire:click="addSize"
+                                class="px-3 py-2 rounded-lg bg-slate-700 text-white text-xs font-bold hover:bg-slate-800 transition-colors">
+                            Add
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1">Press Enter or click Add. Leave empty if no sizes apply.</p>
+                </div>
+
+                {{-- ── Colors ── --}}
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Available Colors</label>
+                    <div class="flex flex-wrap gap-2 mb-2 min-h-[28px]">
+                        @foreach($editColors as $idx => $col)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border border-slate-200 bg-white text-slate-700">
+                            <span class="w-3 h-3 rounded-full border border-slate-300 shrink-0" style="background:{{ $col['hex'] }}"></span>
+                            {{ $col['name'] }}
+                            <button type="button" wire:click="removeColor({{ $idx }})" class="ml-0.5 text-slate-400 hover:text-red-500 leading-none">&times;</button>
+                        </span>
+                        @endforeach
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <input wire:model="colorHex" type="color" class="w-10 h-9 rounded-lg border border-slate-200 cursor-pointer p-0.5" title="Pick color">
+                        <input wire:model="colorInput"
+                               wire:keydown.enter.prevent="addColor"
+                               type="text"
+                               placeholder="Color name e.g. Red, Navy Blue ..."
+                               class="form-input flex-1 text-sm">
+                        <button type="button" wire:click="addColor"
+                                class="px-3 py-2 rounded-lg bg-slate-700 text-white text-xs font-bold hover:bg-slate-800 transition-colors">
+                            Add
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1">Leave empty if product has no color options.</p>
+                </div>
+
                 {{-- Description --}}
                 <div>
                     <label class="block text-sm font-semibold text-[#374151] mb-1.5">Description</label>

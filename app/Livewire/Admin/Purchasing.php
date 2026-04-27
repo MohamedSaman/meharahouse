@@ -549,6 +549,184 @@ class Purchasing extends Component
         $this->showPlanModal = true;
     }
 
+    /**
+     * Export the full purchasing plan as a CSV with customer details.
+     * Section A: Summary (product + size + qty to buy)
+     * Section B: Customer details (who ordered what)
+     */
+    public function exportPlan(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        // Re-run the plan logic to get fresh data
+        $orders = Order::with('items.product')
+            ->whereIn('status', ['new', 'payment_received', 'confirmed', 'sourcing'])
+            ->get();
+
+        $backorders = OrderBackorder::with(['product', 'order'])
+            ->whereIn('status', ['pending', 'repurchasing'])
+            ->get();
+
+        // Build product-keyed map with full order details
+        $needed  = [];
+        $details = []; // [key => [order rows]]
+
+        foreach ($orders as $order) {
+            $addr = $order->shipping_address ?? [];
+            foreach ($order->items as $item) {
+                $pid  = $item->product_id;
+                $size = $item->size ?: '';
+                $key  = $pid . '_' . $size;
+                if (!$pid) continue;
+
+                if (!isset($needed[$key])) {
+                    $needed[$key] = [
+                        'product_name'   => $item->product_name,
+                        'sku'            => $item->product?->sku ?? '',
+                        'size'           => $size,
+                        'current_stock'  => (int) ($item->product?->stock ?? 0),
+                        'order_qty'      => 0,
+                        'backorder_qty'  => 0,
+                        'order_count'    => 0,
+                        'backorder_count'=> 0,
+                    ];
+                    $details[$key] = [];
+                }
+
+                $needed[$key]['order_qty']   += (int) $item->quantity;
+                $needed[$key]['order_count'] += 1;
+
+                $details[$key][] = [
+                    'type'          => 'Order',
+                    'ref'           => $order->order_number,
+                    'customer'      => $addr['full_name'] ?? ($order->user?->name ?? ''),
+                    'phone'         => $addr['phone'] ?? '',
+                    'address'       => trim(($addr['address'] ?? '') . ', ' . ($addr['city'] ?? '') . ', ' . ($addr['district'] ?? ''), ', '),
+                    'product'       => $item->product_name,
+                    'size'          => $size,
+                    'color'         => $item->color ?? '',
+                    'qty'           => (int) $item->quantity,
+                    'order_status'  => $order->status,
+                    'payment_status'=> $order->payment_status,
+                ];
+            }
+        }
+
+        foreach ($backorders as $bo) {
+            $pid  = $bo->product_id;
+            $size = $bo->size ?: '';
+            $key  = $pid . '_' . $size;
+            if (!$pid) continue;
+
+            if (!isset($needed[$key])) {
+                $needed[$key] = [
+                    'product_name'   => $bo->product_name,
+                    'sku'            => $bo->product?->sku ?? '',
+                    'size'           => $size,
+                    'current_stock'  => (int) ($bo->product?->stock ?? 0),
+                    'order_qty'      => 0,
+                    'backorder_qty'  => 0,
+                    'order_count'    => 0,
+                    'backorder_count'=> 0,
+                ];
+                $details[$key] = [];
+            }
+
+            $needed[$key]['backorder_qty']   += (int) $bo->short_qty;
+            $needed[$key]['backorder_count'] += 1;
+
+            $addr = $bo->order?->shipping_address ?? [];
+            $details[$key][] = [
+                'type'          => 'Backorder',
+                'ref'           => $bo->backorder_number . ' (' . ($bo->order?->order_number ?? '') . ')',
+                'customer'      => $addr['full_name'] ?? ($bo->order?->user?->name ?? ''),
+                'phone'         => $addr['phone'] ?? '',
+                'address'       => trim(($addr['address'] ?? '') . ', ' . ($addr['city'] ?? '') . ', ' . ($addr['district'] ?? ''), ', '),
+                'product'       => $bo->product_name,
+                'size'          => $size,
+                'color'         => '',
+                'qty'           => (int) $bo->short_qty,
+                'order_status'  => 'backorder',
+                'payment_status'=> '',
+            ];
+        }
+
+        $filename = 'purchasing-plan-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($needed, $details) {
+            $handle = fopen('php://output', 'w');
+
+            // ── SECTION A: SUMMARY ────────────────────────────────────────
+            fputcsv($handle, ['=== PURCHASING PLAN SUMMARY — ' . now()->format('d M Y') . ' ===']);
+            fputcsv($handle, []);
+            fputcsv($handle, [
+                'Product Name', 'SKU', 'Size',
+                'Current Stock',
+                'Qty (Orders)', 'Orders Count',
+                'Qty (Backorders)', 'Backorder Count',
+                'Total Needed', 'TO BUY',
+            ]);
+
+            foreach ($needed as $row) {
+                $total  = $row['order_qty'] + $row['backorder_qty'];
+                $to_buy = max(0, $total - $row['current_stock']);
+                fputcsv($handle, [
+                    $row['product_name'],
+                    $row['sku'],
+                    $row['size'] ?: '—',
+                    $row['current_stock'],
+                    $row['order_qty'],
+                    $row['order_count'],
+                    $row['backorder_qty'],
+                    $row['backorder_count'],
+                    $total,
+                    $to_buy,
+                ]);
+            }
+
+            // ── SECTION B: CUSTOMER DETAILS ───────────────────────────────
+            fputcsv($handle, []);
+            fputcsv($handle, []);
+            fputcsv($handle, ['=== CUSTOMER DETAILS ===']);
+            fputcsv($handle, []);
+            fputcsv($handle, [
+                'Type', 'Reference', 'Customer Name', 'Phone', 'Address',
+                'Product', 'Size', 'Color', 'Qty',
+                'Order Status', 'Payment Status',
+            ]);
+
+            foreach ($needed as $key => $row) {
+                if (empty($details[$key])) continue;
+
+                // Sub-header for this product group
+                fputcsv($handle, []);
+                $total  = $row['order_qty'] + $row['backorder_qty'];
+                $to_buy = max(0, $total - $row['current_stock']);
+                fputcsv($handle, [
+                    '>> ' . $row['product_name'] . ($row['size'] ? ' [' . $row['size'] . ']' : ''),
+                    'TO BUY: ' . $to_buy,
+                    'Stock: ' . $row['current_stock'],
+                ]);
+
+                foreach ($details[$key] as $d) {
+                    fputcsv($handle, [
+                        $d['type'],
+                        $d['ref'],
+                        $d['customer'],
+                        $d['phone'],
+                        $d['address'],
+                        $d['product'],
+                        $d['size'] ?: '—',
+                        $d['color'] ?: '—',
+                        $d['qty'],
+                        ucfirst(str_replace('_', ' ', $d['order_status'])),
+                        ucfirst(str_replace('_', ' ', $d['payment_status'])),
+                    ]);
+                }
+            }
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
     public function loadPlanIntoPoModal(): void
     {
         $this->showPlanModal = false;

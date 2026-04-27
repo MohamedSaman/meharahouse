@@ -13,6 +13,7 @@ class ProductDetails extends Component
     public Product $product;
     public int $quantity = 1;
     public string $size = '';
+    public string $color = '';
     public int $activeImage = 0;
     public string $reviewComment = '';
     public int $reviewRating = 5;
@@ -40,11 +41,40 @@ class ProductDetails extends Component
 
     private function validateSize(): void
     {
-        $this->validate([
-            'size' => ['required', 'string', 'max:20'],
-        ], [
-            'size.required' => 'Please enter your size before continuing.',
-        ]);
+        $rules    = [];
+        $messages = [];
+
+        $hasSizes  = !empty($this->product->sizes);
+        $hasColors = !empty($this->product->colors);
+
+        if ($hasSizes) {
+            $rules['size']    = ['required', 'string', 'in:' . implode(',', $this->product->sizes)];
+            $messages['size.required'] = 'Please select a size before continuing.';
+            $messages['size.in']       = 'Please select a valid size.';
+        } else {
+            $rules['size']    = ['nullable', 'string', 'max:20'];
+        }
+
+        if ($hasColors) {
+            $colorNames = collect($this->product->colors)->pluck('name')->implode(',');
+            $rules['color']    = ['required', 'string', 'in:' . $colorNames];
+            $messages['color.required'] = 'Please select a color before continuing.';
+            $messages['color.in']       = 'Please select a valid color.';
+        }
+
+        $this->validate($rules, $messages);
+    }
+
+    /** Called by Alpine when customer clicks a size chip. */
+    public function selectSize(string $size): void
+    {
+        $this->size = $size;
+    }
+
+    /** Called by Alpine when customer clicks a color swatch. */
+    public function selectColor(string $color): void
+    {
+        $this->color = $color;
     }
 
     private function putInCart(): void
@@ -52,42 +82,39 @@ class ProductDetails extends Component
         $productId = $this->product->id;
         $qty       = max(1, $this->quantity);
         $size      = trim($this->size);
+        $color     = trim($this->color);
 
         if (auth()->check()) {
             $cart = Cart::where('user_id', auth()->id())
                 ->where('product_id', $productId)
+                ->where('size', $size)
+                ->where('color', $color ?: null)
                 ->first();
 
             if ($cart) {
-                $cart->update(['quantity' => $cart->quantity + $qty, 'size' => $size]);
+                $cart->update(['quantity' => $cart->quantity + $qty]);
             } else {
                 Cart::create([
                     'user_id'    => auth()->id(),
                     'product_id' => $productId,
                     'quantity'   => $qty,
-                    'size'       => $size,
+                    'size'       => $size ?: null,
+                    'color'      => $color ?: null,
                 ]);
             }
         } else {
-            // BUG-12 fix: Use composite key (product_id + size) so different sizes
-            // create separate cart entries instead of overwriting each other.
             $sessionCart = session()->get('cart', []);
-            $cartKey     = $productId . '_' . $size;
+            $cartKey     = $productId . '_' . $size . '_' . $color;
 
-            // Check if this exact product+size combo already exists
             if (isset($sessionCart[$cartKey])) {
                 $sessionCart[$cartKey]['quantity'] += $qty;
             } else {
-                // Also check for legacy keying by product_id only (migration support)
-                if (isset($sessionCart[$productId]) && ($sessionCart[$productId]['size'] ?? '') === $size) {
-                    $sessionCart[$productId]['quantity'] += $qty;
-                } else {
-                    $sessionCart[$cartKey] = [
-                        'product_id' => $productId,
-                        'quantity'   => $qty,
-                        'size'       => $size,
-                    ];
-                }
+                $sessionCart[$cartKey] = [
+                    'product_id' => $productId,
+                    'quantity'   => $qty,
+                    'size'       => $size ?: null,
+                    'color'      => $color ?: null,
+                ];
             }
             session()->put('cart', $sessionCart);
         }

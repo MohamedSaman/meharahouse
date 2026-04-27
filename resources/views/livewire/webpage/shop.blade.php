@@ -127,6 +127,24 @@
                                 <span class="text-xs text-green-600 font-semibold">{{ $product->discountPercent() }}% off</span>
                                 @endif
                             </div>
+
+                            {{-- Sizes --}}
+                            @if(!empty($product->sizes))
+                            <div class="flex flex-wrap gap-1 mt-2">
+                                @foreach($product->sizes as $sz)
+                                <span class="px-2 py-0.5 rounded border border-slate-300 text-[10px] font-semibold text-slate-600 bg-white">{{ $sz }}</span>
+                                @endforeach
+                            </div>
+                            @endif
+
+                            {{-- Colors --}}
+                            @if(!empty($product->colors))
+                            <div class="flex flex-wrap gap-1.5 mt-1.5">
+                                @foreach($product->colors as $col)
+                                <span class="w-4 h-4 rounded-full border border-slate-300 shrink-0" style="background:{{ $col['hex'] }}" title="{{ $col['name'] }}"></span>
+                                @endforeach
+                            </div>
+                            @endif
                         </div>
                     </div>
                     @endforeach

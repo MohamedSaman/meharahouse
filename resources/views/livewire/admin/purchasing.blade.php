@@ -20,6 +20,20 @@
                     </svg>
                     Generate Purchasing Plan
                 </button>
+                <button wire:click="exportPlan"
+                        wire:loading.attr="disabled"
+                        wire:target="exportPlan"
+                        class="inline-flex items-center gap-2 rounded-xl bg-emerald-500/20 border border-emerald-400/40 px-5 py-3 text-sm font-bold text-emerald-300 hover:bg-emerald-500/30 transition-all duration-200 hover:-translate-y-0.5 shrink-0">
+                    <svg wire:loading.remove wire:target="exportPlan" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <svg wire:loading wire:target="exportPlan" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    <span wire:loading.remove wire:target="exportPlan">Export Plan CSV</span>
+                    <span wire:loading wire:target="exportPlan">Exporting...</span>
+                </button>
                 <button wire:click="openCreatePo"
                         class="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-900 hover:bg-amber-300 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-400/40 shrink-0">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1015,7 +1029,7 @@
             </div>
 
             {{-- Footer --}}
-            <div class="px-6 py-4 border-t border-slate-100 flex items-center gap-3">
+            <div class="px-6 py-4 border-t border-slate-100 flex items-center gap-3 flex-wrap">
                 @php $hasShortage = collect($planItems)->where('to_buy', '>', 0)->count() > 0; @endphp
                 @if($hasShortage)
                 <button wire:click="loadPlanIntoPoModal"
@@ -1025,6 +1039,20 @@
                 @else
                 <p class="flex-1 text-sm text-green-600 font-semibold">All products have sufficient stock. No purchasing needed.</p>
                 @endif
+                <button wire:click="exportPlan"
+                        wire:loading.attr="disabled"
+                        wire:target="exportPlan"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 text-sm font-semibold hover:bg-emerald-100 transition-colors">
+                    <svg wire:loading.remove wire:target="exportPlan" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <svg wire:loading wire:target="exportPlan" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    <span wire:loading.remove wire:target="exportPlan">Export CSV</span>
+                    <span wire:loading wire:target="exportPlan">Exporting...</span>
+                </button>
                 <button wire:click="$set('showPlanModal', false)"
                         class="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
                     Close

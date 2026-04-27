@@ -18,6 +18,8 @@ class Product extends Model
         'sale_price',
         'cost_price',
         'stock',
+        'sizes',
+        'colors',
         'images',
         'is_featured',
         'is_active',
@@ -27,6 +29,8 @@ class Product extends Model
     {
         return [
             'images'      => 'array',
+            'sizes'       => 'array',
+            'colors'      => 'array',
             'is_featured' => 'boolean',
             'is_active'   => 'boolean',
             'price'       => 'decimal:2',

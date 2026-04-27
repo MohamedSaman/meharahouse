@@ -58,9 +58,9 @@ type: project
 ## Database Schema (All Migrations Run)
 - **users**: id, name, email, password, role (admin/staff/customer), phone, address, avatar
 - **categories**: id, parent_id, name, slug, description, image, is_active, sort_order
-- **products**: id, category_id, name, slug, description, sku, price, sale_price, stock, images (JSON), is_featured, is_active
+- **products**: id, category_id, name, slug, description, sku, price, sale_price, stock, sizes (JSON array of strings), colors (JSON array of {name, hex} objects), images (JSON), is_featured, is_active
 - **orders**: id, user_id, order_number, status (pending/processing/shipped/delivered/cancelled), subtotal, tax, shipping_cost, discount, total, shipping_address (JSON), payment_method, payment_status, coupon_code, notes
-- **order_items**: id, order_id, product_id, product_name, price, quantity, subtotal
+- **order_items**: id, order_id, product_id, product_name, price, quantity, size, color, subtotal
 - **carts**: id, user_id (nullable), session_id, product_id, quantity — unique(user_id, product_id)
 - **wishlists**: id, user_id, product_id — unique(user_id, product_id)
 - **reviews**: id, user_id, product_id, rating (1-5), comment, is_approved — unique(user_id, product_id)

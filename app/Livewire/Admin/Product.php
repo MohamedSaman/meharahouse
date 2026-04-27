@@ -43,6 +43,13 @@ class Product extends Component
     public array $uploadedImages = [];
     public $newImages = [];
 
+    // ── Size & Color Attributes ───────────────────────────────────────
+    public array  $editSizes   = [];
+    public string $sizeInput   = '';
+    public array  $editColors  = [];
+    public string $colorInput  = '';
+    public string $colorHex    = '#000000';
+
     // ── Product History ───────────────────────────────────────────────
     public bool   $showHistoryModal    = false;
     public ?int   $historyProductId    = null;
@@ -104,6 +111,8 @@ class Product extends Component
         $this->is_featured     = $product->is_featured;
         $this->is_active       = $product->is_active;
         $this->uploadedImages  = $product->images ?? [];
+        $this->editSizes       = $product->sizes ?? [];
+        $this->editColors      = $product->colors ?? [];
         $this->editMode        = true;
         $this->showModal       = true;
     }
@@ -205,6 +214,8 @@ class Product extends Component
             'is_featured' => $this->is_featured,
             'is_active'   => $this->is_active,
             'images'      => $images,
+            'sizes'       => !empty($this->editSizes) ? array_values($this->editSizes) : null,
+            'colors'      => !empty($this->editColors) ? array_values($this->editColors) : null,
         ];
 
         if ($this->editMode && $this->editingId) {
@@ -238,16 +249,53 @@ class Product extends Component
         $product->update(['is_active' => !$product->is_active]);
     }
 
+    public function addSize(): void
+    {
+        $val = strtoupper(trim($this->sizeInput));
+        if ($val && !in_array($val, $this->editSizes)) {
+            $this->editSizes[] = $val;
+        }
+        $this->sizeInput = '';
+    }
+
+    public function removeSize(int $index): void
+    {
+        array_splice($this->editSizes, $index, 1);
+        $this->editSizes = array_values($this->editSizes);
+    }
+
+    public function addColor(): void
+    {
+        $name = trim($this->colorInput);
+        if (!$name) return;
+        foreach ($this->editColors as $c) {
+            if (strtolower($c['name']) === strtolower($name)) return;
+        }
+        $this->editColors[] = ['name' => $name, 'hex' => $this->colorHex];
+        $this->colorInput = '';
+        $this->colorHex   = '#000000';
+    }
+
+    public function removeColor(int $index): void
+    {
+        array_splice($this->editColors, $index, 1);
+        $this->editColors = array_values($this->editColors);
+    }
+
     private function resetForm(): void
     {
         $this->reset([
             'name', 'description', 'sku', 'price',
             'sale_price', 'uploadedImages', 'newImages', 'editingId', 'editMode',
+            'sizeInput', 'colorInput',
         ]);
         $this->category_id = 0;
         $this->stock       = 0;
         $this->is_featured = false;
         $this->is_active   = true;
+        $this->editSizes   = [];
+        $this->editColors  = [];
+        $this->colorHex    = '#000000';
         $this->resetValidation();
     }
 

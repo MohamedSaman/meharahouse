@@ -556,11 +556,43 @@ class Order extends Component
             $targetStatus = 'confirmed';
         }
 
-        $notes = match($targetStatus) {
-            'refunded' => 'All items refunded — order fully refunded.',
-            'sourcing'  => 'All items on backorder — awaiting stock from next batch.',
-            default     => 'Order confirmed with partial stock.',
-        };
+        // Build a descriptive log note naming each product by shipment group.
+        $order->refresh()->load('items');
+        $shipment1Names = $order->items
+            ->whereIn('status', ['active', 'replaced'])
+            ->whereNotIn('id', $issuedItemIds)
+            ->pluck('product_name')->all();
+        // Also include 'next_batch' issued items that had partial available stock
+        foreach ($this->stockIssues as $idx => $issue) {
+            if (($this->stockDecisions[$idx] ?? '') === 'next_batch' && $issue['available'] > 0) {
+                $shipment1Names[] = $issue['name'] . ' (partial)';
+            }
+        }
+        $backorderNames = [];
+        foreach ($this->stockIssues as $idx => $issue) {
+            if (($this->stockDecisions[$idx] ?? '') === 'next_batch') {
+                $backorderNames[] = $issue['name'];
+            }
+        }
+
+        if ($targetStatus === 'refunded') {
+            $notes = 'All items refunded — order fully refunded.';
+        } elseif ($targetStatus === 'sourcing') {
+            if (!empty($shipment1Names) && !empty($backorderNames)) {
+                $notes = 'Shipment 1 (confirmed): ' . implode(', ', array_unique($shipment1Names)) . '. '
+                       . 'Shipment 2 (backorder): ' . implode(', ', $backorderNames) . '.';
+            } elseif (!empty($backorderNames)) {
+                $notes = 'All items on backorder — Shipment 2: ' . implode(', ', $backorderNames) . '.';
+            } else {
+                $notes = 'Order sourcing — awaiting stock.';
+            }
+        } else {
+            if (!empty($shipment1Names)) {
+                $notes = 'Order confirmed — Shipment 1: ' . implode(', ', array_unique($shipment1Names)) . '.';
+            } else {
+                $notes = 'Order confirmed with available stock.';
+            }
+        }
         if ($partialRefundAmount > 0 && $targetStatus !== 'refunded') {
             $notes .= ' Rs. ' . number_format($partialRefundAmount, 0) . ' refunded for short items.';
         }

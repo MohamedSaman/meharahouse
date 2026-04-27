@@ -111,36 +111,87 @@
                 <p class="text-xs text-[#94A3B8] mb-4">SKU: <span class="font-mono text-[#64748B]">{{ $product->sku }}</span></p>
                 @endif
 
-                <div class="flex items-start gap-4 mb-6">
-                    {{-- Size --}}
-                    <div class="flex-1 min-w-0">
-                        <label class="block text-sm font-semibold text-[#374151] mb-2 truncate">
-                            Size <span class="text-red-500">*</span>
-                            <span class="text-[10px] sm:text-xs font-normal text-[#94A3B8] ml-0.5 sm:ml-1">(required)</span>
-                        </label>
-                        <input wire:model="size" type="text" placeholder="e.g. 52, M, XL..."
-                               class="w-full rounded-xl border-2 @error('size') border-red-400 bg-red-50 @else border-[#E2E8F0] @enderror px-4 py-2.5 text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:border-[#F59E0B] focus:ring-2 focus:ring-[#F59E0B]/20 transition-all">
+                <div class="space-y-5 mb-6">
+
+                    {{-- ── SIZE SELECTOR ── --}}
+                    @if(!empty($product->sizes))
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-semibold text-[#374151]">
+                                Size <span class="text-red-500">*</span>
+                            </label>
+                            @if($size)
+                            <span class="text-xs font-bold text-[#F59E0B]">Selected: {{ $size }}</span>
+                            @endif
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($product->sizes as $sz)
+                            <button wire:click="selectSize('{{ $sz }}')"
+                                    type="button"
+                                    class="px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all duration-150
+                                        {{ $size === $sz
+                                            ? 'border-[#F59E0B] bg-[#F59E0B] text-white shadow-md shadow-amber-200 scale-105'
+                                            : 'border-[#E2E8F0] bg-white text-[#374151] hover:border-[#F59E0B] hover:text-[#F59E0B]' }}">
+                                {{ $sz }}
+                            </button>
+                            @endforeach
+                        </div>
                         @error('size')
-                            <p class="mt-1.5 text-xs text-red-500 flex items-start gap-1">
-                                <svg class="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span>{{ $message }}</span>
-                            </p>
+                        <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            {{ $message }}
+                        </p>
                         @enderror
                     </div>
+                    @endif
 
-                    {{-- Quantity --}}
-                    <div class="shrink-0">
+                    {{-- ── COLOR SELECTOR ── --}}
+                    @if(!empty($product->colors))
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-semibold text-[#374151]">
+                                Color <span class="text-red-500">*</span>
+                            </label>
+                            @if($color)
+                            <span class="text-xs font-bold text-[#F59E0B]">Selected: {{ $color }}</span>
+                            @endif
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach($product->colors as $col)
+                            <button wire:click="selectColor('{{ $col['name'] }}')"
+                                    type="button"
+                                    title="{{ $col['name'] }}"
+                                    class="flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 text-sm font-semibold transition-all duration-150
+                                        {{ $color === $col['name']
+                                            ? 'border-[#F59E0B] bg-amber-50 text-[#0F172A] shadow-md shadow-amber-100 scale-105'
+                                            : 'border-[#E2E8F0] bg-white text-[#374151] hover:border-[#F59E0B]' }}">
+                                <span class="w-4 h-4 rounded-full border border-black/10 shrink-0"
+                                      style="background:{{ $col['hex'] }}"></span>
+                                {{ $col['name'] }}
+                            </button>
+                            @endforeach
+                        </div>
+                        @error('color')
+                        <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            {{ $message }}
+                        </p>
+                        @enderror
+                    </div>
+                    @endif
+
+                    {{-- ── QUANTITY ── --}}
+                    <div>
                         <label class="block text-sm font-semibold text-[#374151] mb-2">Quantity</label>
-                        <div class="flex items-center border-2 border-[#E2E8F0] rounded-xl overflow-hidden h-11">
+                        <div class="inline-flex items-center border-2 border-[#E2E8F0] rounded-xl overflow-hidden h-11">
                             <button wire:click="decrementQty"
-                                    class="w-10 h-full flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] text-xl font-bold transition-colors">-</button>
-                            <span class="w-10 text-center font-bold text-[#0F172A]">{{ $quantity }}</span>
+                                    class="w-10 h-full flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] text-xl font-bold transition-colors">−</button>
+                            <span class="w-12 text-center font-bold text-[#0F172A]">{{ $quantity }}</span>
                             <button wire:click="incrementQty"
                                     class="w-10 h-full flex items-center justify-center text-[#64748B] hover:bg-[#F1F5F9] text-xl font-bold transition-colors">+</button>
                         </div>
                     </div>
+
                 </div>
 
                 {{-- Actions --}}
