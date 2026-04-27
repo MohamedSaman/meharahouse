@@ -716,22 +716,8 @@
 
             {{-- ── Partial Fulfillment / Backorder ── --}}
             @php
-                $shortageItems = [];
-                if (in_array($selectedOrder->status, ['sourcing', 'confirmed', 'payment_received', 'new'])) {
-                    foreach ($selectedOrder->items as $bi) {
-                        $inStock = (int)($bi->product?->stock ?? 0);
-                        if ($inStock < (int)$bi->quantity) {
-                            $shortageItems[] = [
-                                'name'    => $bi->product_name,
-                                'ordered' => (int)$bi->quantity,
-                                'stock'   => $inStock,
-                                'short'   => (int)$bi->quantity - $inStock,
-                            ];
-                        }
-                    }
-                }
-                $pendingBackorders = $selectedOrder->backorders->whereIn('status', ['pending', 'repurchasing'])->values();
-                $activeBackorders  = $selectedOrder->backorders->whereNotIn('status', ['completed', 'cancelled'])->values();
+                $pendingBackorders   = $selectedOrder->backorders->whereIn('status', ['pending', 'repurchasing'])->values();
+                $activeBackorders    = $selectedOrder->backorders->whereNotIn('status', ['completed', 'cancelled'])->values();
                 $fulfilledBackorders = $selectedOrder->backorders->where('status', 'completed')->values();
             @endphp
 
@@ -1126,6 +1112,41 @@
                            placeholder="0.00">
                     @error('refundAmount') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
+
+                {{-- Refund method --}}
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Refund Method</label>
+                    <select wire:model.live="refundMethod" class="form-input w-full">
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="cash">Cash</option>
+                        <option value="online">Online</option>
+                    </select>
+                </div>
+
+                {{-- Bank account — shown for bank_transfer / online --}}
+                @if(in_array($refundMethod, ['bank_transfer', 'online']))
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Customer Bank Account <span class="text-slate-400 font-normal">(optional)</span></label>
+                    <input wire:model="refundBankAccount" type="text" class="form-input w-full"
+                           placeholder="Account number / name to transfer to">
+                </div>
+                @endif
+
+                {{-- Reference number --}}
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Reference / Transaction No. <span class="text-slate-400 font-normal">(optional)</span></label>
+                    <input wire:model="refundReference" type="text" class="form-input w-full"
+                           placeholder="Bank ref, transfer ID, etc.">
+                </div>
+
+                {{-- Proof file --}}
+                <div>
+                    <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Proof of Payment <span class="text-slate-400 font-normal">(optional — jpg/png/pdf)</span></label>
+                    <input wire:model="refundProofFile" type="file" accept=".jpg,.jpeg,.png,.pdf"
+                           class="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-colors">
+                    @error('refundProofFile') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                </div>
+
                 <div>
                     <label class="block text-sm font-semibold text-[#0F172A] mb-1.5">Notes <span class="text-slate-400 font-normal">(optional)</span></label>
                     <textarea wire:model="refundNotes" rows="2" class="form-input w-full resize-none" placeholder="Reason for refund..."></textarea>

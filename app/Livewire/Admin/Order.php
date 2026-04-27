@@ -395,11 +395,6 @@ class Order extends Component
                     ]);
                 }
 
-            } elseif ($decision === 'skip') {
-                // Ship only the available quantity — no backorder created.
-                // The stock deduction loop below handles deducting the available qty.
-                // No further action needed here.
-
             } elseif ($decision === 'replace') {
                 $replacementProductId = $this->stockReplaceChoices[$index] ?? null;
                 $replacementProduct   = $replacementProductId ? \App\Models\Product::find($replacementProductId) : null;
@@ -1111,19 +1106,32 @@ class Order extends Component
         }
 
         $this->validate([
-            'refundAmount' => ['required', 'numeric', 'min:0.01', 'max:' . $maxRefundable],
-            'refundNotes'  => ['nullable', 'string', 'max:1000'],
+            'refundAmount'      => ['required', 'numeric', 'min:0.01', 'max:' . $maxRefundable],
+            'refundMethod'      => ['required', 'in:bank_transfer,cash,online'],
+            'refundBankAccount' => ['nullable', 'string', 'max:255'],
+            'refundReference'   => ['nullable', 'string', 'max:255'],
+            'refundNotes'       => ['nullable', 'string', 'max:1000'],
+            'refundProofFile'   => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
 
+        // Store proof file if uploaded
+        $proofPath = null;
+        if ($this->refundProofFile) {
+            $proofPath = $this->refundProofFile->store('refund-proofs', 'public');
+        }
+
         $refund = Refund::create([
-            'order_id'     => $order->id,
-            'customer_id'  => $order->user_id,
-            'amount'       => $this->refundAmount,
-            'method'       => 'bank_transfer', // placeholder — updated when payment is processed on Refunds page
-            'notes'        => $this->refundNotes ?: null,
-            'status'       => 'pending',
-            'processed_by' => auth()->id(),
-            'processed_at' => now(),
+            'order_id'             => $order->id,
+            'customer_id'          => $order->user_id,
+            'amount'               => $this->refundAmount,
+            'method'               => $this->refundMethod,
+            'customer_bank_account'=> $this->refundBankAccount ?: null,
+            'reference_number'     => $this->refundReference ?: null,
+            'proof_file'           => $proofPath,
+            'notes'                => $this->refundNotes ?: null,
+            'status'               => 'pending',
+            'processed_by'         => auth()->id(),
+            'processed_at'         => now(),
         ]);
 
         // Reduce balance_amount by the refund amount so balanceDue() reflects the refund

@@ -523,8 +523,9 @@ class Shipment extends Component
         }
 
         $order = Order::with(['user', 'items', 'shipmentBatch', 'statusLogs', 'payments'])
-            ->where('order_number', $q)
-            ->orWhere('delivery_code', $q)
+            ->where('order_number', 'like', "%{$q}%")
+            ->orWhere('delivery_code', 'like', "%{$q}%")
+            ->latest()
             ->first();
 
         if (!$order) {
