@@ -37,6 +37,7 @@ class WhatsappService
             'order_confirmed'  => 'HX1965e3690086fa22cf4740b6b2ee9574',
             'payment_received' => 'HXc151d778f7dd9f0d45a0e333b694aa2b',
             'payment_reminder' => 'HXeb9afffd9f4b12db995d28b2f538939b', // payment_reminder_btn
+            'payment_rejected' => 'HX_REPLACE_WITH_YOUR_CONTENT_SID',
             // You can add others here once they are created in Twilio!
             // 'order_dispatched' => 'SID_HERE',
         ];

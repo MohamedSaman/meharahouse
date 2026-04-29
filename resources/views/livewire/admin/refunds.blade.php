@@ -215,7 +215,7 @@
                         </td>
                         {{-- Date --}}
                         <td class="px-4 py-3 hidden md:table-cell">
-                            <span class="text-xs text-slate-500">{{ $refund->created_at->format('d M Y') }}</span>
+                            <span class="text-xs text-slate-500">{{ $refund->created_at->timezone('+05:30')->format('d M Y') }}</span>
                         </td>
                         {{-- Actions --}}
                         <td class="px-4 py-3 text-center">
@@ -335,7 +335,7 @@
                         </span>
                         @endif
                     </div>
-                    <span class="text-xs text-slate-400">{{ $selected->created_at->format('d M Y, h:i A') }}</span>
+                    <span class="text-xs text-slate-400">{{ $selected->created_at->timezone('+05:30')->format('d M Y, h:i A') }}</span>
                 </div>
 
                 {{-- Key details grid --}}
@@ -423,7 +423,7 @@
                     </svg>
                     Processed by <span class="font-semibold text-slate-700">{{ $selected->processedBy->name }}</span>
                     @if($selected->processed_at)
-                    on {{ $selected->processed_at->format('d M Y, h:i A') }}
+                    on {{ $selected->processed_at->timezone('+05:30')->format('d M Y, h:i A') }}
                     @endif
                 </div>
                 @endif

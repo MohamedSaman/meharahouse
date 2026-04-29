@@ -104,7 +104,7 @@ class WhatsappOrders extends Component
                 return [
                     'id'         => $product->id,
                     'name'       => $product->name,
-                    'price'      => (float) ($product->sale_price ?: $product->price),
+                    'price'      => (float) $product->effectivePrice(),
                     'has_sizes'  => !empty($product->sizes),
                     'has_colors' => !empty($product->colors),
                 ];
