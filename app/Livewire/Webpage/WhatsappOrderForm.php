@@ -47,6 +47,7 @@ class WhatsappOrderForm extends Component
     public array $productVariants = []; // [{sizes:[], colors:[]}] indexed by product index
 
     // ── Payment ───────────────────────────────────────────────────────
+    public string $paymentOption = 'advance'; // 'advance' or 'full' — BUG WA-1.1 fix
     public $receiptFile = null;
 
     // ── Submission State ──────────────────────────────────────────────
@@ -132,10 +133,23 @@ class WhatsappOrderForm extends Component
             'region'        => ['required', 'string', 'max:100'],
             'notes'         => ['nullable', 'string', 'max:1000'],
             'receiptFile'   => ['required', 'image', 'max:30720'],
+            'paymentOption' => ['required', 'in:advance,full'],
         ], $variantRules), $variantMessages);
 
         // Store the uploaded receipt
         $receiptPath = $this->receiptFile->store('payment-receipts', 'public');
+
+        // BUG WA-1.1 fix: Calculate payment amounts based on customer's choice
+        $subtotal = (float) $this->tokenModel->subtotal;
+        if ($this->paymentOption === 'full') {
+            $advancePct = 100;
+            $advanceAmt = $subtotal;
+            $balanceAmt = 0;
+        } else {
+            $advancePct = (float) $this->tokenModel->advance_percentage;
+            $advanceAmt = (float) $this->tokenModel->advance_amount;
+            $balanceAmt = $subtotal - $advanceAmt;
+        }
 
         // Create the Order record
         $order = Order::create([
@@ -143,14 +157,14 @@ class WhatsappOrderForm extends Component
             'order_number'       => Order::generateOrderNumber(),
             'source'             => 'whatsapp',
             'status'             => 'new',
-            'advance_percentage' => $this->tokenModel->advance_percentage,
-            'advance_amount'     => $this->tokenModel->advance_amount,
-            'balance_amount'     => (float) $this->tokenModel->subtotal - (float) $this->tokenModel->advance_amount,
-            'subtotal'           => $this->tokenModel->subtotal,
+            'advance_percentage' => $advancePct,
+            'advance_amount'     => $advanceAmt,
+            'balance_amount'     => $balanceAmt,
+            'subtotal'           => $subtotal,
             'tax'                => 0,
             'shipping_cost'      => 0,
             'discount'           => 0,
-            'total'              => $this->tokenModel->subtotal,
+            'total'              => $subtotal,
             'payment_method'     => 'bank_transfer',
             'payment_status'     => 'pending',
             'shipping_address'   => [
@@ -180,11 +194,11 @@ class WhatsappOrderForm extends Component
             ]);
         }
 
-        // Record the advance payment receipt (pending confirmation by admin)
+        // Record the payment receipt (pending confirmation by admin)
         OrderPayment::create([
             'order_id'     => $order->id,
-            'type'         => 'advance',
-            'amount'       => $this->tokenModel->advance_amount,
+            'type'         => $this->paymentOption === 'full' ? 'full' : 'advance',
+            'amount'       => $advanceAmt,
             'method'       => 'bank_transfer',
             'receipt_path' => $receiptPath,
             'status'       => 'pending',

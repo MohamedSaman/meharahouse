@@ -1587,13 +1587,9 @@
                             @php $isOutOfStock = ($rp->stock < $ri['short']); @endphp
                             <button wire:click="confirmStockReplaceItem({{ $rp->id }})"
                                     type="button"
-                                    {{ $isOutOfStock ? 'disabled' : '' }}
-                                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all
-                                        {{ $isOutOfStock 
-                                            ? 'bg-slate-50 border-slate-100 opacity-60 cursor-not-allowed' 
-                                            : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50 hover:shadow-sm' }} text-left">
+                                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50 hover:shadow-sm text-left">
                                 <div class="min-w-0">
-                                    <p class="font-semibold text-sm {{ $isOutOfStock ? 'text-slate-400' : 'text-[#0F172A]' }} truncate">{{ $rp->name }}</p>
+                                    <p class="font-semibold text-sm text-[#0F172A] truncate">{{ $rp->name }}</p>
                                     @if($rp->sku)
                                     <p class="text-[11px] text-slate-400 font-mono">{{ $rp->sku }}</p>
                                     @endif

@@ -163,14 +163,41 @@
             </div>
         </div>
 
-        {{-- 2. Payment Summary --}}
+        {{-- 2. Payment Option & Summary --}}
         <div class="bg-gradient-to-br from-[#0F172A] to-slate-800 rounded-2xl p-5 shadow-xl">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Payment Option</h3>
+
+            {{-- BUG WA-1.1 fix: Allow customer to choose full or advance payment --}}
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <label class="relative cursor-pointer">
+                    <input type="radio" wire:model.live="paymentOption" value="advance" class="peer sr-only">
+                    <div class="rounded-xl border-2 p-3 text-center transition-all
+                                peer-checked:border-amber-400 peer-checked:bg-amber-400/10
+                                border-slate-600 hover:border-slate-500">
+                        <p class="text-sm font-bold text-white">Advance</p>
+                        <p class="text-xs text-slate-400 mt-0.5">{{ $tokenModel->advance_percentage }}% now</p>
+                        <p class="text-amber-400 font-bold mt-1">Rs. {{ number_format($tokenModel->advance_amount, 0) }}</p>
+                    </div>
+                </label>
+                <label class="relative cursor-pointer">
+                    <input type="radio" wire:model.live="paymentOption" value="full" class="peer sr-only">
+                    <div class="rounded-xl border-2 p-3 text-center transition-all
+                                peer-checked:border-emerald-400 peer-checked:bg-emerald-400/10
+                                border-slate-600 hover:border-slate-500">
+                        <p class="text-sm font-bold text-white">Full Payment</p>
+                        <p class="text-xs text-slate-400 mt-0.5">100% now</p>
+                        <p class="text-emerald-400 font-bold mt-1">Rs. {{ number_format($tokenModel->subtotal, 0) }}</p>
+                    </div>
+                </label>
+            </div>
+
             <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Payment Summary</h3>
             <div class="space-y-2.5">
                 <div class="flex items-center justify-between text-sm">
                     <span class="text-slate-400">Order Total</span>
                     <span class="text-white font-semibold">Rs. {{ number_format($tokenModel->subtotal, 0) }}</span>
                 </div>
+                @if($paymentOption === 'advance')
                 <div class="flex items-center justify-between border-t border-slate-700/50 pt-2.5">
                     <div>
                         <p class="text-amber-300 font-bold text-sm">Advance Due Now</p>
@@ -182,6 +209,14 @@
                     <span class="text-slate-500">Balance (paid on delivery)</span>
                     <span class="text-slate-400">Rs. {{ number_format($tokenModel->subtotal - $tokenModel->advance_amount, 0) }}</span>
                 </div>
+                @else
+                <div class="flex items-center justify-between border-t border-slate-700/50 pt-2.5">
+                    <div>
+                        <p class="text-emerald-300 font-bold text-sm">Full Amount Due Now</p>
+                    </div>
+                    <span class="text-emerald-400 font-bold text-2xl">Rs. {{ number_format($tokenModel->subtotal, 0) }}</span>
+                </div>
+                @endif
             </div>
 
             {{-- Bank Transfer Details --}}
@@ -197,7 +232,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <p class="text-xs text-amber-300 leading-relaxed">
-                    Please transfer the advance amount to the bank account above, then upload your receipt (screenshot or photo) below.
+                    Please transfer the {{ $paymentOption === 'full' ? 'full' : 'advance' }} amount to the bank account above, then upload your receipt (screenshot or photo) below.
                 </p>
             </div>
         </div>
@@ -364,7 +399,8 @@
             </div>
         </div>
 
-        {{-- Balance payment reminder banner --}}
+        {{-- Balance payment reminder banner (only for advance payments) --}}
+        @if($paymentOption === 'advance')
         @php $balanceAmt = number_format($tokenModel->subtotal - $tokenModel->advance_amount, 0); @endphp
         <div class="rounded-2xl border-2 border-red-200 bg-red-50 px-5 py-4 flex items-start gap-3">
             <span class="text-xl mt-0.5">🔴</span>
@@ -376,6 +412,7 @@
                 </p>
             </div>
         </div>
+        @endif
 
         {{-- 5. Submit Button --}}
         <div class="space-y-3">

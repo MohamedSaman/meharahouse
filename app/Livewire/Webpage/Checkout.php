@@ -156,6 +156,23 @@ class Checkout extends Component
 
     public function getCartItemsProperty()
     {
+        // BUG WS-1.5 fix: If a "buy now" session exists, use ONLY that single
+        // product instead of the full cart. This prevents existing cart items
+        // from being unknowingly included in the order.
+        $buyNow = session()->get('buy_now');
+        if ($buyNow) {
+            $product = Product::find($buyNow['product_id']);
+            if ($product) {
+                return collect([(object)[
+                    'id'         => 'buy_now',
+                    'product_id' => $product->id,
+                    'product'    => $product,
+                    'quantity'   => $buyNow['quantity'] ?? 1,
+                    'size'       => $buyNow['size'] ?? null,
+                ]]);
+            }
+        }
+
         if (auth()->check()) {
             return CartModel::where('user_id', auth()->id())
                 ->with('product')
@@ -339,8 +356,11 @@ class Checkout extends Component
                 $this->appliedCoupon->increment('used_count');
             }
 
-            // Clear cart — DB for logged-in users, session for guests
-            if (auth()->check()) {
+            // Clear cart / buy-now session after order is placed
+            if (session()->has('buy_now')) {
+                // Buy-now flow: only clear the buy_now session, leave cart intact
+                session()->forget('buy_now');
+            } elseif (auth()->check()) {
                 CartModel::where('user_id', auth()->id())->delete();
             } else {
                 session()->forget('cart');

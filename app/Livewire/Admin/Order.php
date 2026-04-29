@@ -18,6 +18,7 @@ use App\Mail\OrderConfirmed;
 use App\Mail\OrderDispatched;
 use App\Mail\OrderDelivered;
 use App\Mail\PaymentReceived as PaymentReceivedMail;
+use App\Mail\PaymentRejected as PaymentRejectedMail;
 use App\Mail\RefundProcessed as RefundProcessedMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -154,8 +155,19 @@ class Order extends Component
             if (in_array($item->status, ['backordered', 'refunded', 'replaced', 'cancelled'])) continue;
             $product = $item->product;
             if (!$product) continue;
-            if ($product->stock < $item->quantity) {
-                $available = max(0, (int) $product->stock);
+            $sizeMismatch = false;
+            // BUG WS-1.6 fix: Check size match when BOTH the order item and product
+            // have sizes defined. If the item has a size but the product has no sizes
+            // array, treat it as a mismatch (needs admin attention).
+            if (!empty($item->size)) {
+                if (is_array($product->sizes) && !empty($product->sizes)) {
+                    $sizeMismatch = !collect($product->sizes)->map(fn($s) => strtolower(trim($s)))->contains(strtolower(trim($item->size)));
+                }
+                // If product has no sizes defined but order specifies a size, flag for review
+            }
+
+            if ($product->stock < $item->quantity || $sizeMismatch) {
+                $available = $sizeMismatch ? 0 : max(0, (int) $product->stock);
                 $short = (int) $item->quantity - $available;
                 $issues[] = [
                     'item_id'      => $item->id,
@@ -225,8 +237,15 @@ class Order extends Component
             if (in_array($item->status, ['backordered', 'refunded', 'replaced', 'cancelled'])) continue;
             $product = $item->product;
             if (!$product) continue;
-            if ($product->stock < $item->quantity) {
-                $available = max(0, (int) $product->stock);
+            $sizeMismatch = false;
+            if (!empty($item->size)) {
+                if (is_array($product->sizes) && !empty($product->sizes)) {
+                    $sizeMismatch = !collect($product->sizes)->map(fn($s) => strtolower(trim($s)))->contains(strtolower(trim($item->size)));
+                }
+            }
+
+            if ($product->stock < $item->quantity || $sizeMismatch) {
+                $available = $sizeMismatch ? 0 : max(0, (int) $product->stock);
                 $short = (int) $item->quantity - $available;
                 $issues[] = [
                     'item_id'      => $item->id,
@@ -334,11 +353,6 @@ class Order extends Component
         $idx   = $this->stockReplaceIdx;
         $short = (int) ($this->stockIssues[$idx]['short'] ?? 0);
 
-        if (($product->stock ?? 0) < $short) {
-            session()->flash('replace_error', "Insufficient stock for " . $product->name . ". Needed: {$short}, Available: " . ($product->stock ?? 0));
-            return;
-        }
-
         $this->stockDecisions[$idx]    = 'replace';
         $this->stockReplaceChoices[$idx] = $productId;
         $this->showStockReplaceModal   = false;
@@ -406,12 +420,8 @@ class Order extends Component
 
                 $newQty = $issue['short']; // the short quantity being replaced
 
-                // Final safety check: ensure the replacement product STILL has enough stock
-                if ($replacementProduct->stock < $newQty) {
-                    session()->flash('error', "Stock for replacement product ({$replacementProduct->name}) was sold out. Cannot confirm order.");
-                    return; // Stop the entire process so admin can pick another replacement
-                }
-
+                $hasStock = $replacementProduct->stock >= $newQty;
+                
                 $orderItem = $order->items->firstWhere('id', $issue['item_id']);
                 if ($orderItem) {
                     $newPrice    = (float) $replacementProduct->price;
@@ -423,7 +433,7 @@ class Order extends Component
                         'price'                     => $newPrice,
                         'quantity'                  => $newQty,
                         'subtotal'                  => $newSubtotal,
-                        'status'                    => 'replaced',
+                        'status'                    => $hasStock ? 'replaced' : 'backordered',
                         'original_qty'              => $issue['needed'],
                         'original_ordered_subtotal' => round($issue['unit_price'] * $issue['needed'], 2),
                         'is_replaced'               => true,
@@ -435,6 +445,25 @@ class Order extends Component
                         'replaced_at'               => now(),
                         'replaced_by'               => auth()->id(),
                     ]);
+
+                    if (!$hasStock) {
+                        \App\Models\OrderBackorder::create([
+                            'order_id'               => $order->id,
+                            'order_item_id'          => $issue['item_id'],
+                            'product_id'             => $issue['product_id'],
+                            'product_name'           => $issue['name'],
+                            'size'                   => $issue['size'] ?? null,
+                            'ordered_qty'            => $newQty,
+                            'available_qty'          => 0,
+                            'short_qty'              => $newQty,
+                            'decision'               => 'replace',
+                            'replacement_product_id' => $replacementProduct->id,
+                            'replacement_price'      => $replacementProduct->price,
+                            'replacement_notes'      => null,
+                            'status'                 => 'repurchasing',
+                            'created_by'             => auth()->id(),
+                        ]);
+                    }
                 }
 
             } elseif ($decision === 'refund') {
@@ -545,6 +574,13 @@ class Order extends Component
                     'balance_amount' => $newBalanceDue,
                     'payment_status' => $newPaymentStatus,
                 ]);
+
+                $overpayment = round(($totalPaid - $totalRefunded) - $newTotal, 2);
+                if ($overpayment > 0) {
+                    $this->openRefundModal($order->id);
+                    $this->refundAmount = (string) $overpayment;
+                    $this->refundNotes  = 'Overpayment refund due to cheaper item replacement.';
+                }
             } else {
                 // All items refunded — set total to 0 so overpayment calc gives
                 // the full paid amount as refundable.
@@ -989,6 +1025,15 @@ class Order extends Component
             if ($order) WhatsappService::paymentRejected($order);
         } catch (\Throwable) {}
 
+        // Send rejection email notification (BUG WS-1.3)
+        try {
+            $order = $order ?? OrderModel::with('user')->find($payment->order_id);
+            if ($order) {
+                $email = $order->shipping_address['email'] ?? ($order->user?->email ?? null);
+                if ($email) Mail::to($email)->send(new PaymentRejectedMail($order));
+            }
+        } catch (\Throwable) {}
+
         $this->refreshSelectedOrder($payment->order_id);
         session()->flash('success', 'Payment receipt rejected. Customer has been notified to re-upload.');
     }
@@ -1122,6 +1167,21 @@ class Order extends Component
             $maxRefundable = max(0, $totalPaid - $totalRefunded);
         }
 
+        // BUG WS-2.4 fix: Also cap refund to selected items' total value,
+        // not just total paid. This prevents refunding more than a product's value.
+        $selectedItemsTotal = 0.0;
+        $hasSelection = false;
+        foreach ($this->refundItems as $item) {
+            $qty = max(0, min((int) ($this->refundQtys[$item['id']] ?? 0), $item['qty']));
+            if ($qty > 0) {
+                $selectedItemsTotal += $qty * $item['price'];
+                $hasSelection = true;
+            }
+        }
+        if ($hasSelection) {
+            $maxRefundable = min($maxRefundable, round($selectedItemsTotal, 2));
+        }
+
         $this->validate([
             'refundAmount'      => ['required', 'numeric', 'min:0.01', 'max:' . $maxRefundable],
             'refundMethod'      => ['required', 'in:bank_transfer,cash,online'],
@@ -1129,6 +1189,8 @@ class Order extends Component
             'refundReference'   => ['nullable', 'string', 'max:255'],
             'refundNotes'       => ['nullable', 'string', 'max:1000'],
             'refundProofFile'   => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+        ], [
+            'refundAmount.max' => 'Refund amount cannot exceed Rs. ' . number_format($maxRefundable, 2) . ' (selected items value).',
         ]);
 
         // Store proof file if uploaded

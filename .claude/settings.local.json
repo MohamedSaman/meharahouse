@@ -24,7 +24,9 @@
       "Bash(npx pwa-asset-generator:*)",
       "Bash(xargs ls:*)",
       "Bash(wc -l /c/Users/MY/Documents/ssh/meharahouse/app/Livewire/Admin/*.php)",
-      "Bash(find C:\\\\Users\\\\MY\\\\Documents\\\\ssh\\\\meharahouse:*)"
+      "Bash(find C:\\\\Users\\\\MY\\\\Documents\\\\ssh\\\\meharahouse:*)",
+      "Bash(python -c ':*)",
+      "Bash(pip install:*)"
     ]
   }
 }

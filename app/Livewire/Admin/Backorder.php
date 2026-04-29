@@ -36,6 +36,7 @@ class Backorder extends Component
     public $selectedReplacementId    = null;
     public $replacementSize           = '';
     public $replaceNotes             = '';
+    public bool $isOverpaymentRefund = false;
     // Price diff tracking (set when modal opens / product selected)
     public $originalItemPrice        = 0.0;  // price per unit from order item
     public $replacingQty             = 0;    // short_qty of the backorder
@@ -185,14 +186,21 @@ class Backorder extends Component
             ->count();
 
         if ($remaining === 0 && $bo->order) {
-            $bo->order->logStatus(
-                $bo->order->status,
+            $order = $bo->order;
+            $order->logStatus(
+                $order->status,
                 'All backorders completed — order fully fulfilled.',
                 auth()->id()
             );
-            // Update order to 'delivered' if it was still pending/in-transit
-            if (in_array($bo->order->status, ['sourcing', 'confirmed', 'dispatched'])) {
-                $bo->order->update(['status' => 'delivered']);
+            // BUG WS-1.1 fix: Update order status from sourcing/confirmed/dispatched
+            // to 'delivered', then check if it can be auto-completed (all paid).
+            if (in_array($order->status, ['sourcing', 'confirmed', 'dispatched'])) {
+                $order->update(['status' => 'delivered']);
+            }
+            // Auto-complete if fully paid and delivered
+            if ($order->fresh()->status === 'delivered' && $order->balanceDue() <= 0) {
+                $order->logStatus('completed', 'Order auto-completed — all backorders fulfilled and fully paid.', auth()->id());
+                $order->update(['status' => 'completed', 'payment_status' => 'paid']);
             }
         }
 
@@ -243,6 +251,40 @@ class Backorder extends Component
 
     public function confirmRefund(): void
     {
+        if ($this->isOverpaymentRefund) {
+            $this->validate([
+                'refundAmount' => ['required', 'numeric', 'min:0.01'],
+                'refundMethod' => ['required', 'string'],
+            ]);
+
+            $bo    = OrderBackorder::with(['order'])->findOrFail($this->refundingBoId);
+            $order = $bo->order;
+
+            \DB::transaction(function() use ($order) {
+                \App\Models\Refund::create([
+                    'order_id'              => $order->id,
+                    'customer_id'           => $order->user_id,
+                    'amount'                => (float) $this->refundAmount,
+                    'method'                => $this->refundMethod,
+                    'customer_bank_account' => $this->customerBankAccount ?: null,
+                    'notes'                 => $this->refundNotes ?: null,
+                    'status'                => 'processed',
+                    'processed_by'          => auth()->id(),
+                    'processed_at'          => now(),
+                ]);
+
+                $newBalance = max(0, (float) $order->balance_amount - (float) $this->refundAmount);
+                $order->update(['balance_amount' => $newBalance]);
+                $order->logStatus($order->status, "Overpayment refund of LKR " . $this->refundAmount . " processed.", auth()->id());
+            });
+
+            $this->showRefundModal = false;
+            $this->isOverpaymentRefund = false;
+            $this->refreshDetail();
+            session()->flash('success', "Overpayment refund of LKR " . number_format((float)$this->refundAmount, 2) . " processed.");
+            return;
+        }
+
         $bo    = OrderBackorder::with(['order', 'orderItem', 'product'])->findOrFail($this->refundingBoId);
         $unitPrice = $bo->orderItem ? (float) $bo->orderItem->price : ($bo->product ? (float) $bo->product->price : 0);
         $maxRefund = round($unitPrice * $bo->short_qty, 2);
@@ -495,6 +537,22 @@ class Backorder extends Component
         $this->selectedReplacementId    = null;
         $this->replacementSize          = '';
         $this->selectedReplacementPrice = 0.0;
+
+        $refundNeeded = isset($refundNeeded) ? $refundNeeded : 0.0;
+        if ($refundNeeded > 0) {
+            $this->refundingBoId       = $bo->id;
+            $this->refundQty           = (int) $qty;
+            $this->refundAmount        = (string) $refundNeeded;
+            $this->refundMethod        = 'bank_transfer';
+            $this->customerBankAccount = '';
+            $this->refundNotes         = "Overpayment refund for cheaper replacement.";
+            $this->isOverpaymentRefund = true;
+            $this->showRefundModal     = true;
+            
+            session()->flash('success', "Replaced with \"{$replacement->name}\". Refund required.");
+            $this->refreshDetail();
+            return;
+        }
 
         if (!$hasStock) {
             session()->flash('success', "Replacement set to \"{$replacement->name}\" (out of stock). Status remains Repurchasing.");

@@ -132,7 +132,17 @@ class ProductDetails extends Component
     public function preOrderNow(): void
     {
         $this->validateSize();
-        $this->putInCart();
+
+        // Store buy-now item in session so checkout uses ONLY this product,
+        // not the existing cart items. This prevents cart items from being
+        // unknowingly added to the order (BUG WS-1.5).
+        session()->put('buy_now', [
+            'product_id' => $this->product->id,
+            'quantity'   => max(1, $this->quantity),
+            'size'       => trim($this->size) ?: null,
+            'color'      => trim($this->color) ?: null,
+        ]);
+
         $this->redirect(route('webpage.checkout'));
     }
 

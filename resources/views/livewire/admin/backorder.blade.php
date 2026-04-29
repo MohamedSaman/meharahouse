@@ -754,8 +754,9 @@
                 {{-- ── Live price difference alert ───────────────────── --}}
                 @if($selectedReplacementId && $selectedReplacementPrice > 0 && $originalItemPrice > 0)
                 @php
-                    $totalOrig    = round($originalItemPrice * $replacingQty, 2);
-                    $totalNew     = round($selectedReplacementPrice * $replacingQty, 2);
+                    $effectiveReplaceQty = max(1, min((int) $replaceQty, (int) $replacingQty));
+                    $totalOrig    = round($originalItemPrice * $effectiveReplaceQty, 2);
+                    $totalNew     = round($selectedReplacementPrice * $effectiveReplaceQty, 2);
                     $diffAmount   = round($totalNew - $totalOrig, 2);
 
                     // Half-payment context

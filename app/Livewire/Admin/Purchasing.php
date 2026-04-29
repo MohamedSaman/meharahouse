@@ -169,9 +169,12 @@ class Purchasing extends Component
             'poItems.*.product_name'=> ['required', 'string', 'max:255'],
             'poItems.*.qty_ordered' => ['required', 'integer', 'min:1'],
             'poItems.*.unit_cost'   => ['required', 'numeric', 'min:0'],
+            'poItems.*.size'        => ['required', 'string', 'min:1', 'max:50'],
         ], [
             'supplierId.min'    => 'Please select a supplier.',
             'poItems.min'       => 'Add at least one item to the purchase order.',
+            'poItems.*.size.required' => 'The size field is mandatory for each item.',
+            'poItems.*.size.min'      => 'The size field cannot be empty.',
         ]);
 
         $subtotal = collect($this->poItems)->sum(
@@ -326,7 +329,13 @@ class Purchasing extends Component
         foreach ($pendingOrders as $order) {
             $canConfirm = true;
             foreach ($order->items as $item) {
-                if (!$item->product || $item->product->stock < $item->quantity) {
+                $product = $item->product;
+                $sizeMismatch = false;
+                if ($product && !empty($item->size) && is_array($product->sizes) && !empty($product->sizes)) {
+                    $sizeMismatch = !collect($product->sizes)->map(fn($s) => strtolower(trim($s)))->contains(strtolower(trim($item->size)));
+                }
+
+                if (!$product || $product->stock < $item->quantity || $sizeMismatch) {
                     $canConfirm = false;
                     break;
                 }
@@ -388,9 +397,18 @@ class Purchasing extends Component
             ->get();
 
         $fulfillable = [];
+        $virtualStock = [];
+
         foreach ($backorders as $bo) {
-            $stock = (int) ($bo->product?->stock ?? 0);
-            if ($stock >= $bo->short_qty) {
+            $pid = $bo->isReplacement() ? $bo->replacement_product_id : $bo->product_id;
+            if (!$pid) continue;
+
+            if (!isset($virtualStock[$pid])) {
+                $product = $bo->isReplacement() ? $bo->replacementProduct : $bo->product;
+                $virtualStock[$pid] = (int) ($product?->stock ?? 0);
+            }
+
+            if ($virtualStock[$pid] >= $bo->short_qty) {
                 $fulfillable[] = [
                     'id'           => $bo->id,
                     'order_number' => $bo->order?->order_number ?? 'N/A',
@@ -398,8 +416,9 @@ class Purchasing extends Component
                     'product_name' => $bo->product_name,
                     'size'         => $bo->size ?? '',
                     'short_qty'    => $bo->short_qty,
-                    'stock'        => $stock,
+                    'stock'        => $virtualStock[$pid],
                 ];
+                $virtualStock[$pid] -= $bo->short_qty;
             }
         }
 
@@ -481,8 +500,11 @@ class Purchasing extends Component
 
     public function generatePurchasingPlan(): void
     {
+        // BUG WS-1.3 fix: Only include confirmed/sourcing orders in purchasing plan.
+        // Unconfirmed orders (new, payment_received) should not appear because admin
+        // hasn't verified the payment or confirmed the order yet.
         $orders = Order::with('items.product')
-            ->whereIn('status', ['new', 'payment_received'])
+            ->whereIn('status', ['confirmed', 'sourcing'])
             ->get();
 
         $this->planOrderIds = $orders->pluck('id')->toArray();

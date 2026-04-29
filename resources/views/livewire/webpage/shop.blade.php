@@ -93,7 +93,7 @@
                 @else
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     @foreach($products as $product)
-                    <div wire:key="{{ $product->id }}" class="product-card group" x-data="{ inWishlist: false }">
+                    <div wire:key="{{ $product->id }}" class="product-card group" x-data="{ inWishlist: @json(auth()->check() && \App\Models\Wishlist::where('user_id', auth()->id())->where('product_id', $product->id)->exists()) }">
                         <div class="product-img-wrap h-52 relative">
                             @if(!empty($product->images))
                             <img src="{{ $product->primaryImage() }}" alt="{{ $product->name }}" loading="lazy" class="w-full h-full object-cover">
@@ -112,7 +112,7 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     View
                                 </a>
-                                <button @click="inWishlist = !inWishlist" :class="inWishlist ? 'text-red-500' : 'text-[#475569]'" class="p-2 rounded-lg bg-white border border-[#E2E8F0] hover:border-red-200 transition-all duration-200">
+                                <button wire:click="toggleWishlist({{ $product->id }})" @click="inWishlist = !inWishlist" :class="inWishlist ? 'text-red-500' : 'text-[#475569]'" class="p-2 rounded-lg bg-white border border-[#E2E8F0] hover:border-red-200 transition-all duration-200">
                                     <svg class="w-4 h-4" :fill="inWishlist ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                                 </button>
                             </div>

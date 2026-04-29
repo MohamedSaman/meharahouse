@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Wishlist;
 
 class Shop extends Component
 {
@@ -42,6 +43,29 @@ class Shop extends Component
     {
         $this->categorySlug = $slug;
         $this->resetPage();
+    }
+
+    public function toggleWishlist(int $productId): void
+    {
+        if (!auth()->check()) {
+            $this->redirect(route('auth.login'));
+            return;
+        }
+
+        $wishlist = Wishlist::where('user_id', auth()->id())
+            ->where('product_id', $productId)
+            ->first();
+
+        if ($wishlist) {
+            $wishlist->delete();
+            session()->flash('info', 'Removed from wishlist.');
+        } else {
+            Wishlist::create([
+                'user_id'    => auth()->id(),
+                'product_id' => $productId,
+            ]);
+            session()->flash('success', 'Added to wishlist!');
+        }
     }
 
     public function clearFilters(): void
